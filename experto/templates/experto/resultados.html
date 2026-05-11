@@ -95,8 +95,113 @@
   </div>
 </div>
 
+<!-- Progreso del Estudiante -->
+<div class="section-card" style="margin-bottom: 1.5rem;">
+  <div class="section-card-header">
+    <h2>📈 Evolución del Estudiante</h2>
+  </div>
+  <div style="position: relative; height:300px; width:100%">
+    <canvas id="progresoChart"></canvas>
+  </div>
+</div>
+
 <!-- Botón de impresión -->
 <div class="print-bar">
   <button onclick="window.print()" class="btn btn-outline">🖨️ Imprimir / Exportar PDF</button>
 </div>
+
+<!-- Scripts para la gráfica -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const chartData = JSON.parse('{{ chart_data|escapejs }}');
+    
+    // Configuración global de fuentes y colores para Chart.js
+    Chart.defaults.color = '#9895B5';
+    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+    
+    const ctx = document.getElementById('progresoChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.fechas,
+        datasets: [
+          {
+            label: 'Dificultad Comunicación',
+            data: chartData.comunicacion,
+            borderColor: '#6C63FF',
+            backgroundColor: 'rgba(108,99,255,0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: '#6C63FF'
+          },
+          {
+            label: 'Conductas Repetitivas',
+            data: chartData.conducta,
+            borderColor: '#EF476F',
+            backgroundColor: 'rgba(239,71,111,0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: '#EF476F'
+          },
+          {
+            label: 'Interacción Social (Dificultad)',
+            data: chartData.social,
+            borderColor: '#06D6A0',
+            backgroundColor: 'rgba(6,214,160,0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: '#06D6A0'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            min: 0,
+            max: 4,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: {
+              stepSize: 1,
+              callback: function(value) {
+                if (value === 1) return 'Bajo';
+                if (value === 2) return 'Medio';
+                if (value === 3) return 'Alto';
+                return '';
+              }
+            }
+          },
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { boxWidth: 12, usePointStyle: true, padding: 20 }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(26,25,41,0.9)',
+            titleColor: '#E8E6F0',
+            bodyColor: '#E8E6F0',
+            borderColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 1
+          }
+        },
+        interaction: {
+          mode: 'nearest',
+          axis: 'x',
+          intersect: false
+        }
+      }
+    });
+  });
+</script>
 {% endblock %}
