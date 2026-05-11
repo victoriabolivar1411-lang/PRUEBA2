@@ -12,6 +12,7 @@ Descripción: Controladores (vistas) de Django que manejan el flujo de la
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+import json
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib import messages
 from django.db.models import Count
@@ -237,6 +238,31 @@ def resultados(request, evaluacion_pk):
         ('Interés por pares',          'Sí' if evaluacion.interes_pares else 'No'),
     ]
 
+    # Historial para la gráfica
+    historial = Evaluacion.objects.filter(
+        estudiante=evaluacion.estudiante,
+        fecha_evaluacion__lte=evaluacion.fecha_evaluacion
+    ).order_by('fecha_evaluacion')
+    
+    fechas = []
+    comunicacion = []
+    conducta = []
+    social = []
+    mapa_niveles = {'bajo': 1, 'medio': 2, 'alto': 3}
+    
+    for ev in historial:
+        fechas.append(ev.fecha_evaluacion.strftime("%d/%m/%Y"))
+        comunicacion.append(mapa_niveles.get(ev.dificultad_comunicacion, 0))
+        conducta.append(mapa_niveles.get(ev.conductas_repetitivas, 0))
+        social.append(mapa_niveles.get(ev.interaccion_social, 0))
+        
+    chart_data = json.dumps({
+        'fechas': fechas,
+        'comunicacion': comunicacion,
+        'conducta': conducta,
+        'social': social
+    })
+
     return render(request, 'experto/resultados.html', {
         'evaluacion':      evaluacion,
         'estudiante':      evaluacion.estudiante,
@@ -245,6 +271,7 @@ def resultados(request, evaluacion_pk):
         'grupos':          grupos,
         'hechos':          hechos,
         'total':           recomendaciones.count(),
+        'chart_data':      chart_data,
     })
 
 
