@@ -1,0 +1,77 @@
+{% extends 'experto/base.html' %}
+{% block title %}Registro de Instructor — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">👨‍🏫</div>
+      <h1 class="auth-title">Crear cuenta de Instructor</h1>
+      <p class="auth-subtitle">Regístrate para acceder al sistema experto pedagógico</p>
+    </div>
+
+    <form method="post" class="auth-form" novalidate>
+      {% csrf_token %}
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="id_first_name">Nombre</label>
+          {{ form.first_name }}
+          {% if form.first_name.errors %}<span class="form-error">{{ form.first_name.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="id_last_name">Apellido</label>
+          {{ form.last_name }}
+          {% if form.last_name.errors %}<span class="form-error">{{ form.last_name.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_email">Correo electrónico</label>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="form-error">{{ form.email.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_username">Nombre de usuario</label>
+        {{ form.username }}
+        {% if form.username.errors %}<span class="form-error">{{ form.username.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="id_telefono">Teléfono</label>
+          {{ form.telefono }}
+        </div>
+        <div class="form-group">
+          <label for="id_especialidad">Especialidad / Cargo</label>
+          {{ form.especialidad }}
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="id_password1">Contraseña</label>
+          {{ form.password1 }}
+          {% if form.password1.errors %}<span class="form-error">{{ form.password1.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="id_password2">Confirmar contraseña</label>
+          {{ form.password2 }}
+          {% if form.password2.errors %}<span class="form-error">{{ form.password2.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="form-error-box">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block">Crear cuenta</button>
+    </form>
+
+    <p class="auth-footer">
+      ¿Ya tienes una cuenta? <a href="{% url 'login' %}">Iniciar sesión</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

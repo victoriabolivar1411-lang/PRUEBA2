@@ -1,0 +1,53 @@
+{% extends 'experto/base.html' %}
+{% block title %}Base de Conocimientos — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Base de Conocimientos</h1>
+    <p class="page-subtitle">{{ total_reglas }} regla(s) SI-ENTONCES activas en el motor de inferencia</p>
+  </div>
+</div>
+
+<div class="info-banner">
+  <span class="info-banner-icon">ℹ️</span>
+  <span>
+    Estas reglas son evaluadas por el <strong>motor de encadenamiento hacia adelante (Forward Chaining)</strong>
+    cada vez que se realiza una evaluación. Si la condición de una regla coincide con los hechos del estudiante,
+    la regla se <em>dispara</em> y genera una recomendación pedagógica.
+  </span>
+</div>
+
+{% for categoria, reglas in grupos.items %}
+<div class="section-card">
+  <div class="section-card-header">
+    <h2>
+      {% if 'Comunicaci' in categoria %}🗣️
+      {% elif 'Conducta' in categoria %}🔄
+      {% elif 'Social' in categoria %}🤝
+      {% else %}📌{% endif %}
+      {{ categoria }}
+    </h2>
+    <span class="rec-count">{{ reglas|length }} regla(s)</span>
+  </div>
+  <div class="rules-list">
+    {% for regla in reglas %}
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="rule-name">{{ regla.nombre }}</span>
+        <span class="rule-priority">Prioridad: {{ regla.prioridad }}</span>
+      </div>
+      <div class="rule-condition">
+        <span class="rule-if">SI</span>
+        <code>{{ regla.campo_condicion }} {{ regla.operador }} "{{ regla.valor_condicion }}"</code>
+      </div>
+      <div class="rule-action">
+        <span class="rule-then">ENTONCES</span>
+        <p>{{ regla.accion }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

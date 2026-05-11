@@ -1,0 +1,57 @@
+{% extends 'experto/base.html' %}
+{% block title %}Registrar Estudiante — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Registrar Estudiante</h1>
+    <p class="page-subtitle">Ingresa los datos del estudiante con TEA</p>
+  </div>
+  <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="form-card">
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    <div class="form-section">
+      <h2 class="form-section-title">📋 Datos Personales</h2>
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="id_nombre">Nombre</label>
+          {{ form.nombre }}
+          {% if form.nombre.errors %}<span class="form-error">{{ form.nombre.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="id_apellido">Apellido</label>
+          {{ form.apellido }}
+          {% if form.apellido.errors %}<span class="form-error">{{ form.apellido.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label for="id_fecha_nacimiento">Fecha de nacimiento</label>
+          {{ form.fecha_nacimiento }}
+          {% if form.fecha_nacimiento.errors %}<span class="form-error">{{ form.fecha_nacimiento.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="id_nivel_tea">Nivel TEA</label>
+          {{ form.nivel_tea }}
+          {% if form.nivel_tea.errors %}<span class="form-error">{{ form.nivel_tea.errors|join:", " }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_observaciones">Observaciones generales</label>
+        {{ form.observaciones }}
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">Cancelar</a>
+      <button type="submit" class="btn btn-primary">Registrar estudiante</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

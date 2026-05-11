@@ -1,0 +1,49 @@
+{% extends 'experto/base.html' %}
+{% block title %}Historial de Evaluaciones{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Historial de Evaluaciones</h1>
+    <p class="page-subtitle">{{ evaluaciones.count }} evaluación(es) en total</p>
+  </div>
+</div>
+
+{% if evaluaciones %}
+  <div class="section-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Estudiante</th>
+          <th>Comunicación</th>
+          <th>Conducta Repetitiva</th>
+          <th>Interacción Social</th>
+          <th>Crisis</th>
+          <th>Fecha</th>
+          <th>Resultados</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in evaluaciones %}
+        <tr>
+          <td><a href="{% url 'detalle_estudiante' ev.estudiante.pk %}"><strong>{{ ev.estudiante.nombre_completo }}</strong></a></td>
+          <td><span class="badge badge-{{ ev.dificultad_comunicacion }}">{{ ev.get_dificultad_comunicacion_display }}</span></td>
+          <td><span class="badge badge-{{ ev.conductas_repetitivas }}">{{ ev.get_conductas_repetitivas_display }}</span></td>
+          <td><span class="badge badge-{{ ev.interaccion_social }}">{{ ev.get_interaccion_social_display }}</span></td>
+          <td>{% if ev.crisis_frecuentes %}<span class="badge badge-alto">Sí</span>{% else %}<span class="badge badge-bajo">No</span>{% endif %}</td>
+          <td>{{ ev.fecha_evaluacion|date:"d/m/Y H:i" }}</td>
+          <td><a href="{% url 'resultados' ev.pk %}" class="btn-table">Ver →</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-state empty-state-lg">
+    <div class="empty-icon">📋</div>
+    <h2>Sin evaluaciones aún</h2>
+    <p>Comienza evaluando a un estudiante.</p>
+    <a href="{% url 'lista_estudiantes' %}" class="btn btn-primary">Ir a estudiantes</a>
+  </div>
+{% endif %}
+{% endblock %}

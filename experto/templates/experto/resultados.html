@@ -1,0 +1,102 @@
+{% extends 'experto/base.html' %}
+{% block title %}Resultados — {{ estudiante.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Resultados del Sistema Experto</h1>
+    <p class="page-subtitle">
+      Estudiante: <strong>{{ estudiante.nombre_completo }}</strong> ·
+      Evaluación: {{ evaluacion.fecha_evaluacion|date:"d/m/Y H:i" }}
+    </p>
+  </div>
+  <div class="header-actions">
+    <a href="{% url 'nueva_evaluacion' estudiante.pk %}" class="btn btn-ghost">Nueva evaluación</a>
+    <a href="{% url 'detalle_estudiante' estudiante.pk %}" class="btn btn-outline">← Perfil del estudiante</a>
+  </div>
+</div>
+
+<!-- Resumen del motor de inferencia -->
+<div class="inference-summary">
+  <div class="inference-badge">
+    <span class="inference-icon">🤖</span>
+    <div>
+      <div class="inference-title">Motor de Inferencia — Forward Chaining</div>
+      <div class="inference-detail">
+        Se dispararon <strong>{{ total }}</strong> regla(s) de la base de conocimientos
+        en base a los hechos evaluados.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="results-layout">
+  <!-- Hechos evaluados (Working Memory) -->
+  <div class="facts-card">
+    <h2 class="card-title">📊 Hechos Evaluados <small>(Working Memory)</small></h2>
+    <table class="facts-table">
+      <thead>
+        <tr><th>Área / Campo</th><th>Valor</th></tr>
+      </thead>
+      <tbody>
+        {% for label, valor in hechos %}
+        <tr>
+          <td>{{ label }}</td>
+          <td>
+            <span class="fact-value
+              {% if valor == 'Alto' or valor == 'No' %}fact-high
+              {% elif valor == 'Medio' %}fact-med
+              {% else %}fact-low{% endif %}">
+              {{ valor }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if evaluacion.notas_adicionales %}
+      <div class="notes-box">
+        <strong>Notas del instructor:</strong>
+        <p>{{ evaluacion.notas_adicionales }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Recomendaciones generadas -->
+  <div class="recommendations-panel">
+    <h2 class="card-title">💡 Recomendaciones Pedagógicas Generadas</h2>
+
+    {% if grupos %}
+      {% for categoria, recs in grupos.items %}
+      <div class="rec-group">
+        <div class="rec-group-header">
+          {% if 'Comunicaci' in categoria %}🗣️
+          {% elif 'Conducta' in categoria %}🔄
+          {% elif 'Social' in categoria %}🤝
+          {% else %}📌{% endif %}
+          {{ categoria }}
+          <span class="rec-count">{{ recs|length }} recomendación(es)</span>
+        </div>
+        {% for rec in recs %}
+        <div class="rec-card">
+          <div class="rec-rule-tag">Regla: {{ rec.regla.nombre }}</div>
+          <p class="rec-text">{{ rec.texto }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <p>Ninguna regla fue disparada con los valores ingresados.</p>
+        <p class="text-muted">Intenta ajustar los valores de la evaluación.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Botón de impresión -->
+<div class="print-bar">
+  <button onclick="window.print()" class="btn btn-outline">🖨️ Imprimir / Exportar PDF</button>
+</div>
+{% endblock %}

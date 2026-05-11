@@ -1,0 +1,75 @@
+{% extends 'experto/base.html' %}
+{% block title %}Inicio — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🧩 Sistema Experto Pedagógico</div>
+    <h1 class="hero-title">Apoyo Inteligente para<br><span class="gradient-text">Instructores TEA</span></h1>
+    <p class="hero-subtitle">
+      Un sistema basado en reglas y encadenamiento hacia adelante que analiza el perfil
+      de cada estudiante con Trastorno del Espectro Autista y genera recomendaciones
+      pedagógicas personalizadas de forma automática.
+    </p>
+    <div class="hero-actions">
+      <a href="{% url 'registro_instructor' %}" class="btn btn-primary btn-lg">Comenzar ahora</a>
+      <a href="{% url 'login' %}" class="btn btn-ghost btn-lg">Ya tengo cuenta</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="feature-cards">
+      <div class="feature-card">
+        <div class="feature-icon">🗣️</div>
+        <h3>Comunicación</h3>
+        <p>Evalúa dificultades de expresión y genera estrategias de CAA</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>Conducta</h3>
+        <p>Detecta patrones repetitivos y sensibilidad sensorial</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤝</div>
+        <h3>Interacción Social</h3>
+        <p>Recomienda dinámicas de integración grupal guiada</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Motor de Inferencia</h3>
+        <p>Forward chaining con reglas SI→ENTONCES especializadas</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how-it-works">
+  <div class="container">
+    <h2 class="section-title">¿Cómo funciona?</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Registro</h3>
+        <p>El instructor crea su cuenta y registra a sus estudiantes con TEA.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Evaluación</h3>
+        <p>Completa el formulario de evaluación en las 3 áreas clave.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Inferencia</h3>
+        <p>El motor analiza los hechos y dispara las reglas aplicables.</p>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Recomendaciones</h3>
+        <p>Recibe estrategias pedagógicas concretas y recursos didácticos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

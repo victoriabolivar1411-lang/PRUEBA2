@@ -1,0 +1,40 @@
+{% extends 'experto/base.html' %}
+{% block title %}Iniciar Sesión — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-icon">🔐</div>
+      <h1 class="auth-title">Iniciar sesión</h1>
+      <p class="auth-subtitle">Accede al sistema experto pedagógico TEA</p>
+    </div>
+
+    <form method="post" class="auth-form" novalidate>
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_username">Usuario</label>
+        {{ form.username }}
+        {% if form.username.errors %}<span class="form-error">{{ form.username.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_password">Contraseña</label>
+        {{ form.password }}
+        {% if form.password.errors %}<span class="form-error">{{ form.password.errors|join:", " }}</span>{% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+        <div class="form-error-box">{{ form.non_field_errors|join:", " }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-block">Ingresar al sistema</button>
+    </form>
+
+    <p class="auth-footer">
+      ¿No tienes cuenta? <a href="{% url 'registro_instructor' %}">Regístrate aquí</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

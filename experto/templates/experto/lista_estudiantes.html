@@ -1,0 +1,41 @@
+{% extends 'experto/base.html' %}
+{% block title %}Estudiantes — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Mis Estudiantes</h1>
+    <p class="page-subtitle">{{ estudiantes.count }} estudiante(s) registrado(s)</p>
+  </div>
+  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">+ Nuevo estudiante</a>
+</div>
+
+{% if estudiantes %}
+  <div class="student-list">
+    {% for est in estudiantes %}
+    <div class="student-row">
+      <div class="student-avatar-lg">{{ est.nombre|first }}{{ est.apellido|first }}</div>
+      <div class="student-row-info">
+        <div class="student-row-name">{{ est.nombre_completo }}</div>
+        <div class="student-row-meta">
+          TEA Nivel {{ est.nivel_tea }} ·
+          {{ est.fecha_nacimiento|date:"d/m/Y" }} ·
+          {{ est.num_evaluaciones }} evaluación(es)
+        </div>
+      </div>
+      <div class="student-row-actions">
+        <a href="{% url 'nueva_evaluacion' est.pk %}" class="btn btn-primary-sm">Evaluar</a>
+        <a href="{% url 'detalle_estudiante' est.pk %}" class="btn btn-ghost-sm">Ver perfil</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state empty-state-lg">
+    <div class="empty-icon">👦</div>
+    <h2>No hay estudiantes registrados</h2>
+    <p>Comienza registrando el primer estudiante con TEA.</p>
+    <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">Registrar estudiante</a>
+  </div>
+{% endif %}
+{% endblock %}

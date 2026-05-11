@@ -1,0 +1,49 @@
+{% extends 'experto/base.html' %}
+{% block title %}{{ estudiante.nombre_completo }} — Perfil{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ estudiante.nombre_completo }}</h1>
+    <p class="page-subtitle">TEA Nivel {{ estudiante.nivel_tea }} · Registrado el {{ estudiante.fecha_registro|date:"d/m/Y" }}</p>
+  </div>
+  <div class="header-actions">
+    <a href="{% url 'nueva_evaluacion' estudiante.pk %}" class="btn btn-primary">+ Nueva evaluación</a>
+    <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">← Volver</a>
+  </div>
+</div>
+
+<div class="profile-grid">
+  <div class="profile-card">
+    <div class="profile-avatar">{{ estudiante.nombre|first }}{{ estudiante.apellido|first }}</div>
+    <div class="profile-detail"><strong>Fecha de nacimiento:</strong> {{ estudiante.fecha_nacimiento|date:"d/m/Y" }}</div>
+    <div class="profile-detail"><strong>Instructor:</strong> {{ estudiante.instructor }}</div>
+    <div class="profile-detail"><strong>Nivel TEA:</strong> {{ estudiante.get_nivel_tea_display }}</div>
+    {% if estudiante.observaciones %}
+      <div class="profile-obs"><strong>Observaciones:</strong><br>{{ estudiante.observaciones }}</div>
+    {% endif %}
+  </div>
+
+  <div class="evaluations-history">
+    <h2 class="card-title">📋 Historial de Evaluaciones ({{ evaluaciones.count }})</h2>
+    {% if evaluaciones %}
+      {% for ev in evaluaciones %}
+      <div class="eval-history-row">
+        <div class="eval-history-date">{{ ev.fecha_evaluacion|date:"d/m/Y H:i" }}</div>
+        <div class="eval-badges">
+          <span class="badge badge-{{ ev.dificultad_comunicacion }}">Com: {{ ev.get_dificultad_comunicacion_display }}</span>
+          <span class="badge badge-{{ ev.conductas_repetitivas }}">Con: {{ ev.get_conductas_repetitivas_display }}</span>
+          <span class="badge badge-{{ ev.interaccion_social }}">Soc: {{ ev.get_interaccion_social_display }}</span>
+        </div>
+        <a href="{% url 'resultados' ev.pk %}" class="btn-table">Ver resultados →</a>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state">
+        <p>No hay evaluaciones para este estudiante aún.</p>
+        <a href="{% url 'nueva_evaluacion' estudiante.pk %}" class="btn btn-primary-sm">Realizar primera evaluación</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

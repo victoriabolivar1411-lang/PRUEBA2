@@ -1,0 +1,123 @@
+{% extends 'experto/base.html' %}
+{% block title %}Evaluación — {{ estudiante.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Evaluación Pedagógica</h1>
+    <p class="page-subtitle">Estudiante: <strong>{{ estudiante.nombre_completo }}</strong> · TEA Nivel {{ estudiante.nivel_tea }}</p>
+  </div>
+  <a href="{% url 'detalle_estudiante' estudiante.pk %}" class="btn btn-ghost">← Volver</a>
+</div>
+
+<div class="info-banner">
+  <span class="info-banner-icon">🤖</span>
+  <span>Al guardar, el <strong>motor de inferencia</strong> analizará automáticamente los datos y generará recomendaciones pedagógicas basadas en las reglas del sistema experto.</span>
+</div>
+
+<form method="post" novalidate>
+  {% csrf_token %}
+  <div class="eval-grid">
+
+    <!-- ÁREA 1: Comunicación -->
+    <div class="eval-card eval-comunicacion">
+      <div class="eval-card-header">
+        <div class="eval-card-icon">🗣️</div>
+        <div>
+          <h2 class="eval-card-title">Área 1: Comunicación</h2>
+          <p class="eval-card-desc">Evalúa las habilidades comunicativas del estudiante</p>
+        </div>
+      </div>
+      <div class="eval-fields">
+        <div class="form-group">
+          <label for="id_dificultad_comunicacion">Nivel de dificultad en comunicación</label>
+          {{ form.dificultad_comunicacion }}
+          {% if form.dificultad_comunicacion.errors %}<span class="form-error">{{ form.dificultad_comunicacion.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group form-check-group">
+          <label class="check-label">
+            {{ form.usa_lenguaje_verbal }}
+            <span>¿El estudiante usa lenguaje verbal?</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÁREA 2: Conducta -->
+    <div class="eval-card eval-conducta">
+      <div class="eval-card-header">
+        <div class="eval-card-icon">🔄</div>
+        <div>
+          <h2 class="eval-card-title">Área 2: Conducta</h2>
+          <p class="eval-card-desc">Evalúa los patrones conductuales y sensoriales</p>
+        </div>
+      </div>
+      <div class="eval-fields">
+        <div class="form-group">
+          <label for="id_conductas_repetitivas">Frecuencia de conductas repetitivas</label>
+          {{ form.conductas_repetitivas }}
+          {% if form.conductas_repetitivas.errors %}<span class="form-error">{{ form.conductas_repetitivas.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label for="id_reacciones_sensoriales">Intensidad de reacciones sensoriales</label>
+          {{ form.reacciones_sensoriales }}
+          {% if form.reacciones_sensoriales.errors %}<span class="form-error">{{ form.reacciones_sensoriales.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group form-check-group">
+          <label class="check-label">
+            {{ form.crisis_frecuentes }}
+            <span>¿Presenta crisis de conducta frecuentes?</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÁREA 3: Interacción Social -->
+    <div class="eval-card eval-social">
+      <div class="eval-card-header">
+        <div class="eval-card-icon">🤝</div>
+        <div>
+          <h2 class="eval-card-title">Área 3: Interacción Social</h2>
+          <p class="eval-card-desc">Evalúa las habilidades de socialización del estudiante</p>
+        </div>
+      </div>
+      <div class="eval-fields">
+        <div class="form-group">
+          <label for="id_interaccion_social">Nivel de interacción social</label>
+          {{ form.interaccion_social }}
+          {% if form.interaccion_social.errors %}<span class="form-error">{{ form.interaccion_social.errors|join:", " }}</span>{% endif %}
+        </div>
+        <div class="form-group form-check-group">
+          <label class="check-label">
+            {{ form.interes_pares }}
+            <span>¿Muestra interés espontáneo por interactuar con sus pares?</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notas adicionales -->
+    <div class="eval-card eval-notas">
+      <div class="eval-card-header">
+        <div class="eval-card-icon">📝</div>
+        <div>
+          <h2 class="eval-card-title">Notas adicionales</h2>
+          <p class="eval-card-desc">Observaciones del instructor (opcional)</p>
+        </div>
+      </div>
+      <div class="eval-fields">
+        <div class="form-group">
+          {{ form.notas_adicionales }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-actions form-actions-center">
+    <a href="{% url 'detalle_estudiante' estudiante.pk %}" class="btn btn-ghost">Cancelar</a>
+    <button type="submit" class="btn btn-primary btn-lg">
+      🤖 Evaluar y generar recomendaciones
+    </button>
+  </div>
+</form>
+{% endblock %}
