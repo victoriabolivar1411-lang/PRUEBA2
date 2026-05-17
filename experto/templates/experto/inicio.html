@@ -1,75 +1,109 @@
 {% extends 'experto/base.html' %}
 {% block title %}Inicio — Sistema Experto TEA{% endblock %}
-
 {% block content %}
-<section class="hero">
-  <div class="hero-content">
-    <div class="hero-badge">🧩 Sistema Experto Pedagógico</div>
-    <h1 class="hero-title">Apoyo Inteligente para<br><span class="gradient-text">Instructores TEA</span></h1>
-    <p class="hero-subtitle">
-      Un sistema basado en reglas y encadenamiento hacia adelante que analiza el perfil
-      de cada estudiante con Trastorno del Espectro Autista y genera recomendaciones
-      pedagógicas personalizadas de forma automática.
+<style>
+  .hero {
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+    background: radial-gradient(ellipse at 50% 0%, rgba(108,99,255,.18) 0%, transparent 70%);
+  }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .4rem 1rem;
+    background: rgba(108,99,255,.15);
+    border: 1px solid rgba(108,99,255,.3);
+    border-radius: 999px;
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--c-accent2);
+    margin-bottom: 1.5rem;
+  }
+  .hero-title {
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--c-white);
+    margin-bottom: 1.25rem;
+  }
+  .hero-title span {
+    background: linear-gradient(135deg, var(--c-accent2), var(--c-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-desc {
+    font-size: 1.1rem;
+    color: var(--c-muted);
+    max-width: 580px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+  .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    margin: 3rem auto 0;
+  }
+  .feature-card {
+    background: var(--c-card);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    padding: 1.5rem;
+    text-align: left;
+    transition: border-color .2s, transform .2s;
+  }
+  .feature-card:hover { border-color: var(--c-accent); transform: translateY(-2px); }
+  .feature-icon { font-size: 2rem; margin-bottom: .75rem; }
+  .feature-title { font-weight: 600; color: var(--c-white); margin-bottom: .4rem; }
+  .feature-desc { font-size: .87rem; color: var(--c-muted); line-height: 1.55; }
+</style>
+
+<div class="hero">
+  <div>
+    <div class="hero-badge">🧩 Proyecto de Grado — Ingeniería de Sistemas</div>
+    <h1 class="hero-title">
+      Sistema Experto de Apoyo<br>
+      <span>Pedagógico para TEA</span>
+    </h1>
+    <p class="hero-desc">
+      Plataforma inteligente basada en los criterios DSM-5 que ayuda a instructores a tomar
+      decisiones pedagógicas personalizadas mediante un motor de inferencia por encadenamiento hacia adelante.
     </p>
     <div class="hero-actions">
-      <a href="{% url 'registro_instructor' %}" class="btn btn-primary btn-lg">Comenzar ahora</a>
-      <a href="{% url 'login' %}" class="btn btn-ghost btn-lg">Ya tengo cuenta</a>
+      <a href="{% url 'registro_instructor' %}" class="btn btn-primary btn-lg">Registrarse gratis</a>
+      <a href="{% url 'login' %}" class="btn btn-ghost btn-lg">Iniciar sesión</a>
     </div>
-  </div>
-  <div class="hero-visual">
-    <div class="feature-cards">
-      <div class="feature-card">
-        <div class="feature-icon">🗣️</div>
-        <h3>Comunicación</h3>
-        <p>Evalúa dificultades de expresión y genera estrategias de CAA</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔄</div>
-        <h3>Conducta</h3>
-        <p>Detecta patrones repetitivos y sensibilidad sensorial</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🤝</div>
-        <h3>Interacción Social</h3>
-        <p>Recomienda dinámicas de integración grupal guiada</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <h3>Motor de Inferencia</h3>
-        <p>Forward chaining con reglas SI→ENTONCES especializadas</p>
-      </div>
-    </div>
-  </div>
-</section>
 
-<section class="how-it-works">
-  <div class="container">
-    <h2 class="section-title">¿Cómo funciona?</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-number">1</div>
-        <h3>Registro</h3>
-        <p>El instructor crea su cuenta y registra a sus estudiantes con TEA.</p>
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🏥</div>
+        <div class="feature-title">Evaluación DSM-5</div>
+        <div class="feature-desc">Criterios clínicos A, B, C, D y E con especificadores del Manual Diagnóstico.</div>
       </div>
-      <div class="step-arrow">→</div>
-      <div class="step">
-        <div class="step-number">2</div>
-        <h3>Evaluación</h3>
-        <p>Completa el formulario de evaluación en las 3 áreas clave.</p>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Motor de Inferencia</div>
+        <div class="feature-desc">Encadenamiento hacia adelante (Forward Chaining) con base de conocimientos configurable.</div>
       </div>
-      <div class="step-arrow">→</div>
-      <div class="step">
-        <div class="step-number">3</div>
-        <h3>Inferencia</h3>
-        <p>El motor analiza los hechos y dispara las reglas aplicables.</p>
+      <div class="feature-card">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Fichas Imprimibles</div>
+        <div class="feature-desc">Perfil completo del estudiante y representante con foto, listo para imprimir.</div>
       </div>
-      <div class="step-arrow">→</div>
-      <div class="step">
-        <div class="step-number">4</div>
-        <h3>Recomendaciones</h3>
-        <p>Recibe estrategias pedagógicas concretas y recursos didácticos.</p>
+      <div class="feature-card">
+        <div class="feature-icon">💡</div>
+        <div class="feature-title">Recomendaciones</div>
+        <div class="feature-desc">Estrategias pedagógicas y recursos didácticos automáticos y personalizados.</div>
       </div>
     </div>
   </div>
-</section>
+</div>
 {% endblock %}

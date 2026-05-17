@@ -1,0 +1,172 @@
+{% extends 'experto/base.html' %}
+{% block title %}Evaluación DSM-5 — {{ estudiante.nombre_completo }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb">
+      <a href="{% url 'lista_estudiantes' %}">Estudiantes</a> ›
+      <a href="{% url 'perfil_estudiante' estudiante.pk %}">{{ estudiante.nombre_completo }}</a> ›
+      Evaluación DSM-5
+    </div>
+    <h1 class="page-title">Evaluación DSM-5</h1>
+    <p class="page-subtitle">Criterios diagnósticos del Trastorno del Espectro Autista</p>
+  </div>
+  <div class="d-flex align-center gap-1">
+    {% if estudiante.tiene_foto %}
+    <img src="{{ estudiante.foto_carnet.url }}" class="photo-thumb-lg" alt="">
+    {% else %}
+    <div class="photo-placeholder" style="width:60px;height:60px;font-size:1.3rem;border-radius:12px">{{ estudiante.nombre_completo|first|upper }}</div>
+    {% endif %}
+    <div>
+      <div style="font-weight:600;color:var(--c-white)">{{ estudiante.nombre_completo }}</div>
+      <div class="text-muted">{{ estudiante.get_sexo_display }} · {{ estudiante.edad }} años</div>
+    </div>
+  </div>
+</div>
+
+<form method="post" novalidate>
+{% csrf_token %}
+
+{% if form.non_field_errors %}
+<div class="alert alert-error mb-2">
+  ❌ {{ form.non_field_errors.0 }}
+</div>
+{% endif %}
+
+<!-- ─── CRITERIO A ─────────────────────────────────────────────────────── -->
+<div class="dsm-section">
+  <div class="dsm-section-title">
+    <span class="dsm-criterio-label">A</span>
+    Criterio A — Deficiencias en Comunicación e Interacción Social
+    <span class="badge badge-red" style="margin-left:auto">Obligatorio — 3 de 3</span>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Nivel de afectación en Comunicación Social *</label>
+    {{ form.nivel_comunicacion_social }}
+    {% if form.nivel_comunicacion_social.errors %}<ul class="errorlist">{% for e in form.nivel_comunicacion_social.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+    <div class="form-group">
+      <label class="form-label">A.1 — Reciprocidad socioemocional</label>
+      {{ form.obs_reciprocidad }}
+      <span class="form-help">Ej: dificultad para iniciar conversaciones, responder a emociones de otros</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">A.2 — Comunicación no verbal</label>
+      {{ form.obs_comunicacion_no_verbal }}
+      <span class="form-help">Ej: contacto ocular, expresiones faciales, gestos</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">A.3 — Desarrollo de relaciones</label>
+      {{ form.obs_desarrollo_relaciones }}
+      <span class="form-help">Ej: ajuste del comportamiento según contexto social</span>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CRITERIO B ─────────────────────────────────────────────────────── -->
+<div class="dsm-section">
+  <div class="dsm-section-title">
+    <span class="dsm-criterio-label">B</span>
+    Criterio B — Comportamientos Restringidos y Repetitivos
+    <span class="badge badge-yellow" style="margin-left:auto">Mínimo 2 de 4</span>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label">Nivel de afectación — Conductas repetitivas *</label>
+    {{ form.nivel_conductas_repetitivas }}
+  </div>
+
+  <label class="form-checkbox-row">
+    {{ form.movimientos_repetitivos }}
+    <div>
+      <div style="font-weight:500">B.1 — Movimientos, uso de objetos o habla estereotipada</div>
+      <div class="text-muted" style="font-size:.82rem">Estereotipias motoras, alinear objetos, ecolalia</div>
+    </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.inflexibilidad_rutinas }}
+    <div>
+      <div style="font-weight:500">B.2 — Insistencia en la monotonía / inflexibilidad de rutinas</div>
+      <div class="text-muted" style="font-size:.82rem">Angustia ante pequeños cambios, patrones ritualizados</div>
+    </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.intereses_restringidos }}
+    <div>
+      <div style="font-weight:500">B.3 — Intereses muy restringidos y fijos</div>
+      <div class="text-muted" style="font-size:.82rem">Intereses intensamente focalizados e inusualmente delimitados</div>
+    </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.alteraciones_sensoriales }}
+    <div>
+      <div style="font-weight:500">B.4 — Hiper o hiporreactividad sensorial</div>
+      <div class="text-muted" style="font-size:.82rem">Reacciones al dolor, temperatura, textura, sonidos, olores o estímulos visuales</div>
+    </div>
+  </label>
+</div>
+
+<!-- ─── CRITERIOS C, D, E ──────────────────────────────────────────────── -->
+<div class="dsm-section">
+  <div class="dsm-section-title">
+    <span class="dsm-criterio-label">C·D·E</span>
+    Criterios adicionales
+  </div>
+
+  <label class="form-checkbox-row">
+    {{ form.inicio_temprano }}
+    <div>
+      <div style="font-weight:500">C — Síntomas presentes en las primeras fases del desarrollo</div>
+      <div class="text-muted" style="font-size:.82rem">Pueden no manifestarse plenamente hasta que las demandas sociales superen las capacidades</div>
+    </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.deterioro_significativo }}
+    <div>
+      <div style="font-weight:500">D — Causa deterioro clínicamente significativo</div>
+      <div class="text-muted" style="font-size:.82rem">En lo social, laboral u otras áreas del funcionamiento habitual</div>
+    </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.no_explicado_otra_condicion }}
+    <div>
+      <div style="font-weight:500">E — No se explica mejor por discapacidad intelectual</div>
+      <div class="text-muted" style="font-size:.82rem">La discapacidad intelectual y el TEA con frecuencia coexisten</div>
+    </div>
+  </label>
+</div>
+
+<!-- ─── ESPECIFICADORES ────────────────────────────────────────────────── -->
+<div class="dsm-section">
+  <div class="dsm-section-title">
+    <span class="dsm-criterio-label">✚</span>
+    Especificadores
+  </div>
+
+  <label class="form-checkbox-row">
+    {{ form.discapacidad_intelectual }}
+    <div><div style="font-weight:500">Con discapacidad intelectual acompañante</div></div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.deterioro_lenguaje }}
+    <div><div style="font-weight:500">Con deterioro del lenguaje acompañante</div></div>
+  </label>
+
+  <div class="form-group mt-2">
+    <label class="form-label">Afección médica o genética asociada (opcional)</label>
+    {{ form.condicion_medica_asociada }}
+    <span class="form-help">Ej: Síndrome de Rett, Síndrome X frágil</span>
+  </div>
+</div>
+
+<div class="d-flex gap-1">
+  <button type="submit" class="btn btn-primary btn-lg">
+    ▶️ Guardar DSM-5 y continuar con Evaluación Pedagógica
+  </button>
+  <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">Cancelar</a>
+</div>
+</form>
+{% endblock %}

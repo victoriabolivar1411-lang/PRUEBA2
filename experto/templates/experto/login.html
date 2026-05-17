@@ -1,40 +1,47 @@
 {% extends 'experto/base.html' %}
-{% block title %}Iniciar Sesión — Sistema Experto TEA{% endblock %}
-
+{% block title %}Iniciar Sesión — Sistema TEA{% endblock %}
 {% block content %}
-<div class="auth-wrapper">
+<style>
+  .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--r-lg); padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
+  .auth-logo { text-align: center; margin-bottom: 1.75rem; }
+  .auth-icon { font-size: 2.5rem; }
+  .auth-title { font-size: 1.5rem; font-weight: 700; color: var(--c-white); margin-top: .5rem; }
+  .auth-subtitle { font-size: .88rem; color: var(--c-muted); margin-top: .2rem; }
+</style>
+<div class="auth-page">
   <div class="auth-card">
-    <div class="auth-header">
-      <div class="auth-icon">🔐</div>
-      <h1 class="auth-title">Iniciar sesión</h1>
-      <p class="auth-subtitle">Accede al sistema experto pedagógico TEA</p>
+    <div class="auth-logo">
+      <div class="auth-icon">🧩</div>
+      <div class="auth-title">Bienvenido/a</div>
+      <div class="auth-subtitle">Inicia sesión en el Sistema Experto TEA</div>
     </div>
 
-    <form method="post" class="auth-form" novalidate>
+    <form method="post">
       {% csrf_token %}
-
+      {% for field in form %}
       <div class="form-group">
-        <label for="id_username">Usuario</label>
-        {{ form.username }}
-        {% if form.username.errors %}<span class="form-error">{{ form.username.errors|join:", " }}</span>{% endif %}
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
-
-      <div class="form-group">
-        <label for="id_password">Contraseña</label>
-        {{ form.password }}
-        {% if form.password.errors %}<span class="form-error">{{ form.password.errors|join:", " }}</span>{% endif %}
-      </div>
-
+      {% endfor %}
       {% if form.non_field_errors %}
-        <div class="form-error-box">{{ form.non_field_errors|join:", " }}</div>
+      <div class="alert alert-error">❌ {{ form.non_field_errors.0 }}</div>
       {% endif %}
-
-      <button type="submit" class="btn btn-primary btn-block">Ingresar al sistema</button>
+      <button type="submit" class="btn btn-primary w-100 mt-2" style="justify-content:center">
+        🔓 Iniciar sesión
+      </button>
     </form>
 
-    <p class="auth-footer">
-      ¿No tienes cuenta? <a href="{% url 'registro_instructor' %}">Regístrate aquí</a>
-    </p>
+    <div style="text-align:center; margin-top:1.25rem; font-size:.87rem; color:var(--c-muted)">
+      <a href="{% url 'password_reset' %}" style="color:var(--c-accent2)">¿Olvidaste tu contraseña?</a>
+    </div>
+    <hr class="divider">
+    <div style="text-align:center; font-size:.87rem; color:var(--c-muted)">
+      ¿No tienes cuenta?
+      <a href="{% url 'registro_instructor' %}" style="color:var(--c-accent2)">Regístrate aquí</a>
+    </div>
   </div>
 </div>
 {% endblock %}

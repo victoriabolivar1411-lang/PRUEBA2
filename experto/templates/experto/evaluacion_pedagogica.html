@@ -1,0 +1,71 @@
+{% extends 'experto/base.html' %}
+{% block title %}Evaluación Pedagógica — {{ estudiante.nombre_completo }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb">
+      <a href="{% url 'lista_estudiantes' %}">Estudiantes</a> ›
+      <a href="{% url 'perfil_estudiante' estudiante.pk %}">{{ estudiante.nombre_completo }}</a> ›
+      Evaluación Pedagógica
+    </div>
+    <h1 class="page-title">Evaluación Pedagógica</h1>
+    <p class="page-subtitle">Paso 2 de 2 — El motor de inferencia generará recomendaciones al finalizar</p>
+  </div>
+</div>
+
+<!-- Resumen DSM-5 -->
+<div class="alert alert-info mb-2">
+  ✅ <strong>DSM-5 completada</strong> —
+  Comunicación: <strong>{{ eval_dsm5.get_nivel_comunicacion_social_display }}</strong> |
+  Conductas: <strong>{{ eval_dsm5.get_nivel_conductas_repetitivas_display }}</strong> |
+  Criterio B: <strong>{% if eval_dsm5.cumple_criterio_b %}Cumplido ({{ eval_dsm5.total_criterio_b }}/4){% else %}No cumplido{% endif %}</strong>
+</div>
+
+<div style="max-width:680px">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert alert-error mb-2">❌ {{ form.non_field_errors.0 }}</div>{% endif %}
+
+    <!-- Área 1 -->
+    <div class="dsm-section">
+      <div class="dsm-section-title">
+        <span class="dsm-criterio-label">1</span>
+        Área 1 — Comunicación Social (observación pedagógica)
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nivel de afectación observado en el aula *</label>
+        {{ form.nivel_comunicacion_social }}
+        {% if form.nivel_comunicacion_social.errors %}<ul class="errorlist">{% for e in form.nivel_comunicacion_social.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones del instructor</label>
+        {{ form.observaciones_comunicacion }}
+      </div>
+    </div>
+
+    <!-- Área 2 -->
+    <div class="dsm-section">
+      <div class="dsm-section-title">
+        <span class="dsm-criterio-label">2</span>
+        Área 2 — Comportamientos Restringidos y Repetitivos (observación pedagógica)
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nivel de afectación observado en el aula *</label>
+        {{ form.nivel_conductas_repetitivas }}
+        {% if form.nivel_conductas_repetitivas.errors %}<ul class="errorlist">{% for e in form.nivel_conductas_repetitivas.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones del instructor</label>
+        {{ form.observaciones_conductas }}
+      </div>
+    </div>
+
+    <div class="d-flex gap-1">
+      <button type="submit" class="btn btn-success btn-lg">
+        🧠 Ejecutar motor de inferencia → Ver recomendaciones
+      </button>
+      <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

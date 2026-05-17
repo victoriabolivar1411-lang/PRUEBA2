@@ -1,207 +1,115 @@
 {% extends 'experto/base.html' %}
 {% block title %}Resultados — {{ estudiante.nombre_completo }}{% endblock %}
-
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Resultados del Sistema Experto</h1>
-    <p class="page-subtitle">
-      Estudiante: <strong>{{ estudiante.nombre_completo }}</strong> ·
-      Evaluación: {{ evaluacion.fecha_evaluacion|date:"d/m/Y H:i" }}
-    </p>
+    <div class="breadcrumb">
+      <a href="{% url 'lista_estudiantes' %}">Estudiantes</a> ›
+      <a href="{% url 'perfil_estudiante' estudiante.pk %}">{{ estudiante.nombre_completo }}</a> ›
+      Resultados del Sistema Experto
+    </div>
+    <h1 class="page-title">Recomendaciones Generadas</h1>
+    <p class="page-subtitle">Motor de inferencia — Encadenamiento hacia adelante (Forward Chaining)</p>
   </div>
-  <div class="header-actions">
-    <a href="{% url 'nueva_evaluacion' estudiante.pk %}" class="btn btn-ghost">Nueva evaluación</a>
-    <a href="{% url 'detalle_estudiante' estudiante.pk %}" class="btn btn-outline">← Perfil del estudiante</a>
+  <div class="d-flex gap-1 no-print">
+    <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">📄 Ver ficha</a>
+    <a href="{% url 'evaluacion_dsm5' estudiante.pk %}" class="btn btn-primary">🔄 Nueva evaluación</a>
   </div>
 </div>
 
-<!-- Resumen del motor de inferencia -->
-<div class="inference-summary">
-  <div class="inference-badge">
-    <span class="inference-icon">🤖</span>
+<!-- Resumen ejecutivo -->
+<div class="grid-3 mb-2">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(108,99,255,.15)">💡</div>
     <div>
-      <div class="inference-title">Motor de Inferencia — Forward Chaining</div>
-      <div class="inference-detail">
-        Se dispararon <strong>{{ total }}</strong> regla(s) de la base de conocimientos
-        en base a los hechos evaluados.
-      </div>
+      <div class="stat-value" style="color:var(--c-accent2)">{{ total }}</div>
+      <div class="stat-label">Recomendaciones generadas</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(34,211,238,.15)">🗣️</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-teal)">{{ eval_ped.get_nivel_comunicacion_social_display }}</div>
+      <div class="stat-label">Comunicación social</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(250,204,21,.15)">🔄</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-yellow)">{{ eval_ped.get_nivel_conductas_repetitivas_display }}</div>
+      <div class="stat-label">Conductas repetitivas</div>
     </div>
   </div>
 </div>
 
-<div class="results-layout">
-  <!-- Hechos evaluados (Working Memory) -->
-  <div class="facts-card">
-    <h2 class="card-title">📊 Hechos Evaluados <small>(Working Memory)</small></h2>
-    <table class="facts-table">
-      <thead>
-        <tr><th>Área / Campo</th><th>Valor</th></tr>
-      </thead>
-      <tbody>
-        {% for label, valor in hechos %}
-        <tr>
-          <td>{{ label }}</td>
-          <td>
-            <span class="fact-value
-              {% if valor == 'Alto' or valor == 'No' %}fact-high
-              {% elif valor == 'Medio' %}fact-med
-              {% else %}fact-low{% endif %}">
-              {{ valor }}
-            </span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% if evaluacion.notas_adicionales %}
-      <div class="notes-box">
-        <strong>Notas del instructor:</strong>
-        <p>{{ evaluacion.notas_adicionales }}</p>
-      </div>
-    {% endif %}
+{% if eval_dsm5 %}
+<!-- Datos DSM-5 evaluados -->
+<div class="card mb-2">
+  <div class="card-header">
+    <div class="card-title">🏥 Hechos evaluados (Working Memory)</div>
   </div>
-
-  <!-- Recomendaciones generadas -->
-  <div class="recommendations-panel">
-    <h2 class="card-title">💡 Recomendaciones Pedagógicas Generadas</h2>
-
-    {% if grupos %}
-      {% for categoria, recs in grupos.items %}
-      <div class="rec-group">
-        <div class="rec-group-header">
-          {% if 'Comunicaci' in categoria %}🗣️
-          {% elif 'Conducta' in categoria %}🔄
-          {% elif 'Social' in categoria %}🤝
-          {% else %}📌{% endif %}
-          {{ categoria }}
-          <span class="rec-count">{{ recs|length }} recomendación(es)</span>
-        </div>
-        {% for rec in recs %}
-        <div class="rec-card">
-          <div class="rec-rule-tag">Regla: {{ rec.regla.nombre }}</div>
-          <p class="rec-text">{{ rec.texto }}</p>
-        </div>
-        {% endfor %}
-      </div>
-      {% endfor %}
-    {% else %}
-      <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>Ninguna regla fue disparada con los valores ingresados.</p>
-        <p class="text-muted">Intenta ajustar los valores de la evaluación.</p>
-      </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem">
+    {% if eval_dsm5.cumple_criterio_b %}
+    <div class="alert alert-success" style="margin:0">✅ Criterio B cumplido ({{ eval_dsm5.total_criterio_b }}/4 conductas)</div>
+    {% endif %}
+    {% if eval_dsm5.discapacidad_intelectual %}
+    <div class="alert alert-warning" style="margin:0">⚠️ Discapacidad intelectual acompañante</div>
+    {% endif %}
+    {% if eval_dsm5.deterioro_lenguaje %}
+    <div class="alert alert-warning" style="margin:0">⚠️ Deterioro del lenguaje acompañante</div>
+    {% endif %}
+    {% if eval_dsm5.alteraciones_sensoriales %}
+    <div class="alert alert-warning" style="margin:0">⚠️ Alteraciones sensoriales (B.4)</div>
+    {% endif %}
+    {% if eval_dsm5.inicio_temprano and eval_dsm5.deterioro_significativo %}
+    <div class="alert alert-error" style="margin:0">🔴 Inicio temprano + deterioro significativo</div>
     {% endif %}
   </div>
 </div>
+{% endif %}
 
-<!-- Progreso del Estudiante -->
-<div class="section-card" style="margin-bottom: 1.5rem;">
-  <div class="section-card-header">
-    <h2>📈 Evolución del Estudiante</h2>
+<!-- Recomendaciones -->
+{% if recomendaciones %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">🧠 Estrategias pedagógicas sugeridas</div>
+    <span class="badge badge-green">{{ total }} activas</span>
   </div>
-  <div style="position: relative; height:300px; width:100%">
-    <canvas id="progresoChart"></canvas>
+
+  {% for rec in recomendaciones %}
+  <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem">
+    <div class="d-flex align-center gap-1 mb-1">
+      <span class="badge badge-purple">{{ forloop.counter }}</span>
+      {% if rec.regla %}
+      <strong style="color:var(--c-white)">{{ rec.regla.nombre }}</strong>
+      {% endif %}
+      <span class="text-muted" style="font-size:.8rem;margin-left:auto">{{ rec.generada_en|date:"d/m/Y H:i" }}</span>
+    </div>
+
+    <div style="border-left:3px solid var(--c-accent);padding-left:1rem;margin:1rem 0">
+      <div style="font-size:.82rem;color:var(--c-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">📋 Estrategia pedagógica</div>
+      <p style="line-height:1.7;color:var(--c-text)">{{ rec.texto }}</p>
+    </div>
+
+    {% if rec.regla and rec.regla.recursos_didacticos %}
+    <div style="background:rgba(108,99,255,.08);border-radius:9px;padding:1rem;margin-top:.75rem">
+      <div style="font-size:.82rem;color:var(--c-accent2);font-weight:600;margin-bottom:.4rem">🎒 Recursos didácticos sugeridos</div>
+      <p style="font-size:.88rem;color:var(--c-muted);line-height:1.6">{{ rec.regla.recursos_didacticos }}</p>
+    </div>
+    {% endif %}
   </div>
+  {% endfor %}
 </div>
 
-<!-- Botón de impresión -->
-<div class="print-bar">
-  <button onclick="window.print()" class="btn btn-outline">🖨️ Imprimir / Exportar PDF</button>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">🤔</div>
+    <h3>Sin recomendaciones generadas</h3>
+    <p class="text-muted">El motor de inferencia no encontró reglas que coincidan con los datos evaluados.<br>
+    Verifica que las reglas en la base de conocimientos estén activas.</p>
+    <a href="{% url 'base_conocimientos' %}" class="btn btn-ghost mt-2">Ver base de conocimientos</a>
+  </div>
 </div>
-
-<!-- Scripts para la gráfica -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const chartData = JSON.parse('{{ chart_data|escapejs }}');
-    
-    // Configuración global de fuentes y colores para Chart.js
-    Chart.defaults.color = '#9895B5';
-    Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
-    
-    const ctx = document.getElementById('progresoChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.fechas,
-        datasets: [
-          {
-            label: 'Dificultad Comunicación',
-            data: chartData.comunicacion,
-            borderColor: '#6C63FF',
-            backgroundColor: 'rgba(108,99,255,0.1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-            pointBackgroundColor: '#6C63FF'
-          },
-          {
-            label: 'Conductas Repetitivas',
-            data: chartData.conducta,
-            borderColor: '#EF476F',
-            backgroundColor: 'rgba(239,71,111,0.1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-            pointBackgroundColor: '#EF476F'
-          },
-          {
-            label: 'Interacción Social (Dificultad)',
-            data: chartData.social,
-            borderColor: '#06D6A0',
-            backgroundColor: 'rgba(6,214,160,0.1)',
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-            pointBackgroundColor: '#06D6A0'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            min: 0,
-            max: 4,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: {
-              stepSize: 1,
-              callback: function(value) {
-                if (value === 1) return 'Bajo';
-                if (value === 2) return 'Medio';
-                if (value === 3) return 'Alto';
-                return '';
-              }
-            }
-          },
-          x: {
-            grid: { color: 'rgba(255,255,255,0.05)' }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { boxWidth: 12, usePointStyle: true, padding: 20 }
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            backgroundColor: 'rgba(26,25,41,0.9)',
-            titleColor: '#E8E6F0',
-            bodyColor: '#E8E6F0',
-            borderColor: 'rgba(255,255,255,0.1)',
-            borderWidth: 1
-          }
-        },
-        interaction: {
-          mode: 'nearest',
-          axis: 'x',
-          intersect: false
-        }
-      }
-    });
-  });
-</script>
+{% endif %}
 {% endblock %}

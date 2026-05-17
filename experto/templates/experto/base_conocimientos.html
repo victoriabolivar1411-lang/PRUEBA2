@@ -1,53 +1,56 @@
 {% extends 'experto/base.html' %}
-{% block title %}Base de Conocimientos — Sistema Experto TEA{% endblock %}
-
+{% block title %}Base de Conocimientos — Sistema TEA{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
     <h1 class="page-title">Base de Conocimientos</h1>
-    <p class="page-subtitle">{{ total_reglas }} regla(s) SI-ENTONCES activas en el motor de inferencia</p>
+    <p class="page-subtitle">Reglas SI-ENTONCES del motor de inferencia — {{ total }} regla{{ total|pluralize:"s" }} activa{{ total|pluralize:"s" }}</p>
   </div>
 </div>
 
-<div class="info-banner">
-  <span class="info-banner-icon">ℹ️</span>
-  <span>
-    Estas reglas son evaluadas por el <strong>motor de encadenamiento hacia adelante (Forward Chaining)</strong>
-    cada vez que se realiza una evaluación. Si la condición de una regla coincide con los hechos del estudiante,
-    la regla se <em>dispara</em> y genera una recomendación pedagógica.
-  </span>
-</div>
-
-{% for categoria, reglas in grupos.items %}
-<div class="section-card">
-  <div class="section-card-header">
-    <h2>
-      {% if 'Comunicaci' in categoria %}🗣️
-      {% elif 'Conducta' in categoria %}🔄
-      {% elif 'Social' in categoria %}🤝
-      {% else %}📌{% endif %}
-      {{ categoria }}
-    </h2>
-    <span class="rec-count">{{ reglas|length }} regla(s)</span>
+{% if reglas %}
+<div style="display:flex;flex-direction:column;gap:1rem">
+{% for regla in reglas %}
+<div class="card">
+  <div class="d-flex align-center gap-1 mb-2">
+    <span class="badge badge-purple">{{ forloop.counter }}</span>
+    <div style="font-weight:600;color:var(--c-white)">{{ regla.nombre }}</div>
+    <span class="badge badge-green" style="margin-left:auto">✅ Activa</span>
   </div>
-  <div class="rules-list">
-    {% for regla in reglas %}
-    <div class="rule-card">
-      <div class="rule-header">
-        <span class="rule-name">{{ regla.nombre }}</span>
-        <span class="rule-priority">Prioridad: {{ regla.prioridad }}</span>
-      </div>
-      <div class="rule-condition">
-        <span class="rule-if">SI</span>
-        <code>{{ regla.campo_condicion }} {{ regla.operador }} "{{ regla.valor_condicion }}"</code>
-      </div>
-      <div class="rule-action">
-        <span class="rule-then">ENTONCES</span>
-        <p>{{ regla.accion }}</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+    <div>
+      <div style="font-size:.78rem;color:var(--c-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">🔍 Condición (SI…)</div>
+      <div style="background:rgba(108,99,255,.08);border:1px solid rgba(108,99,255,.2);border-radius:8px;padding:.75rem;font-family:monospace;font-size:.85rem;color:var(--c-accent2)">
+        {{ regla.condicion }}
       </div>
     </div>
-    {% endfor %}
+    <div>
+      <div style="font-size:.78rem;color:var(--c-muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">💡 Recomendación (ENTONCES…)</div>
+      <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:8px;padding:.75rem;font-size:.88rem;line-height:1.6;color:var(--c-text)">
+        {{ regla.recomendacion|truncatechars:250 }}
+      </div>
+    </div>
   </div>
+
+  {% if regla.recursos_didacticos %}
+  <div style="background:rgba(34,211,238,.05);border-radius:8px;padding:.75rem;margin-top:.75rem;font-size:.85rem;color:var(--c-muted)">
+    <strong style="color:var(--c-teal)">🎒 Recursos:</strong> {{ regla.recursos_didacticos }}
+  </div>
+  {% endif %}
 </div>
 {% endfor %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">🧠</div>
+    <h3>Base de conocimientos vacía</h3>
+    <p>Ejecuta el comando para cargar las reglas iniciales:</p>
+    <code style="background:var(--c-surface);padding:.5rem 1rem;border-radius:8px;display:inline-block;margin-top:.75rem;color:var(--c-accent2)">
+      python manage.py cargar_reglas
+    </code>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

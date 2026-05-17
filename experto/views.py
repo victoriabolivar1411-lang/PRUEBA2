@@ -2,32 +2,34 @@
 =============================================================================
 SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
 =============================================================================
-Módulo: views.py
-Descripción: Controladores (vistas) de Django que manejan el flujo de la
-             aplicación: registro, evaluación, ejecución del motor de
-             inferencia y visualización de resultados.
+Módulo: views.py  — Controladores de Django
 =============================================================================
 """
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-import json
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib import messages
 from django.db.models import Count
 
-from .models import Instructor, Estudiante, Evaluacion, Recomendacion, Regla
-from .forms import RegistroInstructorForm, EstudianteForm, EvaluacionForm
+from .models import (
+    Instructor, Estudiante, Representante,
+    EvaluacionDSM5, EvaluacionPedagogica, Recomendacion, Regla
+)
+from .forms import (
+    RegistroInstructorForm, EstudianteForm, RepresentanteForm,
+    EvaluacionDSM5Form, EvaluacionPedagogicaForm
+)
 from .expert_system import generar_recomendaciones
+from .utils import enviar_bienvenida
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def get_instructor(request):
-    """Obtiene el perfil Instructor del usuario autenticado."""
+def _get_instructor(request):
     return get_object_or_404(Instructor, usuario=request.user)
 
 
@@ -36,53 +38,45 @@ def get_instructor(request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def inicio(request):
-    """Página de bienvenida / landing page del sistema."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
     return render(request, 'experto/inicio.html')
 
 
 def registro_instructor(request):
-    """
-    Registro de un nuevo instructor. Crea el usuario Django y el perfil
-    Instructor asociado. Redirige al dashboard tras el registro exitoso.
-    """
     if request.user.is_authenticated:
         return redirect('dashboard')
-
     if request.method == 'POST':
         form = RegistroInstructorForm(request.POST)
         if form.is_valid():
             user = form.save()
+            enviar_bienvenida(user)
             login(request, user)
-            messages.success(request, f'¡Bienvenido/a, {user.first_name}! Tu cuenta fue creada correctamente.')
+            messages.success(request, f'¡Bienvenido/a, {user.first_name}! Cuenta creada correctamente.')
             return redirect('dashboard')
     else:
         form = RegistroInstructorForm()
-
     return render(request, 'experto/registro_instructor.html', {'form': form})
 
 
 def login_view(request):
-    """Vista de inicio de sesión."""
     if request.user.is_authenticated:
         return redirect('dashboard')
-
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            messages.success(request, f'Bienvenido/a de vuelta, {user.first_name}.')
+            messages.success(request, f'Bienvenido/a, {user.first_name or user.username}.')
             return redirect('dashboard')
         else:
             messages.error(request, 'Usuario o contraseña incorrectos.')
     else:
         form = AuthenticationForm()
-
     return render(request, 'experto/login.html', {'form': form})
 
 
 def logout_view(request):
-    """Cierra la sesión y redirige a la página de inicio."""
     logout(request)
     messages.info(request, 'Sesión cerrada correctamente.')
     return redirect('inicio')
@@ -94,23 +88,27 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def dashboard(request):
-    """
-    Panel principal del instructor. Muestra estadísticas generales:
-    número de estudiantes, evaluaciones realizadas y últimas recomendaciones.
-    """
-    instructor = get_instructor(request)
-    estudiantes = Estudiante.objects.filter(instructor=instructor)
-    evaluaciones = Evaluacion.objects.filter(instructor=instructor).order_by('-fecha_evaluacion')[:5]
-    total_evaluaciones = Evaluacion.objects.filter(instructor=instructor).count()
+    instructor   = _get_instructor(request)
+    estudiantes  = Estudiante.objects.filter(instructor=instructor)
+    total_est    = estudiantes.count()
+    total_dsm5   = EvaluacionDSM5.objects.filter(estudiante__instructor=instructor).count()
+    total_ped    = EvaluacionPedagogica.objects.filter(estudiante__instructor=instructor).count()
+    total_rec    = Recomendacion.objects.filter(
+        evaluacion_pedagogica__estudiante__instructor=instructor
+    ).count()
+    ultimas_eval = EvaluacionPedagogica.objects.filter(
+        estudiante__instructor=instructor
+    ).select_related('estudiante').order_by('-fecha')[:5]
 
-    context = {
-        'instructor':        instructor,
-        'estudiantes':       estudiantes,
-        'total_estudiantes': estudiantes.count(),
-        'evaluaciones':      evaluaciones,
-        'total_evaluaciones': total_evaluaciones,
-    }
-    return render(request, 'experto/dashboard.html', context)
+    return render(request, 'experto/dashboard.html', {
+        'instructor':    instructor,
+        'total_est':     total_est,
+        'total_dsm5':    total_dsm5,
+        'total_ped':     total_ped,
+        'total_rec':     total_rec,
+        'ultimas_eval':  ultimas_eval,
+        'estudiantes':   estudiantes[:6],
+    })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -119,200 +117,197 @@ def dashboard(request):
 
 @login_required(login_url='login')
 def lista_estudiantes(request):
-    """Lista todos los estudiantes del instructor autenticado."""
-    instructor = get_instructor(request)
+    instructor  = _get_instructor(request)
     estudiantes = Estudiante.objects.filter(instructor=instructor).annotate(
-        num_evaluaciones=Count('evaluaciones')
-    )
+        total_eval=Count('evaluaciones_pedagogicas')
+    ).order_by('nombre_completo')
     return render(request, 'experto/lista_estudiantes.html', {
-        'estudiantes': estudiantes,
         'instructor':  instructor,
+        'estudiantes': estudiantes,
     })
 
 
 @login_required(login_url='login')
 def registro_estudiante(request):
-    """
-    Registra un nuevo estudiante asociado al instructor autenticado.
-    El instructor se asigna automáticamente (no aparece en el formulario).
-    """
-    instructor = get_instructor(request)
-
+    instructor = _get_instructor(request)
     if request.method == 'POST':
-        form = EstudianteForm(request.POST)
+        form = EstudianteForm(request.POST, request.FILES)
         if form.is_valid():
-            estudiante = form.save(commit=False)
-            estudiante.instructor = instructor
-            estudiante.save()
-            messages.success(request, f'Estudiante {estudiante.nombre_completo} registrado correctamente.')
+            est = form.save(commit=False)
+            est.instructor = instructor
+            est.save()
+            messages.success(request, f'Estudiante "{est.nombre_completo}" registrado correctamente.')
             return redirect('lista_estudiantes')
     else:
         form = EstudianteForm()
-
-    return render(request, 'experto/registro_estudiante.html', {'form': form, 'instructor': instructor})
+    return render(request, 'experto/registro_estudiante.html', {
+        'form': form, 'instructor': instructor
+    })
 
 
 @login_required(login_url='login')
-def detalle_estudiante(request, pk):
-    """Muestra el perfil completo de un estudiante con su historial de evaluaciones."""
-    instructor = get_instructor(request)
-    estudiante = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
-    evaluaciones = estudiante.evaluaciones.all().order_by('-fecha_evaluacion')
+def editar_estudiante(request, pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    if request.method == 'POST':
+        form = EstudianteForm(request.POST, request.FILES, instance=est)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Datos del estudiante actualizados.')
+            return redirect('perfil_estudiante', pk=est.pk)
+    else:
+        form = EstudianteForm(instance=est)
+    return render(request, 'experto/registro_estudiante.html', {
+        'form': form, 'instructor': instructor, 'editando': True, 'estudiante': est
+    })
 
-    return render(request, 'experto/detalle_estudiante.html', {
-        'estudiante':  estudiante,
-        'evaluaciones': evaluaciones,
-        'instructor':  instructor,
+
+@login_required(login_url='login')
+def borrar_estudiante(request, pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    if request.method == 'POST':
+        nombre = est.nombre_completo
+        est.delete()
+        messages.success(request, f'Estudiante "{nombre}" eliminado correctamente.')
+        return redirect('lista_estudiantes')
+    return render(request, 'experto/confirmar_borrar.html', {
+        'instructor': instructor, 'estudiante': est
+    })
+
+
+@login_required(login_url='login')
+def perfil_estudiante(request, pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    rep = getattr(est, 'representante', None)
+    eval_dsm5 = est.evaluaciones_dsm5.order_by('-fecha').first()
+    eval_ped  = est.evaluaciones_pedagogicas.order_by('-fecha').first()
+    recomendaciones = []
+    if eval_ped:
+        recomendaciones = eval_ped.recomendaciones.select_related('regla').all()
+    return render(request, 'experto/perfil_estudiante.html', {
+        'instructor':       instructor,
+        'estudiante':       est,
+        'representante':    rep,
+        'eval_dsm5':        eval_dsm5,
+        'eval_ped':         eval_ped,
+        'recomendaciones':  recomendaciones,
     })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# EVALUACIÓN Y MOTOR DE INFERENCIA
+# REPRESENTANTE
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required(login_url='login')
-def nueva_evaluacion(request, estudiante_pk):
-    """
-    Realiza una nueva evaluación pedagógica de un estudiante.
-    Tras guardar el formulario, invoca el motor de inferencia para
-    generar las recomendaciones automáticamente.
-    """
-    instructor = get_instructor(request)
-    estudiante = get_object_or_404(Estudiante, pk=estudiante_pk, instructor=instructor)
+def registro_representante(request, pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    rep = getattr(est, 'representante', None)
 
     if request.method == 'POST':
-        form = EvaluacionForm(request.POST)
+        form = RepresentanteForm(request.POST, request.FILES, instance=rep)
         if form.is_valid():
-            evaluacion = form.save(commit=False)
-            evaluacion.estudiante = estudiante
-            evaluacion.instructor = instructor
-            evaluacion.save()
-
-            # ── EJECUTAR MOTOR DE INFERENCIA ─────────────────────────────────
-            recomendaciones = generar_recomendaciones(evaluacion)
-
-            messages.success(
-                request,
-                f'Evaluación guardada. El motor de inferencia generó '
-                f'{len(recomendaciones)} recomendación(es).'
-            )
-            return redirect('resultados', evaluacion_pk=evaluacion.pk)
+            rep_obj = form.save(commit=False)
+            rep_obj.estudiante = est
+            rep_obj.save()
+            messages.success(request, 'Datos del representante guardados.')
+            return redirect('perfil_estudiante', pk=est.pk)
     else:
-        form = EvaluacionForm()
-
-    return render(request, 'experto/evaluacion.html', {
-        'form':       form,
-        'estudiante': estudiante,
-        'instructor': instructor,
-    })
-
-
-@login_required(login_url='login')
-def resultados(request, evaluacion_pk):
-    """
-    Muestra los resultados de una evaluación: los hechos evaluados
-    y las recomendaciones pedagógicas generadas por el motor de inferencia,
-    agrupadas por categoría.
-    """
-    instructor  = get_instructor(request)
-    evaluacion  = get_object_or_404(
-        Evaluacion, pk=evaluacion_pk, instructor=instructor
-    )
-    recomendaciones = evaluacion.recomendaciones.all().order_by('categoria')
-
-    # Agrupar recomendaciones por categoría para la vista
-    grupos = {}
-    for rec in recomendaciones:
-        cat = rec.get_categoria_display() if hasattr(rec, 'get_categoria_display') else rec.categoria
-        grupos.setdefault(cat, []).append(rec)
-
-    # Etiquetas de display para los hechos evaluados
-    NIVELES = {'bajo': 'Bajo', 'medio': 'Medio', 'alto': 'Alto'}
-    hechos = [
-        ('Dificultad de comunicación', NIVELES.get(evaluacion.dificultad_comunicacion, '')),
-        ('Usa lenguaje verbal',        'Sí' if evaluacion.usa_lenguaje_verbal else 'No'),
-        ('Conductas repetitivas',      NIVELES.get(evaluacion.conductas_repetitivas, '')),
-        ('Reacciones sensoriales',     NIVELES.get(evaluacion.reacciones_sensoriales, '')),
-        ('Crisis frecuentes',          'Sí' if evaluacion.crisis_frecuentes else 'No'),
-        ('Interacción social',         NIVELES.get(evaluacion.interaccion_social, '')),
-        ('Interés por pares',          'Sí' if evaluacion.interes_pares else 'No'),
-    ]
-
-    # Historial para la gráfica
-    historial = Evaluacion.objects.filter(
-        estudiante=evaluacion.estudiante,
-        fecha_evaluacion__lte=evaluacion.fecha_evaluacion
-    ).order_by('fecha_evaluacion')
-    
-    fechas = []
-    comunicacion = []
-    conducta = []
-    social = []
-    mapa_niveles = {'bajo': 1, 'medio': 2, 'alto': 3}
-    
-    for ev in historial:
-        fechas.append(ev.fecha_evaluacion.strftime("%d/%m/%Y"))
-        comunicacion.append(mapa_niveles.get(ev.dificultad_comunicacion, 0))
-        conducta.append(mapa_niveles.get(ev.conductas_repetitivas, 0))
-        social.append(mapa_niveles.get(ev.interaccion_social, 0))
-        
-    chart_data = json.dumps({
-        'fechas': fechas,
-        'comunicacion': comunicacion,
-        'conducta': conducta,
-        'social': social
-    })
-
-    return render(request, 'experto/resultados.html', {
-        'evaluacion':      evaluacion,
-        'estudiante':      evaluacion.estudiante,
-        'instructor':      instructor,
-        'recomendaciones': recomendaciones,
-        'grupos':          grupos,
-        'hechos':          hechos,
-        'total':           recomendaciones.count(),
-        'chart_data':      chart_data,
-    })
-
-
-@login_required(login_url='login')
-def historial_evaluaciones(request):
-    """Historial completo de evaluaciones realizadas por el instructor."""
-    instructor  = get_instructor(request)
-    evaluaciones = Evaluacion.objects.filter(instructor=instructor).select_related(
-        'estudiante'
-    ).order_by('-fecha_evaluacion')
-
-    return render(request, 'experto/historial.html', {
-        'evaluaciones': evaluaciones,
-        'instructor':   instructor,
+        form = RepresentanteForm(instance=rep)
+    return render(request, 'experto/registro_representante.html', {
+        'form': form, 'instructor': instructor, 'estudiante': est, 'editando': rep is not None
     })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# BASE DE CONOCIMIENTOS (solo lectura para instructores)
+# EVALUACIÓN DSM-5
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def evaluacion_dsm5(request, pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+
+    if request.method == 'POST':
+        form = EvaluacionDSM5Form(request.POST)
+        if form.is_valid():
+            ev = form.save(commit=False)
+            ev.estudiante = est
+            ev.save()
+            messages.success(request, 'Evaluación DSM-5 guardada. Ahora complete la evaluación pedagógica.')
+            return redirect('evaluacion_pedagogica', pk=est.pk, dsm5_pk=ev.pk)
+    else:
+        form = EvaluacionDSM5Form()
+    return render(request, 'experto/evaluacion_dsm5.html', {
+        'form': form, 'instructor': instructor, 'estudiante': est
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EVALUACIÓN PEDAGÓGICA
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def evaluacion_pedagogica(request, pk, dsm5_pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    ev_dsm5 = get_object_or_404(EvaluacionDSM5, pk=dsm5_pk, estudiante=est)
+
+    if request.method == 'POST':
+        form = EvaluacionPedagogicaForm(request.POST)
+        if form.is_valid():
+            ev_ped = form.save(commit=False)
+            ev_ped.estudiante = est
+            ev_ped.evaluacion_dsm5 = ev_dsm5
+            ev_ped.save()
+            reglas = generar_recomendaciones(ev_ped)
+            messages.success(
+                request,
+                f'Evaluación completada. El sistema generó {len(reglas)} recomendación(es).'
+            )
+            return redirect('resultados', ped_pk=ev_ped.pk)
+    else:
+        form = EvaluacionPedagogicaForm()
+    return render(request, 'experto/evaluacion_pedagogica.html', {
+        'form': form, 'instructor': instructor, 'estudiante': est, 'eval_dsm5': ev_dsm5
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RESULTADOS DEL MOTOR DE INFERENCIA
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def resultados(request, ped_pk):
+    instructor  = _get_instructor(request)
+    ev_ped = get_object_or_404(
+        EvaluacionPedagogica, pk=ped_pk, estudiante__instructor=instructor
+    )
+    recomendaciones = ev_ped.recomendaciones.select_related('regla').all()
+    ev_dsm5 = ev_ped.evaluacion_dsm5
+
+    return render(request, 'experto/resultados.html', {
+        'instructor':      instructor,
+        'estudiante':      ev_ped.estudiante,
+        'eval_ped':        ev_ped,
+        'eval_dsm5':       ev_dsm5,
+        'recomendaciones': recomendaciones,
+        'total':           recomendaciones.count(),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BASE DE CONOCIMIENTOS
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required(login_url='login')
 def base_conocimientos(request):
-    """
-    Muestra las reglas de la base de conocimientos agrupadas por categoría.
-    Permite al instructor consultar qué reglas existen en el sistema experto.
-    """
-    reglas = Regla.objects.filter(activa=True).order_by('categoria', '-prioridad')
-
-    grupos = {}
-    CATEGORIAS = {
-        'comunicacion': 'Comunicación',
-        'conducta':     'Conducta',
-        'social':       'Interacción Social',
-        'general':      'General',
-    }
-    for regla in reglas:
-        cat_label = CATEGORIAS.get(regla.categoria, regla.categoria)
-        grupos.setdefault(cat_label, []).append(regla)
-
+    instructor = _get_instructor(request)
+    reglas = Regla.objects.filter(activa=True).order_by('nombre')
     return render(request, 'experto/base_conocimientos.html', {
-        'grupos':      grupos,
-        'total_reglas': reglas.count(),
+        'instructor': instructor,
+        'reglas':     reglas,
+        'total':      reglas.count(),
     })

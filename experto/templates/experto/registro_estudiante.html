@@ -1,57 +1,63 @@
 {% extends 'experto/base.html' %}
-{% block title %}Registrar Estudiante — Sistema Experto TEA{% endblock %}
-
+{% block title %}{% if editando %}Editar{% else %}Nuevo{% endif %} Estudiante — Sistema TEA{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Registrar Estudiante</h1>
-    <p class="page-subtitle">Ingresa los datos del estudiante con TEA</p>
+    <div class="breadcrumb">
+      <a href="{% url 'lista_estudiantes' %}">Estudiantes</a> › {% if editando %}Editar{% else %}Nuevo registro{% endif %}
+    </div>
+    <h1 class="page-title">{% if editando %}Editar: {{ estudiante.nombre_completo }}{% else %}Registrar Estudiante{% endif %}</h1>
+    <p class="page-subtitle">Datos básicos del estudiante con foto tipo carnet</p>
   </div>
-  <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">← Volver</a>
 </div>
 
-<div class="form-card">
-  <form method="post" novalidate>
-    {% csrf_token %}
+<div style="max-width:560px">
+  <div class="card">
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+      <div class="alert alert-error mb-2">❌ {{ form.non_field_errors.0 }}</div>
+      {% endif %}
 
-    <div class="form-section">
-      <h2 class="form-section-title">📋 Datos Personales</h2>
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label for="id_nombre">Nombre</label>
-          {{ form.nombre }}
-          {% if form.nombre.errors %}<span class="form-error">{{ form.nombre.errors|join:", " }}</span>{% endif %}
-        </div>
-        <div class="form-group">
-          <label for="id_apellido">Apellido</label>
-          {{ form.apellido }}
-          {% if form.apellido.errors %}<span class="form-error">{{ form.apellido.errors|join:", " }}</span>{% endif %}
-        </div>
+      <div class="form-group">
+        <label class="form-label">Nombre completo *</label>
+        {{ form.nombre_completo }}
+        {% if form.nombre_completo.errors %}<ul class="errorlist">{% for e in form.nombre_completo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
-      <div class="form-grid-2">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
         <div class="form-group">
-          <label for="id_fecha_nacimiento">Fecha de nacimiento</label>
-          {{ form.fecha_nacimiento }}
-          {% if form.fecha_nacimiento.errors %}<span class="form-error">{{ form.fecha_nacimiento.errors|join:", " }}</span>{% endif %}
+          <label class="form-label">Sexo *</label>
+          {{ form.sexo }}
+          {% if form.sexo.errors %}<ul class="errorlist">{% for e in form.sexo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         </div>
         <div class="form-group">
-          <label for="id_nivel_tea">Nivel TEA</label>
-          {{ form.nivel_tea }}
-          {% if form.nivel_tea.errors %}<span class="form-error">{{ form.nivel_tea.errors|join:", " }}</span>{% endif %}
+          <label class="form-label">Edad (años) *</label>
+          {{ form.edad }}
+          {% if form.edad.errors %}<ul class="errorlist">{% for e in form.edad.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         </div>
       </div>
 
       <div class="form-group">
-        <label for="id_observaciones">Observaciones generales</label>
-        {{ form.observaciones }}
+        <label class="form-label">📷 Foto carnet (opcional)</label>
+        {% if editando and estudiante.tiene_foto %}
+        <div class="d-flex align-center gap-1 mb-1">
+          <img src="{{ estudiante.foto_carnet.url }}" alt="Foto actual" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid var(--c-border)">
+          <span class="text-muted" style="font-size:.85rem">Foto actual. Sube una nueva para reemplazar.</span>
+        </div>
+        {% endif %}
+        {{ form.foto_carnet }}
+        <span class="form-help">Formatos: JPG, PNG, WEBP — Máx. 5 MB</span>
+        {% if form.foto_carnet.errors %}<ul class="errorlist">{% for e in form.foto_carnet.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
-    </div>
 
-    <div class="form-actions">
-      <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">Cancelar</a>
-      <button type="submit" class="btn btn-primary">Registrar estudiante</button>
-    </div>
-  </form>
+      <div class="d-flex gap-1 mt-3">
+        <button type="submit" class="btn btn-primary">
+          {% if editando %}💾 Guardar cambios{% else %}✅ Registrar estudiante{% endif %}
+        </button>
+        <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

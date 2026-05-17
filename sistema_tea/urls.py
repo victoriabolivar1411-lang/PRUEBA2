@@ -1,24 +1,33 @@
 """
-URL configuration for sistema_tea project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+=============================================================================
+SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
+=============================================================================
+Archivo: sistema_tea/urls.py
+Descripción: URLs raíz del proyecto. Incluye las rutas de la app 'experto',
+             las rutas nativas de Django para recuperación de contraseña,
+             y los archivos media en modo desarrollo.
+=============================================================================
 """
+
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
+    # Administración de Django
     path('admin/', admin.site.urls),
-    # Todas las rutas de la app del sistema experto
+
+    # Rutas de la aplicación principal
     path('', include('experto.urls')),
+
+    # Rutas de recuperación de contraseña (Django built-in)
+    # Provee: /password-reset/, /password-reset/done/,
+    #         /reset/<uidb64>/<token>/, /reset/done/
+    path('', include('django.contrib.auth.urls')),
 ]
+
+# Servir archivos media en modo DEBUG (desarrollo)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

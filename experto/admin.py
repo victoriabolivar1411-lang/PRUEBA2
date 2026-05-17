@@ -1,51 +1,49 @@
-"""
-=============================================================================
-SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
-=============================================================================
-Módulo: admin.py
-Descripción: Registro de modelos en el panel de administración de Django.
-             Permite gestionar reglas, estudiantes y evaluaciones desde /admin/
-=============================================================================
-"""
-
 from django.contrib import admin
-from .models import Instructor, Estudiante, Evaluacion, Regla, Recomendacion
+from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica, Regla, Recomendacion
 
 
 @admin.register(Instructor)
 class InstructorAdmin(admin.ModelAdmin):
-    list_display  = ['usuario', 'especialidad', 'telefono', 'fecha_registro']
-    search_fields = ['usuario__username', 'usuario__first_name', 'especialidad']
+    list_display = ['usuario', 'telefono', 'fecha_registro']
+    search_fields = ['usuario__first_name', 'usuario__last_name', 'usuario__email']
 
 
 @admin.register(Estudiante)
 class EstudianteAdmin(admin.ModelAdmin):
-    list_display  = ['nombre_completo', 'nivel_tea', 'instructor', 'fecha_registro']
-    list_filter   = ['nivel_tea', 'instructor']
-    search_fields = ['nombre', 'apellido']
+    list_display = ['nombre_completo', 'sexo', 'edad', 'instructor', 'fecha_creacion']
+    list_filter = ['sexo', 'instructor']
+    search_fields = ['nombre_completo']
 
 
-@admin.register(Evaluacion)
-class EvaluacionAdmin(admin.ModelAdmin):
-    list_display = [
-        'estudiante', 'instructor', 'dificultad_comunicacion',
-        'conductas_repetitivas', 'interaccion_social', 'fecha_evaluacion'
-    ]
-    list_filter  = ['dificultad_comunicacion', 'conductas_repetitivas', 'interaccion_social']
-    date_hierarchy = 'fecha_evaluacion'
+@admin.register(Representante)
+class RepresentanteAdmin(admin.ModelAdmin):
+    list_display = ['nombre_completo', 'estudiante', 'estado_civil', 'correo']
+    search_fields = ['nombre_completo', 'correo']
+
+
+@admin.register(EvaluacionDSM5)
+class EvaluacionDSM5Admin(admin.ModelAdmin):
+    list_display = ['estudiante', 'fecha', 'nivel_comunicacion_social', 'nivel_conductas_repetitivas']
+    list_filter = ['nivel_comunicacion_social', 'nivel_conductas_repetitivas']
+    readonly_fields = ['fecha']
+
+
+@admin.register(EvaluacionPedagogica)
+class EvaluacionPedagogicaAdmin(admin.ModelAdmin):
+    list_display = ['estudiante', 'fecha', 'nivel_comunicacion_social', 'nivel_conductas_repetitivas']
+    list_filter = ['nivel_comunicacion_social']
+    readonly_fields = ['fecha']
 
 
 @admin.register(Regla)
 class ReglaAdmin(admin.ModelAdmin):
-    list_display  = ['nombre', 'categoria', 'campo_condicion', 'operador', 'valor_condicion', 'prioridad', 'activa']
-    list_filter   = ['categoria', 'activa']
-    list_editable = ['activa', 'prioridad']
-    search_fields = ['nombre', 'accion']
-    ordering      = ['-prioridad']
+    list_display = ['nombre', 'condicion', 'activa']
+    list_filter = ['activa']
+    list_editable = ['activa']
+    search_fields = ['nombre', 'condicion']
 
 
 @admin.register(Recomendacion)
 class RecomendacionAdmin(admin.ModelAdmin):
-    list_display = ['evaluacion', 'categoria', 'regla', 'fecha_generacion']
-    list_filter  = ['categoria']
-    date_hierarchy = 'fecha_generacion'
+    list_display = ['evaluacion_pedagogica', 'regla', 'generada_en']
+    readonly_fields = ['generada_en']

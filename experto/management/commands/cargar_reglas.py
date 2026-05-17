@@ -3,39 +3,39 @@ from experto.models import Regla
 from experto.expert_system import REGLAS_INICIALES
 
 
+def safe(text, length=60):
+    """Convierte a ASCII seguro para terminales Windows cp1252."""
+    return text[:length].encode('ascii', errors='replace').decode('ascii')
+
+
 class Command(BaseCommand):
-    help = 'Carga las reglas iniciales del sistema experto TEA en la base de datos.'
+    help = 'Carga las reglas iniciales del sistema experto TEA (DSM-5).'
 
     def handle(self, *args, **options):
-        self.stdout.write('--- SISTEMA EXPERTO TEA: Carga de Base de Conocimientos ---')
-
-        creadas      = 0
-        actualizadas = 0
+        self.stdout.write('--- Cargando Base de Conocimientos TEA ---')
+        creadas = actualizadas = 0
 
         for i, datos in enumerate(REGLAS_INICIALES, 1):
             regla, created = Regla.objects.update_or_create(
                 nombre=datos['nombre'],
                 defaults={
-                    'campo_condicion': datos['campo_condicion'],
-                    'operador':        datos['operador'],
-                    'valor_condicion': datos['valor_condicion'],
-                    'accion':          datos['accion'],
-                    'categoria':       datos['categoria'],
-                    'prioridad':       datos['prioridad'],
-                    'activa':          True,
+                    'condicion':           datos['condicion'],
+                    'recomendacion':       datos['recomendacion'],
+                    'recursos_didacticos': datos.get('recursos_didacticos', ''),
+                    'activa':              True,
                 },
             )
-            estado = 'CREADA' if created else 'ACTUALIZADA'
-            # Usamos encode/decode para evitar UnicodeEncodeError en terminales cp1252
-            msg = f'  [{estado}] Regla {i}: {datos["categoria"].upper()}'
+            nombre_safe = safe(datos['nombre'])
             if created:
                 creadas += 1
-                self.stdout.write(self.style.SUCCESS(msg))
+                self.stdout.write(self.style.SUCCESS(f'  [CREADA]      Regla {i}: {nombre_safe}'))
             else:
                 actualizadas += 1
-                self.stdout.write(self.style.WARNING(msg))
+                self.stdout.write(self.style.WARNING(f'  [ACTUALIZADA] Regla {i}: {nombre_safe}'))
 
         self.stdout.write('')
+        total = Regla.objects.filter(activa=True).count()
         self.stdout.write(self.style.SUCCESS(
-            f'Completado: {creadas} reglas creadas, {actualizadas} actualizadas.'
+            f'Completado: {creadas} creadas, {actualizadas} actualizadas. '
+            f'Total activas: {total}'
         ))

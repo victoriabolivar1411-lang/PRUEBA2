@@ -3,373 +3,261 @@
 SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
 =============================================================================
 Módulo: expert_system.py
-Descripción: Motor de inferencia basado en encadenamiento hacia adelante
-             (Forward Chaining). Evalúa los hechos de una evaluación
-             pedagógica contra la base de conocimientos (reglas SI-ENTONCES)
-             y genera recomendaciones automáticas.
-
-Arquitectura del Motor de Inferencia:
-  1. Hechos (Working Memory): datos de la evaluación del estudiante.
-  2. Base de Conocimientos: reglas almacenadas en la BD (modelo Regla).
-  3. Motor de Inferencia: ciclo de match-select-execute (forward chaining).
-  4. Salida: lista de Recomendaciones pedagógicas disparadas.
+Motor de inferencia por encadenamiento hacia adelante (Forward Chaining).
 =============================================================================
 """
 
 import logging
-
 logger = logging.getLogger(__name__)
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# REGLAS PRECARGADAS (DATOS INICIALES)
+# REGLAS INICIALES PRECARGADAS (10 reglas DSM-5)
 # ─────────────────────────────────────────────────────────────────────────────
 
 REGLAS_INICIALES = [
-    # ── COMUNICACIÓN ─────────────────────────────────────────────────────────
     {
-        'nombre': 'Comunicación alta dificultad → Pictogramas',
-        'campo_condicion': 'dificultad_comunicacion',
-        'operador': '==',
-        'valor_condicion': 'alto',
-        'accion': (
+        'nombre': 'R01 — Comunicación constante → SAAC + Pictogramas',
+        'condicion': 'nivel_comunicacion_social == "apoyo_constante"',
+        'recomendacion': (
             'Implementar un Sistema Aumentativo y Alternativo de Comunicación (SAAC) '
-            'basado en pictogramas (PECS). Utilizar imágenes concretas para rutinas '
-            'diarias, necesidades básicas y emociones. Colocar tableros de comunicación '
-            'accesibles en el aula.'
+            'basado en pictogramas (PECS). Utilizar tableros de comunicación con imágenes '
+            'concretas para rutinas diarias, necesidades básicas y emociones. Colocar '
+            'tableros accesibles en todos los espacios del aula. Solicitar evaluación '
+            'por fonoaudiólogo/logopeda.'
         ),
-        'categoria': 'comunicacion',
-        'prioridad': 10,
+        'recursos_didacticos': (
+            'Tableros PECS impresos laminados · Aplicación LetMeTalk (Android, gratuita) '
+            '· App Proloquo2Go · Pictogramas ARASAAC (arasaac.org)'
+        ),
     },
     {
-        'nombre': 'Sin lenguaje verbal → CAA digital',
-        'campo_condicion': 'usa_lenguaje_verbal',
-        'operador': '==',
-        'valor_condicion': 'False',
-        'accion': (
-            'Introducir aplicaciones de Comunicación Aumentativa y Alternativa (CAA) '
-            'como Proloquo2Go, LetMeTalk o ARAWORD. Trabajar con el logopeda para '
-            'diseñar un vocabulario personalizado. Capacitar al instructor y la familia '
-            'en el uso consistente del sistema CAA.'
+        'nombre': 'R02 — Conductas muy notables → Rutinas visuales + avisos de transición',
+        'condicion': 'nivel_conductas_repetitivas == "ayuda_muy_notable"',
+        'recomendacion': (
+            'Diseñar ambiente estructurado con rutinas predecibles y horarios visuales fijos. '
+            'Usar temporizadores visuales (Time Timer) para transiciones con avisos a los 10, 5 '
+            'y 2 minutos. Incorporar "tiempo de stim" controlado. Aplicar ABA para reemplazar '
+            'conductas disruptivas por funcionales equivalentes. Crear estaciones de trabajo '
+            'claras con materiales diferenciados por color.'
         ),
-        'categoria': 'comunicacion',
-        'prioridad': 9,
+        'recursos_didacticos': (
+            'Temporizador visual Time Timer · Tablero de horario con velcro · '
+            'Tarjetas "AHORA → DESPUÉS" · Kit de herramientas sensoriales'
+        ),
     },
     {
-        'nombre': 'Comunicación media dificultad → Apoyos visuales',
-        'campo_condicion': 'dificultad_comunicacion',
-        'operador': '==',
-        'valor_condicion': 'medio',
-        'accion': (
-            'Reforzar la comunicación con apoyos visuales complementarios: '
-            'agendas visuales diarias, tarjetas de primero-después, señales '
-            'gestuales simples. Practicar turnos conversacionales con apoyo del instructor.'
+        'nombre': 'R03 — Criterio B cumplido (≥2 conductas) → Estaciones de trabajo TEACCH',
+        'condicion': 'cumple_criterio_b == True',
+        'recomendacion': (
+            'Organizar el aula en estaciones de trabajo claramente delimitadas con materiales '
+            'específicos. Usar modelo TEACCH con cajas de tareas secuenciadas. Implementar '
+            'actividades estructuradas con inicio, desarrollo y cierre explícitos. '
+            'Proporcionar instrucciones paso a paso con soporte visual.'
         ),
-        'categoria': 'comunicacion',
-        'prioridad': 6,
-    },
-    # ── CONDUCTA ──────────────────────────────────────────────────────────────
-    {
-        'nombre': 'Conductas repetitivas altas → Rutinas estructuradas',
-        'campo_condicion': 'conductas_repetitivas',
-        'operador': '==',
-        'valor_condicion': 'alto',
-        'accion': (
-            'Diseñar un ambiente altamente estructurado con rutinas predecibles y '
-            'horarios visuales claros. Incorporar las conductas repetitivas como '
-            '"tiempo de stim" controlado dentro del día. Usar temporizadores visuales '
-            'para las transiciones entre actividades. Aplicar el enfoque de Análisis '
-            'Conductual Aplicado (ABA) para reemplazar conductas disruptivas por '
-            'funcionales equivalentes.'
+        'recursos_didacticos': (
+            'Cajas de trabajo TEACCH · Separadores visuales · '
+            'Etiquetas de colores para cada estación · Guías TEACCH de Schopler'
         ),
-        'categoria': 'conducta',
-        'prioridad': 10,
     },
     {
-        'nombre': 'Crisis frecuentes → Plan de manejo de crisis',
-        'campo_condicion': 'crisis_frecuentes',
-        'operador': '==',
-        'valor_condicion': 'True',
-        'accion': (
-            'Elaborar un Plan Individualizado de Manejo de Crisis con: (1) identificación '
-            'de disparadores (triggers), (2) señales tempranas de escalada, (3) estrategias '
-            'de desescalada (rincón de calma, herramientas sensoriales), (4) protocolo de '
-            'actuación del equipo. Compartir el plan con toda la familia y el equipo docente.'
+        'nombre': 'R04 — Discapacidad intelectual → Materiales pre-simbólicos',
+        'condicion': 'discapacidad_intelectual == True',
+        'recomendacion': (
+            'Adaptar materiales al nivel pre-simbólico usando objetos concretos y reales '
+            'antes que imágenes o palabras. Implementar aprendizaje sin error (errorless '
+            'learning) con ayudas físicas graduales. Trabajar tareas de causa-efecto simple. '
+            'Reducir el número de pasos a 1-2 acciones máximo. Coordinar con equipo '
+            'interdisciplinario.'
         ),
-        'categoria': 'conducta',
-        'prioridad': 10,
+        'recursos_didacticos': (
+            'Objetos reales y miniaturas · Juguetes de causa-efecto · '
+            'Materiales sensoriales (texturas, masas) · Guía PBS'
+        ),
     },
     {
-        'nombre': 'Reacciones sensoriales altas → Adaptación del entorno',
-        'campo_condicion': 'reacciones_sensoriales',
-        'operador': '==',
-        'valor_condicion': 'alto',
-        'accion': (
-            'Realizar una evaluación sensorial completa con terapeuta ocupacional. '
-            'Adaptar el aula: reducir estímulos visuales y sonoros, ofrecer auriculares '
-            'de reducción de ruido, ajustar iluminación. Crear una "zona de calma" con '
-            'materiales sensoriales (pelotas anti-estrés, mantas con peso, etc.).'
+        'nombre': 'R05 — Deterioro del lenguaje → PECS prioritario',
+        'condicion': 'deterioro_lenguaje == True',
+        'recomendacion': (
+            'Priorizar PECS (Sistema de Comunicación por Intercambio de Imágenes) como '
+            'principal medio de comunicación. Iniciar con Fase I e ir avanzando. Usar '
+            'vocabulario de alta frecuencia: comer, agua, baño, jugar, ayuda. No forzar '
+            'producción verbal. Integrar pictogramas en todos los momentos del día.'
         ),
-        'categoria': 'conducta',
-        'prioridad': 9,
+        'recursos_didacticos': (
+            'Kit PECS oficial · Pictogramas ARASAAC · Álbum de comunicación con velcro · '
+            'App "Snap Core First"'
+        ),
     },
     {
-        'nombre': 'Reacciones sensoriales medias → Dieta sensorial',
-        'campo_condicion': 'reacciones_sensoriales',
-        'operador': '==',
-        'valor_condicion': 'medio',
-        'accion': (
-            'Implementar una dieta sensorial personalizada: pausas de movimiento cada '
-            '20-30 minutos, actividades propioceptivas (saltar, cargar peso), y objetos '
-            'de autorregulación disponibles en el aula (fidgets, cojines de equilibrio).'
+        'nombre': 'R06 — Inicio temprano + deterioro significativo → Derivación interdisciplinaria',
+        'condicion': 'inicio_temprano == True AND deterioro_significativo == True',
+        'recomendacion': (
+            'Derivar a evaluación interdisciplinaria completa: neurología pediátrica, '
+            'psicología clínica, fonoaudiología y terapia ocupacional. Solicitar informe '
+            'escolar detallado con evidencias observacionales. Comunicar a la familia la '
+            'importancia de la intervención temprana. Documentar observaciones con fechas '
+            'y descripciones específicas.'
         ),
-        'categoria': 'conducta',
-        'prioridad': 6,
+        'recursos_didacticos': (
+            'Protocolo de derivación interdisciplinaria · Formulario de consentimiento '
+            '· Escala CARS-2 · Directorio de especialistas en TEA'
+        ),
     },
     {
-        'nombre': 'Conductas repetitivas medias → Horario visual',
-        'campo_condicion': 'conductas_repetitivas',
-        'operador': '==',
-        'valor_condicion': 'medio',
-        'accion': (
-            'Implementar horario visual diario con imágenes o fotografías de las actividades. '
-            'Anticipar los cambios de rutina con al menos 5 minutos de aviso. '
-            'Ofrecer "tiempo libre estructurado" donde el estudiante pueda elegir entre '
-            'opciones predeterminadas.'
+        'nombre': 'R07 — Comunicación sustancial → Lenguaje visual + rutinas sociales',
+        'condicion': 'nivel_comunicacion_social == "apoyo_sustancial"',
+        'recomendacion': (
+            'Implementar apoyos visuales complementarios: agendas visuales, tarjetas '
+            '"primero-después", señales gestuales acordadas. Usar Historias Sociales™ '
+            '(Carol Gray) para situaciones cotidianas. Establecer grupos pequeños (2-3 '
+            'estudiantes) para práctica de habilidades sociales. Reforzar positivamente '
+            'cada intento comunicativo.'
         ),
-        'categoria': 'conducta',
-        'prioridad': 5,
-    },
-    # ── INTERACCIÓN SOCIAL ────────────────────────────────────────────────────
-    {
-        'nombre': 'Interacción social baja → Dinámicas grupales guiadas',
-        'campo_condicion': 'interaccion_social',
-        'operador': '==',
-        'valor_condicion': 'bajo',
-        'accion': (
-            'Implementar Entrenamiento en Habilidades Sociales (EHS) con grupos pequeños '
-            '(máx. 3 estudiantes). Usar juegos de roles, modelado por video y cuentos '
-            'sociales (Social Stories™ de Carol Gray) para enseñar situaciones cotidianas. '
-            'Iniciar con actividades paralelas antes de pasar a actividades cooperativas.'
+        'recursos_didacticos': (
+            'Tarjetas "primero-después" laminadas · Libro "Historias Sociales" de Carol Gray '
+            '· App "Social Story Creator" · Pictogramas de emociones'
         ),
-        'categoria': 'social',
-        'prioridad': 10,
     },
     {
-        'nombre': 'Sin interés por pares → Actividades motivadoras compartidas',
-        'campo_condicion': 'interes_pares',
-        'operador': '==',
-        'valor_condicion': 'False',
-        'accion': (
-            'Identificar los intereses específicos del estudiante e incorporarlos '
-            'en actividades compartidas con un compañero ("buddy system"). Comenzar '
-            'con actividades de 5-10 minutos con un solo compañero seleccionado. '
-            'Reforzar positivamente cualquier iniciativa de interacción espontánea.'
+        'nombre': 'R08 — Alteraciones sensoriales → Ambiente sensorialmente amigable',
+        'condicion': 'alteraciones_sensoriales == True',
+        'recomendacion': (
+            'Realizar evaluación sensorial con terapeuta ocupacional. Adaptar el aula: '
+            'reducir estímulos visuales, controlar ruido, usar iluminación regulable. '
+            'Crear "zona de calma" con herramientas sensoriales. Implementar dieta sensorial '
+            'personalizada con pausas de movimiento cada 20-30 min y actividades propioceptivas. '
+            'Anticipar situaciones sensorialmente desafiantes.'
         ),
-        'categoria': 'social',
-        'prioridad': 8,
+        'recursos_didacticos': (
+            'Auriculares de reducción de ruido · Pelotas de presión y fidgets · '
+            'Mantas con peso · Cojines de equilibrio · Lámparas LED regulables'
+        ),
     },
     {
-        'nombre': 'Interacción social media → Habilidades de juego',
-        'campo_condicion': 'interaccion_social',
-        'operador': '==',
-        'valor_condicion': 'medio',
-        'accion': (
-            'Trabajar habilidades de juego cooperativo y turnos. Enseñar explícitamente '
-            'las reglas sociales implícitas mediante historietas en cómic. '
-            'Organizar juegos de mesa estructurados en grupos de 2-4 estudiantes '
-            'con apoyo del instructor.'
+        'nombre': 'R09 — Comunicación nivel 1 → Habilidades conversacionales',
+        'condicion': 'nivel_comunicacion_social == "necesita_apoyo"',
+        'recomendacion': (
+            'Reforzar habilidades conversacionales con práctica de turnos. Usar juegos '
+            'de mesa estructurados para practicar inicio y mantenimiento de conversación. '
+            'Enseñar reglas sociales implícitas mediante role-playing y modelado en video. '
+            'Trabajar comprensión de metáforas y lenguaje figurado.'
         ),
-        'categoria': 'social',
-        'prioridad': 5,
+        'recursos_didacticos': (
+            'Juegos de mesa: Dixit, Dobble, Conecta 4 · Tarjetas de habilidades sociales '
+            '· App "Social Express"'
+        ),
+    },
+    {
+        'nombre': 'R10 — Conductas notables (nivel 2) → Horario visual + anticipación',
+        'condicion': 'nivel_conductas_repetitivas == "ayuda_notable"',
+        'recomendacion': (
+            'Implementar horario visual diario con fotografías o pictogramas. Anticipar '
+            'cambios con 5 minutos de aviso verbal y visual. Ofrecer "tiempo libre '
+            'estructurado" con opciones predeterminadas. Reforzar flexibilidad gradualmente '
+            'con cambios planeados pequeños.'
+        ),
+        'recursos_didacticos': (
+            'Tablero de horario semanal con velcro · Temporizador Time Timer · '
+            'Tarjetas "cambio sorpresa" · Ruleta de actividades libres'
+        ),
     },
 ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CLASE PRINCIPAL: MOTOR DE INFERENCIA
+# MOTOR DE INFERENCIA
 # ─────────────────────────────────────────────────────────────────────────────
 
 class MotorInferencia:
-    """
-    Motor de inferencia por encadenamiento hacia adelante (Forward Chaining).
+    """Motor forward chaining para el sistema experto TEA."""
 
-    Algoritmo:
-    ----------
-    1. Extraer hechos (facts) de la evaluación del estudiante.
-    2. Obtener todas las reglas activas de la base de conocimientos.
-    3. Para cada regla, verificar si la condición se satisface con los hechos.
-    4. Si se cumple, "disparar" la regla y agregar la recomendación a la agenda.
-    5. Repetir hasta que no queden reglas por evaluar (ciclo único en esta implementación).
-    6. Retornar las recomendaciones generadas.
-    """
+    # Evaluadores de condición segura (sin eval)
+    EVALUADORES = {
+        'nivel_comunicacion_social == "apoyo_constante"':
+            lambda h: h.get('nivel_comunicacion_social') == 'apoyo_constante',
+        'nivel_comunicacion_social == "apoyo_sustancial"':
+            lambda h: h.get('nivel_comunicacion_social') == 'apoyo_sustancial',
+        'nivel_comunicacion_social == "necesita_apoyo"':
+            lambda h: h.get('nivel_comunicacion_social') == 'necesita_apoyo',
+        'nivel_conductas_repetitivas == "ayuda_muy_notable"':
+            lambda h: h.get('nivel_conductas_repetitivas') == 'ayuda_muy_notable',
+        'nivel_conductas_repetitivas == "ayuda_notable"':
+            lambda h: h.get('nivel_conductas_repetitivas') == 'ayuda_notable',
+        'nivel_conductas_repetitivas == "necesita_ayuda"':
+            lambda h: h.get('nivel_conductas_repetitivas') == 'necesita_ayuda',
+        'cumple_criterio_b == True':
+            lambda h: h.get('cumple_criterio_b') is True,
+        'discapacidad_intelectual == True':
+            lambda h: h.get('discapacidad_intelectual') is True,
+        'deterioro_lenguaje == True':
+            lambda h: h.get('deterioro_lenguaje') is True,
+        'alteraciones_sensoriales == True':
+            lambda h: h.get('alteraciones_sensoriales') is True,
+        'inicio_temprano == True AND deterioro_significativo == True':
+            lambda h: h.get('inicio_temprano') is True and h.get('deterioro_significativo') is True,
+    }
 
-    def __init__(self, evaluacion):
-        """
-        Inicializa el motor con la evaluación del estudiante.
-
-        Args:
-            evaluacion: instancia del modelo Evaluacion de Django.
-        """
-        self.evaluacion = evaluacion
-        self.hechos = self._extraer_hechos()
-        self.agenda = []          # Reglas que se disparan (match)
-        self.recomendaciones = [] # Salida del motor
-
-    # ── 1. EXTRACCIÓN DE HECHOS ───────────────────────────────────────────────
+    def __init__(self, evaluacion_pedagogica):
+        self.eval_ped  = evaluacion_pedagogica
+        self.eval_dsm5 = evaluacion_pedagogica.evaluacion_dsm5
+        self.hechos    = self._extraer_hechos()
+        self.agenda    = []
 
     def _extraer_hechos(self) -> dict:
-        """
-        Construye la memoria de trabajo (Working Memory) a partir de los
-        campos de la evaluación. Los booleans se convierten a string para
-        facilitar la comparación uniforme con los valores de las reglas.
-
-        Returns:
-            dict: {campo: valor_como_string}
-        """
-        ev = self.evaluacion
         hechos = {
-            'dificultad_comunicacion': ev.dificultad_comunicacion,
-            'usa_lenguaje_verbal':      str(ev.usa_lenguaje_verbal),
-            'conductas_repetitivas':    ev.conductas_repetitivas,
-            'reacciones_sensoriales':   ev.reacciones_sensoriales,
-            'crisis_frecuentes':        str(ev.crisis_frecuentes),
-            'interaccion_social':       ev.interaccion_social,
-            'interes_pares':            str(ev.interes_pares),
+            'nivel_comunicacion_social':   self.eval_ped.nivel_comunicacion_social,
+            'nivel_conductas_repetitivas': self.eval_ped.nivel_conductas_repetitivas,
         }
-        logger.debug('Hechos extraídos: %s', hechos)
+        if self.eval_dsm5:
+            hechos.update({
+                'cumple_criterio_b':        self.eval_dsm5.cumple_criterio_b(),
+                'discapacidad_intelectual': self.eval_dsm5.discapacidad_intelectual,
+                'deterioro_lenguaje':       self.eval_dsm5.deterioro_lenguaje,
+                'alteraciones_sensoriales': self.eval_dsm5.alteraciones_sensoriales,
+                'inicio_temprano':          self.eval_dsm5.inicio_temprano,
+                'deterioro_significativo':  self.eval_dsm5.deterioro_significativo,
+            })
+        else:
+            hechos.update({k: False for k in [
+                'cumple_criterio_b', 'discapacidad_intelectual', 'deterioro_lenguaje',
+                'alteraciones_sensoriales', 'inicio_temprano', 'deterioro_significativo',
+            ]})
+        logger.debug('Working Memory: %s', hechos)
         return hechos
 
-    # ── 2. EVALUACIÓN DE CONDICIONES ─────────────────────────────────────────
-
-    def _evaluar_condicion(self, regla) -> bool:
-        """
-        Evalúa si la condición de una regla se cumple con los hechos actuales.
-
-        Soporta los operadores: == != > <
-        La comparación se hace como string; si ambos lados son numéricos,
-        también realiza comparación numérica.
-
-        Args:
-            regla: instancia del modelo Regla.
-
-        Returns:
-            bool: True si la condición se satisface.
-        """
-        campo    = regla.campo_condicion
-        operador = regla.operador
-        valor_r  = regla.valor_condicion  # valor de la regla
-
-        # El hecho puede no existir si la evaluación no tiene ese campo
-        valor_h = self.hechos.get(campo)
-        if valor_h is None:
-            return False
-
-        # Comparación como strings (case-insensitive para robustez)
-        vh_str = str(valor_h).lower()
-        vr_str = str(valor_r).lower()
-
-        try:
-            # Intenta comparación numérica
-            vh_num = float(vh_str)
-            vr_num = float(vr_str)
-            if operador == '==':
-                return vh_num == vr_num
-            elif operador == '!=':
-                return vh_num != vr_num
-            elif operador == '>':
-                return vh_num > vr_num
-            elif operador == '<':
-                return vh_num < vr_num
-        except ValueError:
-            # Comparación como strings
-            if operador == '==':
-                return vh_str == vr_str
-            elif operador == '!=':
-                return vh_str != vr_str
-
+    def _evaluar_condicion(self, condicion_texto: str) -> bool:
+        evaluador = self.EVALUADORES.get(condicion_texto.strip())
+        if evaluador:
+            return evaluador(self.hechos)
         return False
 
-    # ── 3. CICLO DE INFERENCIA (FORWARD CHAINING) ────────────────────────────
-
     def ejecutar(self) -> list:
-        """
-        Ejecuta el ciclo principal de encadenamiento hacia adelante:
-          MATCH → SELECT → EXECUTE
-
-        Returns:
-            list[dict]: Lista de recomendaciones generadas, cada una con
-                        {regla, texto, categoria}.
-        """
-        from .models import Regla  # Importación local para evitar ciclos
-
-        reglas_activas = Regla.objects.filter(activa=True).order_by('-prioridad')
-        logger.info('Motor de inferencia iniciado. Reglas activas: %d', reglas_activas.count())
-
-        # ── FASE MATCH: buscar qué reglas se disparan ────────────────────────
+        from .models import Regla
+        reglas_activas = Regla.objects.filter(activa=True)
+        logger.info('Motor iniciado — Reglas activas: %d', reglas_activas.count())
         for regla in reglas_activas:
-            if self._evaluar_condicion(regla):
+            if self._evaluar_condicion(regla.condicion):
                 self.agenda.append(regla)
                 logger.debug('Regla disparada: %s', regla.nombre)
-
         logger.info('Reglas disparadas: %d', len(self.agenda))
-
-        # ── FASE EXECUTE: generar recomendaciones ────────────────────────────
-        for regla in self.agenda:
-            self.recomendaciones.append({
-                'regla':     regla,
-                'texto':     regla.accion,
-                'categoria': regla.categoria,
-            })
-
-        return self.recomendaciones
-
-    # ── 4. PERSISTENCIA ──────────────────────────────────────────────────────
+        return self.agenda
 
     def guardar_recomendaciones(self) -> int:
-        """
-        Persiste las recomendaciones generadas en la base de datos,
-        eliminando primero las recomendaciones previas de esta evaluación
-        para evitar duplicados.
-
-        Returns:
-            int: Número de recomendaciones guardadas.
-        """
-        from .models import Recomendacion  # Importación local
-
-        # Eliminar recomendaciones previas de esta evaluación
-        Recomendacion.objects.filter(evaluacion=self.evaluacion).delete()
-
-        guardadas = 0
-        for rec in self.recomendaciones:
+        from .models import Recomendacion
+        Recomendacion.objects.filter(evaluacion_pedagogica=self.eval_ped).delete()
+        for regla in self.agenda:
             Recomendacion.objects.create(
-                evaluacion=self.evaluacion,
-                regla=rec['regla'],
-                texto=rec['texto'],
-                categoria=rec['categoria'],
+                evaluacion_pedagogica=self.eval_ped,
+                regla=regla,
+                texto=regla.recomendacion,
             )
-            guardadas += 1
-
-        logger.info('Recomendaciones guardadas: %d', guardadas)
-        return guardadas
+        logger.info('Recomendaciones guardadas: %d', len(self.agenda))
+        return len(self.agenda)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FUNCIÓN PÚBLICA: PUNTO DE ENTRADA DEL MOTOR
-# ─────────────────────────────────────────────────────────────────────────────
-
-def generar_recomendaciones(evaluacion) -> list:
-    """
-    Función de conveniencia que ejecuta el motor de inferencia completo
-    para una evaluación dada y guarda los resultados en la BD.
-
-    Args:
-        evaluacion: instancia del modelo Evaluacion.
-
-    Returns:
-        list[dict]: Recomendaciones generadas.
-    """
-    motor = MotorInferencia(evaluacion)
-    recomendaciones = motor.ejecutar()
+def generar_recomendaciones(evaluacion_pedagogica) -> list:
+    """Punto de entrada público del motor de inferencia."""
+    motor = MotorInferencia(evaluacion_pedagogica)
+    reglas = motor.ejecutar()
     motor.guardar_recomendaciones()
-    return recomendaciones
+    return reglas

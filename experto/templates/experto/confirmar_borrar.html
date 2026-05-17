@@ -1,0 +1,21 @@
+{% extends 'experto/base.html' %}
+{% block title %}Eliminar Estudiante — Sistema TEA{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:4rem auto">
+  <div class="card" style="text-align:center;border-color:rgba(248,113,113,.3)">
+    <div style="font-size:3rem;margin-bottom:1rem">⚠️</div>
+    <h2 style="color:var(--c-white);margin-bottom:.5rem">¿Eliminar estudiante?</h2>
+    <p style="color:var(--c-muted);line-height:1.6;margin-bottom:1.5rem">
+      Estás a punto de eliminar a <strong style="color:var(--c-red)">{{ estudiante.nombre_completo }}</strong> y todos sus datos asociados
+      (evaluaciones, recomendaciones, datos del representante). Esta acción <strong>no se puede deshacer</strong>.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex gap-1" style="justify-content:center">
+        <button type="submit" class="btn btn-danger">🗑️ Sí, eliminar definitivamente</button>
+        <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

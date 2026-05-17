@@ -1,110 +1,125 @@
 {% extends 'experto/base.html' %}
-{% block title %}Dashboard — Sistema Experto TEA{% endblock %}
-
+{% block title %}Dashboard — Sistema TEA{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">Panel de Control</h1>
-    <p class="page-subtitle">Bienvenido/a, <strong>{{ instructor }}</strong></p>
+    <h1 class="page-title">¡Hola, {{ instructor.usuario.first_name }}! 👋</h1>
+    <p class="page-subtitle">Panel principal del Sistema Experto TEA</p>
   </div>
-  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">+ Nuevo estudiante</a>
+  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">➕ Nuevo estudiante</a>
 </div>
 
 <!-- Estadísticas -->
-<div class="stats-grid">
-  <div class="stat-card stat-blue">
-    <div class="stat-icon">👦</div>
-    <div class="stat-info">
-      <div class="stat-number">{{ total_estudiantes }}</div>
-      <div class="stat-label">Estudiantes registrados</div>
+<div class="grid-4 mb-2">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(108,99,255,.15)">👨‍🎓</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-accent2)">{{ total_est }}</div>
+      <div class="stat-label">Estudiantes</div>
     </div>
   </div>
-  <div class="stat-card stat-purple">
-    <div class="stat-icon">📋</div>
-    <div class="stat-info">
-      <div class="stat-number">{{ total_evaluaciones }}</div>
-      <div class="stat-label">Evaluaciones realizadas</div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(34,211,238,.15)">🏥</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-teal)">{{ total_dsm5 }}</div>
+      <div class="stat-label">Evaluaciones DSM-5</div>
     </div>
   </div>
-  <div class="stat-card stat-green">
-    <div class="stat-icon">💡</div>
-    <div class="stat-info">
-      <div class="stat-number">11</div>
-      <div class="stat-label">Reglas en base de conocimientos</div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(74,222,128,.15)">📋</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-green)">{{ total_ped }}</div>
+      <div class="stat-label">Evaluaciones pedagógicas</div>
     </div>
   </div>
-  <div class="stat-card stat-orange">
-    <div class="stat-icon">🔗</div>
-    <div class="stat-info">
-      <div class="stat-number">Forward</div>
-      <div class="stat-label">Tipo de encadenamiento</div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(250,204,21,.15)">💡</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-yellow)">{{ total_rec }}</div>
+      <div class="stat-label">Recomendaciones generadas</div>
     </div>
   </div>
 </div>
 
-<!-- Últimas evaluaciones -->
-<div class="section-card">
-  <div class="section-card-header">
-    <h2>Últimas evaluaciones</h2>
-    <a href="{% url 'historial_evaluaciones' %}" class="link-muted">Ver todas →</a>
-  </div>
-  {% if evaluaciones %}
-    <table class="data-table">
-      <thead>
+<div class="grid-2 mt-2">
+  <!-- Estudiantes recientes -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Mis estudiantes</div>
+        <div class="card-subtitle">Últimos registrados</div>
+      </div>
+      <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost btn-sm">Ver todos</a>
+    </div>
+    {% if estudiantes %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Estudiante</th><th>Edad</th><th>Acción</th></tr></thead>
+        <tbody>
+        {% for est in estudiantes %}
         <tr>
-          <th>Estudiante</th>
-          <th>Comunicación</th>
-          <th>Conducta</th>
-          <th>Interacción Social</th>
-          <th>Fecha</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for ev in evaluaciones %}
-        <tr>
-          <td><strong>{{ ev.estudiante.nombre_completo }}</strong></td>
-          <td><span class="badge badge-{{ ev.dificultad_comunicacion }}">{{ ev.get_dificultad_comunicacion_display }}</span></td>
-          <td><span class="badge badge-{{ ev.conductas_repetitivas }}">{{ ev.get_conductas_repetitivas_display }}</span></td>
-          <td><span class="badge badge-{{ ev.interaccion_social }}">{{ ev.get_interaccion_social_display }}</span></td>
-          <td>{{ ev.fecha_evaluacion|date:"d/m/Y" }}</td>
-          <td><a href="{% url 'resultados' ev.pk %}" class="btn-table">Ver resultados</a></td>
+          <td>
+            <div class="d-flex align-center gap-1">
+              {% if est.tiene_foto %}
+              <img src="{{ est.foto_carnet.url }}" alt="" class="photo-thumb">
+              {% else %}
+              <div class="photo-placeholder">{{ est.nombre_completo|first|upper }}</div>
+              {% endif %}
+              <div>
+                <div style="font-weight:500">{{ est.nombre_completo }}</div>
+                <div class="text-muted" style="font-size:.8rem">{{ est.get_sexo_display }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ est.edad }} años</td>
+          <td><a href="{% url 'perfil_estudiante' est.pk %}" class="btn btn-ghost btn-sm">Ver perfil</a></td>
         </tr>
         {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <p>No hay evaluaciones aún. <a href="{% url 'lista_estudiantes' %}">Evalúa a un estudiante</a>.</p>
+        </tbody>
+      </table>
     </div>
-  {% endif %}
-</div>
-
-<!-- Lista de estudiantes -->
-<div class="section-card">
-  <div class="section-card-header">
-    <h2>Mis estudiantes</h2>
-    <a href="{% url 'lista_estudiantes' %}" class="link-muted">Ver todos →</a>
+    {% else %}
+    <div class="empty-state" style="padding:2rem">
+      <div class="icon">👨‍🎓</div>
+      <h3>Sin estudiantes aún</h3>
+      <p>Registra tu primer estudiante</p>
+      <a href="{% url 'registro_estudiante' %}" class="btn btn-primary mt-2">➕ Nuevo estudiante</a>
+    </div>
+    {% endif %}
   </div>
-  {% if estudiantes %}
-    <div class="student-grid">
-      {% for est in estudiantes %}
-      <a href="{% url 'detalle_estudiante' est.pk %}" class="student-card">
-        <div class="student-avatar">{{ est.nombre|first }}{{ est.apellido|first }}</div>
-        <div class="student-info">
-          <div class="student-name">{{ est.nombre_completo }}</div>
-          <div class="student-meta">TEA Nivel {{ est.nivel_tea }}</div>
-        </div>
-        <div class="student-action">→</div>
-      </a>
-      {% endfor %}
+
+  <!-- Últimas evaluaciones -->
+  <div class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">Últimas evaluaciones</div>
+        <div class="card-subtitle">Evaluaciones pedagógicas recientes</div>
+      </div>
     </div>
-  {% else %}
-    <div class="empty-state">
-      <div class="empty-icon">👦</div>
-      <p>No hay estudiantes registrados. <a href="{% url 'registro_estudiante' %}">Registra el primero</a>.</p>
+    {% if ultimas_eval %}
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Estudiante</th><th>Fecha</th><th>Acción</th></tr></thead>
+        <tbody>
+        {% for ev in ultimas_eval %}
+        <tr>
+          <td style="font-weight:500">{{ ev.estudiante.nombre_completo }}</td>
+          <td class="text-muted">{{ ev.fecha }}</td>
+          <td>
+            <a href="{% url 'resultados' ev.pk %}" class="btn btn-ghost btn-sm">Ver resultados</a>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
-  {% endif %}
+    {% else %}
+    <div class="empty-state" style="padding:2rem">
+      <div class="icon">📋</div>
+      <h3>Sin evaluaciones</h3>
+      <p>Evalúa a un estudiante para ver resultados aquí</p>
+    </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

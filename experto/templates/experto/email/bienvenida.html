@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 20px; }
+    .container { max-width: 560px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.1); }
+    .header { background: linear-gradient(135deg, #6c63ff, #a78bfa); padding: 32px; text-align: center; color: white; }
+    .header h1 { margin: 0; font-size: 1.5rem; }
+    .header p { margin: .5rem 0 0; opacity: .9; }
+    .body { padding: 32px; color: #333; line-height: 1.7; }
+    .body h2 { color: #6c63ff; margin-top: 0; }
+    .highlight { background: #f0edff; border-left: 4px solid #6c63ff; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+    .footer { background: #f9f9f9; border-top: 1px solid #eee; padding: 20px; text-align: center; font-size: .82rem; color: #888; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div style="font-size:2rem;margin-bottom:.5rem">🧩</div>
+    <h1>¡Bienvenido al Sistema Experto TEA!</h1>
+    <p>Tu cuenta ha sido creada exitosamente</p>
+  </div>
+  <div class="body">
+    <h2>¡Hola, {{ nombre }}!</h2>
+    <p>Nos alegra que te hayas unido al <strong>Sistema Experto de Apoyo Pedagógico para TEA</strong>. Tu cuenta de instructor ha sido creada correctamente.</p>
+    <div class="highlight">
+      <strong>Nombre de usuario:</strong> {{ username }}<br>
+      <strong>Correo:</strong> {{ email }}
+    </div>
+    <p>Ahora puedes:</p>
+    <ul>
+      <li>Registrar estudiantes con foto carnet</li>
+      <li>Realizar evaluaciones basadas en criterios DSM-5</li>
+      <li>Obtener recomendaciones pedagógicas personalizadas mediante el motor de inferencia</li>
+      <li>Generar fichas imprimibles con todos los datos</li>
+    </ul>
+  </div>
+  <div class="footer">
+    Sistema Experto TEA — Proyecto de Grado · Ingeniería de Sistemas
+  </div>
+</div>
+</body>
+</html>

@@ -1,41 +1,77 @@
 {% extends 'experto/base.html' %}
-{% block title %}Estudiantes — Sistema Experto TEA{% endblock %}
-
+{% block title %}Mis Estudiantes — Sistema TEA{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
     <h1 class="page-title">Mis Estudiantes</h1>
-    <p class="page-subtitle">{{ estudiantes.count }} estudiante(s) registrado(s)</p>
+    <p class="page-subtitle">{{ estudiantes.count }} estudiante{{ estudiantes.count|pluralize:"s" }} registrado{{ estudiantes.count|pluralize:"s" }}</p>
   </div>
-  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">+ Nuevo estudiante</a>
+  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">➕ Nuevo estudiante</a>
 </div>
 
 {% if estudiantes %}
-  <div class="student-list">
-    {% for est in estudiantes %}
-    <div class="student-row">
-      <div class="student-avatar-lg">{{ est.nombre|first }}{{ est.apellido|first }}</div>
-      <div class="student-row-info">
-        <div class="student-row-name">{{ est.nombre_completo }}</div>
-        <div class="student-row-meta">
-          TEA Nivel {{ est.nivel_tea }} ·
-          {{ est.fecha_nacimiento|date:"d/m/Y" }} ·
-          {{ est.num_evaluaciones }} evaluación(es)
-        </div>
-      </div>
-      <div class="student-row-actions">
-        <a href="{% url 'nueva_evaluacion' est.pk %}" class="btn btn-primary-sm">Evaluar</a>
-        <a href="{% url 'detalle_estudiante' est.pk %}" class="btn btn-ghost-sm">Ver perfil</a>
-      </div>
-    </div>
-    {% endfor %}
+<div class="card">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Estudiante</th>
+          <th>Sexo</th>
+          <th>Edad</th>
+          <th>Representante</th>
+          <th>Evaluaciones</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for est in estudiantes %}
+      <tr>
+        <td>
+          <div class="d-flex align-center gap-1">
+            {% if est.tiene_foto %}
+            <img src="{{ est.foto_carnet.url }}" alt="Foto de {{ est.nombre_completo }}" class="photo-thumb">
+            {% else %}
+            <div class="photo-placeholder">{{ est.nombre_completo|first|upper }}</div>
+            {% endif %}
+            <div>
+              <div style="font-weight:600;color:var(--c-white)">{{ est.nombre_completo }}</div>
+              <div class="text-muted" style="font-size:.8rem">Registrado {{ est.fecha_creacion|date:"d/m/Y" }}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge badge-purple">{{ est.get_sexo_display }}</span></td>
+        <td>{{ est.edad }} años</td>
+        <td>
+          {% if est.tiene_representante %}
+          <span class="badge badge-green">✅ Registrado</span>
+          {% else %}
+          <a href="{% url 'registro_representante' est.pk %}" class="badge badge-yellow" style="cursor:pointer">⚠️ Agregar</a>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge badge-teal">{{ est.total_eval }} eval.</span>
+        </td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            <a href="{% url 'evaluacion_dsm5' est.pk %}" class="btn btn-primary btn-sm" title="Evaluar">🏥 Evaluar</a>
+            <a href="{% url 'perfil_estudiante' est.pk %}" class="btn btn-ghost btn-sm" title="Ver perfil">👁️ Ver perfil</a>
+            <a href="{% url 'borrar_estudiante' est.pk %}" class="btn btn-danger btn-sm" title="Borrar">🗑️</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
+</div>
 {% else %}
-  <div class="empty-state empty-state-lg">
-    <div class="empty-icon">👦</div>
-    <h2>No hay estudiantes registrados</h2>
-    <p>Comienza registrando el primer estudiante con TEA.</p>
-    <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">Registrar estudiante</a>
+<div class="card">
+  <div class="empty-state">
+    <div class="icon">👨‍🎓</div>
+    <h3>Aún no tienes estudiantes registrados</h3>
+    <p>Comienza registrando a tu primer estudiante para poder realizar evaluaciones.</p>
+    <a href="{% url 'registro_estudiante' %}" class="btn btn-primary mt-2">➕ Registrar primer estudiante</a>
   </div>
+</div>
 {% endif %}
 {% endblock %}

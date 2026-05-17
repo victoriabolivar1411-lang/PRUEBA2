@@ -3,33 +3,48 @@
 SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
 =============================================================================
 Módulo: forms.py
-Descripción: Formularios Django para el registro de instructores, estudiantes
-             y la realización de evaluaciones pedagógicas.
+Descripción: Formularios Django para el sistema experto TEA.
 =============================================================================
 """
 
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica
 
-from .models import Instructor, Estudiante, Evaluacion
+
+CSS = 'form-input'
+CSS_AREA = 'form-textarea'
+CSS_CHECK = 'form-checkbox'
+CSS_FILE = 'form-file'
 
 
-# ─────────────────────────────────────────────
-# FORMULARIO DE REGISTRO DE INSTRUCTOR
-# ─────────────────────────────────────────────
+def _apply_css(form):
+    for name, field in form.fields.items():
+        widget = field.widget
+        if isinstance(widget, forms.CheckboxInput):
+            widget.attrs.setdefault('class', CSS_CHECK)
+        elif isinstance(widget, forms.Textarea):
+            widget.attrs.setdefault('class', CSS_AREA)
+        elif isinstance(widget, forms.ClearableFileInput):
+            widget.attrs.setdefault('class', CSS_FILE)
+        else:
+            widget.attrs.setdefault('class', CSS)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. REGISTRO DE INSTRUCTOR
+# ─────────────────────────────────────────────────────────────────────────────
 
 class RegistroInstructorForm(UserCreationForm):
     """
-    Formulario combinado: crea el User de Django y el perfil Instructor
-    asociado en un solo paso. Extiende UserCreationForm para incluir
-    validación de contraseña nativa de Django.
+    Crea el User de Django y el perfil Instructor.
+    Envía correo de bienvenida al registrarse.
     """
-    first_name   = forms.CharField(max_length=100, label='Nombre', required=True)
-    last_name    = forms.CharField(max_length=100, label='Apellido', required=True)
-    email        = forms.EmailField(label='Correo electrónico', required=True)
-    telefono     = forms.CharField(max_length=20, label='Teléfono', required=False)
-    especialidad = forms.CharField(max_length=100, label='Especialidad / Cargo', required=False)
+    first_name = forms.CharField(max_length=100, label='Nombre', required=True)
+    last_name  = forms.CharField(max_length=100, label='Apellido', required=True)
+    email      = forms.EmailField(label='Correo electrónico', required=True)
+    telefono   = forms.CharField(max_length=20, label='Teléfono (opcional)', required=False)
 
     class Meta:
         model  = User
@@ -37,19 +52,21 @@ class RegistroInstructorForm(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Personalización de labels y ayudas
-        self.fields['username'].label      = 'Nombre de usuario'
-        self.fields['username'].help_text  = 'Solo letras, dígitos y @/./+/-/_'
-        self.fields['password1'].label     = 'Contraseña'
-        self.fields['password2'].label     = 'Confirmar contraseña'
+        self.fields['username'].label     = 'Nombre de usuario'
+        self.fields['username'].help_text = 'Solo letras, dígitos y @/./+/-/_'
+        self.fields['password1'].label    = 'Contraseña'
+        self.fields['password2'].label    = 'Confirmar contraseña'
         self.fields['password1'].help_text = ''
         self.fields['password2'].help_text = ''
-        # Clases CSS para estilizar con Bootstrap-like en la plantilla
-        for field in self.fields.values():
-            field.widget.attrs['class'] = 'form-input'
+        _apply_css(self)
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('Ya existe una cuenta con este correo electrónico.')
+        return email
 
     def save(self, commit=True):
-        """Guarda el User y crea automáticamente el perfil Instructor."""
         user = super().save(commit=False)
         user.first_name = self.cleaned_data['first_name']
         user.last_name  = self.cleaned_data['last_name']
@@ -59,85 +76,137 @@ class RegistroInstructorForm(UserCreationForm):
             Instructor.objects.create(
                 usuario=user,
                 telefono=self.cleaned_data.get('telefono', ''),
-                especialidad=self.cleaned_data.get('especialidad', ''),
             )
         return user
 
 
-# ─────────────────────────────────────────────
-# FORMULARIO DE REGISTRO DE ESTUDIANTE
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. REGISTRO DE ESTUDIANTE
+# ─────────────────────────────────────────────────────────────────────────────
 
 class EstudianteForm(forms.ModelForm):
-    """
-    Formulario para registrar o editar un estudiante con TEA.
-    El campo 'instructor' se asigna automáticamente en la vista.
-    """
-
     class Meta:
         model  = Estudiante
-        fields = ['nombre', 'apellido', 'fecha_nacimiento', 'nivel_tea', 'observaciones']
+        fields = ['nombre_completo', 'sexo', 'edad', 'foto_carnet']
         widgets = {
-            'fecha_nacimiento': forms.DateInput(
-                attrs={'type': 'date', 'class': 'form-input'}
-            ),
-            'observaciones': forms.Textarea(
-                attrs={'rows': 3, 'class': 'form-input', 'placeholder': 'Observaciones generales del estudiante...'}
-            ),
+            'foto_carnet': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+        }
+        labels = {
+            'nombre_completo': 'Nombre completo',
+            'sexo':            'Sexo',
+            'edad':            'Edad (años)',
+            'foto_carnet':     'Foto carnet (opcional)',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name, field in self.fields.items():
-            if name != 'observaciones' and 'fecha_nacimiento' not in name:
-                field.widget.attrs['class'] = 'form-input'
+        _apply_css(self)
 
 
-# ─────────────────────────────────────────────
-# FORMULARIO DE EVALUACIÓN PEDAGÓGICA
-# ─────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. REGISTRO DE REPRESENTANTE
+# ─────────────────────────────────────────────────────────────────────────────
 
-NIVEL_CHOICES_FORM = [
-    ('', '--- Seleccionar ---'),
-    ('bajo', 'Bajo'),
-    ('medio', 'Medio'),
-    ('alto', 'Alto'),
-]
-
-
-class EvaluacionForm(forms.ModelForm):
-    """
-    Formulario para registrar la evaluación de un estudiante en las tres
-    áreas clave: comunicación, conducta e interacción social.
-    Este formulario alimenta directamente al motor de inferencia.
-    """
-
+class RepresentanteForm(forms.ModelForm):
     class Meta:
-        model  = Evaluacion
+        model  = Representante
         fields = [
-            'dificultad_comunicacion',
-            'usa_lenguaje_verbal',
-            'conductas_repetitivas',
-            'reacciones_sensoriales',
-            'crisis_frecuentes',
-            'interaccion_social',
-            'interes_pares',
-            'notas_adicionales',
+            'nombre_completo', 'sexo', 'edad', 'estado_civil',
+            'correo', 'direccion', 'foto_carnet',
         ]
         widgets = {
-            'notas_adicionales': forms.Textarea(
-                attrs={'rows': 3, 'class': 'form-input', 'placeholder': 'Observaciones adicionales de la evaluación...'}
-            ),
+            'direccion':   forms.Textarea(attrs={'rows': 3}),
+            'foto_carnet': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
+        }
+        labels = {
+            'nombre_completo': 'Nombre completo',
+            'sexo':            'Sexo',
+            'edad':            'Edad (años)',
+            'estado_civil':    'Estado civil',
+            'correo':          'Correo electrónico',
+            'direccion':       'Dirección',
+            'foto_carnet':     'Foto carnet (opcional)',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Selects con placeholder
-        for campo in ['dificultad_comunicacion', 'conductas_repetitivas', 'reacciones_sensoriales', 'interaccion_social']:
-            self.fields[campo].widget = forms.Select(
-                choices=NIVEL_CHOICES_FORM,
-                attrs={'class': 'form-input'},
+        _apply_css(self)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. EVALUACIÓN DSM-5
+# ─────────────────────────────────────────────────────────────────────────────
+
+class EvaluacionDSM5Form(forms.ModelForm):
+    class Meta:
+        model  = EvaluacionDSM5
+        exclude = ['estudiante', 'fecha']
+        widgets = {
+            'obs_reciprocidad':          forms.Textarea(attrs={'rows': 3}),
+            'obs_comunicacion_no_verbal': forms.Textarea(attrs={'rows': 3}),
+            'obs_desarrollo_relaciones':  forms.Textarea(attrs={'rows': 3}),
+            'condicion_medica_asociada':  forms.TextInput(),
+        }
+        labels = {
+            'nivel_comunicacion_social':   'Nivel de afectación — Comunicación Social',
+            'obs_reciprocidad':            'A.1 Reciprocidad socioemocional (observaciones)',
+            'obs_comunicacion_no_verbal':  'A.2 Comunicación no verbal (observaciones)',
+            'obs_desarrollo_relaciones':   'A.3 Desarrollo, mantenimiento y comprensión de relaciones',
+            'nivel_conductas_repetitivas': 'Nivel de afectación — Conductas repetitivas',
+            'movimientos_repetitivos':     'B.1 Movimientos, uso de objetos o habla estereotipada',
+            'inflexibilidad_rutinas':      'B.2 Insistencia en la monotonía / inflexibilidad de rutinas',
+            'intereses_restringidos':      'B.3 Intereses muy restringidos y fijos',
+            'alteraciones_sensoriales':    'B.4 Hiper o hiporreactividad sensorial',
+            'inicio_temprano':             'C — Síntomas presentes en las primeras fases del desarrollo',
+            'deterioro_significativo':     'D — Causa deterioro clínicamente significativo',
+            'no_explicado_otra_condicion': 'E — No se explica mejor por discapacidad intelectual',
+            'discapacidad_intelectual':    'Con discapacidad intelectual acompañante',
+            'deterioro_lenguaje':          'Con deterioro del lenguaje acompañante',
+            'condicion_medica_asociada':   'Afección médica o genética asociada (opcional)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+    def clean(self):
+        cleaned = super().clean()
+        total_b = sum([
+            cleaned.get('movimientos_repetitivos', False),
+            cleaned.get('inflexibilidad_rutinas', False),
+            cleaned.get('intereses_restringidos', False),
+            cleaned.get('alteraciones_sensoriales', False),
+        ])
+        if total_b < 2:
+            self.add_error(
+                None,
+                'El Criterio B requiere que al menos 2 de los 4 comportamientos estén presentes.'
             )
-        # Checkboxes estilizados
-        for campo in ['usa_lenguaje_verbal', 'crisis_frecuentes', 'interes_pares']:
-            self.fields[campo].widget.attrs['class'] = 'form-checkbox'
+        return cleaned
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. EVALUACIÓN PEDAGÓGICA
+# ─────────────────────────────────────────────────────────────────────────────
+
+class EvaluacionPedagogicaForm(forms.ModelForm):
+    class Meta:
+        model  = EvaluacionPedagogica
+        fields = [
+            'nivel_comunicacion_social', 'observaciones_comunicacion',
+            'nivel_conductas_repetitivas', 'observaciones_conductas',
+        ]
+        widgets = {
+            'observaciones_comunicacion': forms.Textarea(attrs={'rows': 3}),
+            'observaciones_conductas':    forms.Textarea(attrs={'rows': 3}),
+        }
+        labels = {
+            'nivel_comunicacion_social':   'Nivel — Área 1: Comunicación Social',
+            'observaciones_comunicacion':  'Observaciones de comunicación social',
+            'nivel_conductas_repetitivas': 'Nivel — Área 2: Conductas repetitivas',
+            'observaciones_conductas':     'Observaciones de conductas repetitivas',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)

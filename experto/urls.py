@@ -3,8 +3,6 @@
 SISTEMA EXPERTO PARA APOYO PEDAGÓGICO EN TEA
 =============================================================================
 Módulo: experto/urls.py
-Descripción: URLs de la aplicación 'experto'. Define las rutas de todas
-             las vistas del sistema experto.
 =============================================================================
 """
 
@@ -12,26 +10,31 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    # ── Página de inicio ──────────────────────────────────────────────────────
+    # ── Inicio ────────────────────────────────────────────────────────────────
     path('', views.inicio, name='inicio'),
 
     # ── Autenticación ─────────────────────────────────────────────────────────
     path('registro/', views.registro_instructor, name='registro_instructor'),
-    path('login/',    views.login_view,           name='login'),
-    path('logout/',   views.logout_view,          name='logout'),
+    path('login/',    views.login_view,          name='login'),
+    path('logout/',   views.logout_view,         name='logout'),
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
     path('dashboard/', views.dashboard, name='dashboard'),
 
     # ── Estudiantes ───────────────────────────────────────────────────────────
-    path('estudiantes/',             views.lista_estudiantes,  name='lista_estudiantes'),
-    path('estudiantes/nuevo/',       views.registro_estudiante, name='registro_estudiante'),
-    path('estudiantes/<int:pk>/',    views.detalle_estudiante,  name='detalle_estudiante'),
+    path('estudiantes/',                  views.lista_estudiantes,   name='lista_estudiantes'),
+    path('estudiantes/nuevo/',            views.registro_estudiante, name='registro_estudiante'),
+    path('estudiantes/<int:pk>/',         views.perfil_estudiante,   name='perfil_estudiante'),
+    path('estudiantes/<int:pk>/editar/',  views.editar_estudiante,   name='editar_estudiante'),
+    path('estudiantes/<int:pk>/borrar/',  views.borrar_estudiante,   name='borrar_estudiante'),
 
-    # ── Evaluación y motor de inferencia ─────────────────────────────────────
-    path('estudiantes/<int:estudiante_pk>/evaluar/', views.nueva_evaluacion, name='nueva_evaluacion'),
-    path('evaluaciones/<int:evaluacion_pk>/resultados/', views.resultados, name='resultados'),
-    path('evaluaciones/historial/', views.historial_evaluaciones, name='historial_evaluaciones'),
+    # ── Representante ─────────────────────────────────────────────────────────
+    path('estudiantes/<int:pk>/representante/', views.registro_representante, name='registro_representante'),
+
+    # ── Evaluaciones ──────────────────────────────────────────────────────────
+    path('estudiantes/<int:pk>/dsm5/',                            views.evaluacion_dsm5,       name='evaluacion_dsm5'),
+    path('estudiantes/<int:pk>/pedagogica/<int:dsm5_pk>/',        views.evaluacion_pedagogica, name='evaluacion_pedagogica'),
+    path('evaluaciones/<int:ped_pk>/resultados/',                 views.resultados,            name='resultados'),
 
     # ── Base de conocimientos ─────────────────────────────────────────────────
     path('base-conocimientos/', views.base_conocimientos, name='base_conocimientos'),
