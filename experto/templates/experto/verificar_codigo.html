@@ -1,0 +1,106 @@
+{% extends 'experto/base.html' %}
+{% block title %}Verificar Código — Sistema TEA{% endblock %}
+{% block content %}
+<style>
+  .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 20px; padding: 2.75rem 2.25rem; width: 100%; max-width: 430px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+  .auth-logo { text-align: center; margin-bottom: 2rem; }
+  .auth-icon-wrap { display:inline-flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:18px; background:linear-gradient(135deg,#16a34a,var(--c-green)); font-size:2rem; box-shadow:0 6px 20px rgba(74,222,128,.3); margin-bottom:.9rem; }
+  .auth-title { font-size: 1.45rem; font-weight: 700; color: var(--c-white); }
+  .auth-subtitle { font-size: .88rem; color: var(--c-muted); margin-top: .3rem; line-height: 1.5; }
+  .auth-label { display:block; font-size:.85rem; font-weight:500; color:var(--c-text); margin-bottom:.45rem; }
+  .input-icon-wrap { position: relative; }
+  .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; color:var(--c-muted); transition:color .2s; }
+  .input-icon-wrap:focus-within .input-icon { color: var(--c-green); }
+  .auth-input { width:100%; padding:13px 14px 13px 42px; background:var(--c-surface); border:1.5px solid var(--c-border); border-radius:12px; color:var(--c-text); font-size:.95rem; font-family:'Inter',sans-serif; transition:border-color .25s,box-shadow .25s; outline:none; box-sizing:border-box; }
+  .auth-input::placeholder { color: var(--c-muted); }
+  .auth-input:focus { border-color:var(--c-green); box-shadow:0 0 0 3px rgba(74,222,128,.2); }
+  .codigo-input { text-align:center; letter-spacing:.4em; font-size:1.3rem; font-weight:700; padding:13px; }
+  .btn-reset { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:13px 20px; background:linear-gradient(135deg,#16a34a,var(--c-green)); color:white; font-size:.97rem; font-weight:600; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 18px rgba(74,222,128,.25); transition:transform .2s,box-shadow .2s,filter .2s; margin-top:1.25rem; }
+  .btn-reset:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(74,222,128,.4); filter:brightness(1.08); }
+  .auth-footer { text-align:center; font-size:.85rem; color:var(--c-muted); margin-top:1.1rem; }
+  .auth-footer a { color:var(--c-accent2); font-weight:500; }
+  .auth-divider { border:none; border-top:1px solid var(--c-border); margin:1.2rem 0; }
+  .code-hint { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:10px; padding:.75rem 1rem; font-size:.83rem; color:var(--c-green); margin-bottom:1.25rem; text-align:center; }
+  .section-sep { font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--c-muted); margin:1.25rem 0 .75rem; border-top:1px solid var(--c-border); padding-top:1rem; }
+</style>
+
+<div class="auth-page">
+  <div class="auth-card">
+
+    <div class="auth-logo">
+      <div class="auth-icon-wrap">🔑</div>
+      <div class="auth-title">Verificar Código</div>
+      <div class="auth-subtitle">Ingresa el código de 6 dígitos que enviamos a tu correo y establece tu nueva contraseña.</div>
+    </div>
+
+    <div class="code-hint">⏱️ El código expira en <strong>10 minutos</strong> desde que fue enviado.</div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <!-- Código -->
+      <div style="margin-bottom:1.1rem">
+        <label class="auth-label" for="{{ form.codigo.id_for_label }}">Código de verificación</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">🔢</span>
+          <input type="text"
+            name="{{ form.codigo.html_name }}"
+            id="{{ form.codigo.id_for_label }}"
+            class="auth-input codigo-input"
+            placeholder="123456"
+            maxlength="6"
+            autocomplete="one-time-code"
+            value="{{ form.codigo.value|default:'' }}">
+        </div>
+        {% if form.codigo.errors %}<ul class="errorlist">{% for e in form.codigo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <div class="section-sep">🔒 Nueva contraseña</div>
+
+      <!-- Nueva contraseña -->
+      <div style="margin-bottom:1rem">
+        <label class="auth-label" for="{{ form.nueva_contrasena.id_for_label }}">Nueva contraseña</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password"
+            name="{{ form.nueva_contrasena.html_name }}"
+            id="{{ form.nueva_contrasena.id_for_label }}"
+            class="auth-input"
+            placeholder="Mínimo 8 caracteres"
+            autocomplete="new-password">
+        </div>
+        {% if form.nueva_contrasena.errors %}<ul class="errorlist">{% for e in form.nueva_contrasena.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <!-- Confirmar contraseña -->
+      <div>
+        <label class="auth-label" for="{{ form.confirmar_contrasena.id_for_label }}">Confirmar contraseña</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">✅</span>
+          <input type="password"
+            name="{{ form.confirmar_contrasena.html_name }}"
+            id="{{ form.confirmar_contrasena.id_for_label }}"
+            class="auth-input"
+            placeholder="Repite la contraseña"
+            autocomplete="new-password">
+        </div>
+        {% if form.confirmar_contrasena.errors %}<ul class="errorlist">{% for e in form.confirmar_contrasena.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      {% if form.non_field_errors %}
+      <div class="alert alert-error" style="margin-top:.75rem">❌ {{ form.non_field_errors.0 }}</div>
+      {% endif %}
+
+      <button type="submit" class="btn-reset">✅ Restablecer contraseña</button>
+    </form>
+
+    <hr class="auth-divider">
+    <div class="auth-footer">
+      ¿No recibiste el código?
+      <a href="{% url 'recuperar_contrasena' %}">Solicitar nuevo código</a>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
