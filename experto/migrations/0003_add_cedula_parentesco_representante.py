@@ -2,6 +2,14 @@
 
 from django.db import migrations, models
 
+def populate_representantes(apps, schema_editor):
+    Representante = apps.get_model('experto', 'Representante')
+    for index, rep in enumerate(Representante.objects.all(), start=1):
+        if not rep.cedula:
+            rep.cedula = f"000000000{index}"
+        if not rep.parentesco:
+            rep.parentesco = 'otro'
+        rep.save()
 
 class Migration(migrations.Migration):
 
@@ -10,16 +18,34 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # 1. Añadir campos como anulables primero para evitar errores de integridad con filas preexistentes
         migrations.AddField(
             model_name='representante',
             name='cedula',
-            field=models.CharField(default='00000000000', max_length=15, unique=True, verbose_name='Cédula'),
-            preserve_default=False,
+            field=models.CharField(max_length=15, null=True, blank=True, verbose_name='Cédula'),
         ),
         migrations.AddField(
             model_name='representante',
             name='parentesco',
-            field=models.CharField(choices=[('padre', 'Padre'), ('madre', 'Madre'), ('tutor', 'Tutor/a'), ('abuelo', 'Abuelo/a'), ('otro', 'Otro')], default='otro', max_length=10, verbose_name='Parentesco con el estudiante'),
-            preserve_default=False,
+            field=models.CharField(
+                choices=[('padre', 'Padre'), ('madre', 'Madre'), ('tutor', 'Tutor/a'), ('abuelo', 'Abuelo/a'), ('otro', 'Otro')],
+                max_length=10, null=True, blank=True, verbose_name='Parentesco con el estudiante'
+            ),
+        ),
+        # 2. Ejecutar función Python para poblar registros existentes con valores únicos
+        migrations.RunPython(populate_representantes, reverse_code=migrations.RunPython.noop),
+        # 3. Aplicar las restricciones de UNIQUE y NOT NULL una vez poblados
+        migrations.AlterField(
+            model_name='representante',
+            name='cedula',
+            field=models.CharField(max_length=15, unique=True, null=False, verbose_name='Cédula'),
+        ),
+        migrations.AlterField(
+            model_name='representante',
+            name='parentesco',
+            field=models.CharField(
+                choices=[('padre', 'Padre'), ('madre', 'Madre'), ('tutor', 'Tutor/a'), ('abuelo', 'Abuelo/a'), ('otro', 'Otro')],
+                max_length=10, null=False, verbose_name='Parentesco con el estudiante'
+            ),
         ),
     ]

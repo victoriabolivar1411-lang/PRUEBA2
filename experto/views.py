@@ -121,9 +121,49 @@ def lista_estudiantes(request):
     estudiantes = Estudiante.objects.filter(instructor=instructor).annotate(
         total_eval=Count('evaluaciones_pedagogicas')
     ).order_by('nombre_completo')
+
+    # Buscador de reportes por estudiante, fecha y año, o reporte de instructores
+    reportes = None
+    instructores_report = None
+    total_instructores = 0
+    total_ninos_global = 0
+
+    if request.GET.get('buscar_reportes'):
+        ver_instructores = request.GET.get('ver_instructores')
+        
+        if ver_instructores == '1':
+            instructores_report = Instructor.objects.annotate(
+                total_ninos=Count('estudiantes')
+            ).order_by('-total_ninos')
+            total_instructores = instructores_report.count()
+            total_ninos_global = Estudiante.objects.count()
+        else:
+            fecha = request.GET.get('fecha')
+            ano = request.GET.get('ano')
+            estudiante_id = request.GET.get('estudiante')
+
+            reportes = EvaluacionPedagogica.objects.filter(
+                estudiante__instructor=instructor
+            ).select_related('estudiante', 'evaluacion_dsm5').order_by('-fecha')
+
+            if estudiante_id:
+                reportes = reportes.filter(estudiante_id=estudiante_id)
+            if fecha:
+                reportes = reportes.filter(fecha__date=fecha)
+            if ano:
+                reportes = reportes.filter(fecha__year=ano)
+
     return render(request, 'experto/lista_estudiantes.html', {
         'instructor':  instructor,
         'estudiantes': estudiantes,
+        'reportes':    reportes,
+        'instructores_report': instructores_report,
+        'total_instructores': total_instructores,
+        'total_ninos_global': total_ninos_global,
+        'get_fecha':   request.GET.get('fecha', ''),
+        'get_ano':     request.GET.get('ano', ''),
+        'get_estudiante': request.GET.get('estudiante', ''),
+        'get_ver_instructores': request.GET.get('ver_instructores', ''),
     })
 
 

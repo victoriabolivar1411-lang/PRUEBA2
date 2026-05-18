@@ -1,7 +1,7 @@
 {% extends 'experto/base.html' %}
 {% block title %}Mis Estudiantes — Sistema TEA{% endblock %}
 {% block content %}
-<div class="page-header">
+<div class="page-header no-print">
   <div>
     <h1 class="page-title">Mis Estudiantes</h1>
     <p class="page-subtitle">{{ estudiantes.count }} estudiante{{ estudiantes.count|pluralize:"s" }} registrado{{ estudiantes.count|pluralize:"s" }}</p>
@@ -10,7 +10,7 @@
 </div>
 
 {% if estudiantes %}
-<div class="card">
+<div class="card no-print">
   <div class="table-wrapper">
     <table>
       <thead>
@@ -64,6 +64,228 @@
     </table>
   </div>
 </div>
+
+<div class="card mt-3 no-print">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title">🔍 Buscar Reportes de Evaluaciones</h2>
+      <p class="card-subtitle">Filtra el historial de reportes de todos tus estudiantes por fecha o año</p>
+    </div>
+  </div>
+
+  <form method="GET" action="{% url 'lista_estudiantes' %}" style="margin-bottom: 1.5rem;">
+    <input type="hidden" name="buscar_reportes" value="1">
+    
+    <div class="grid-3">
+      <div class="form-group">
+        <label class="form-label" for="id_estudiante">Estudiante</label>
+        <select name="estudiante" id="id_estudiante" class="form-input">
+          <option value="">-- Todos los estudiantes --</option>
+          {% for est in estudiantes %}
+            <option value="{{ est.pk }}" {% if get_estudiante == est.pk|stringformat:"s" %}selected{% endif %}>
+              {{ est.nombre_completo }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_fecha">Fecha específica</label>
+        <input type="date" name="fecha" id="id_fecha" value="{{ get_fecha }}" class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="id_ano">Año</label>
+        <input type="number" name="ano" id="id_ano" value="{{ get_ano }}" placeholder="Ej. 2026" class="form-input" min="2000" max="2100">
+      </div>
+    </div>
+
+    <div class="d-flex" style="justify-content: space-between; align-items: center; margin-top: 0.8rem; flex-wrap: wrap; gap: 1rem;">
+      <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none; font-size: 0.9rem; color: var(--c-white);">
+        <input type="checkbox" name="ver_instructores" value="1" {% if get_ver_instructores == '1' %}checked{% endif %} style="width: 1.15rem; height: 1.15rem; accent-color: var(--c-accent); cursor: pointer;">
+        <span>📊 Ver reporte global de instructores y niños atendidos</span>
+      </label>
+
+      <div class="d-flex gap-1">
+        <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost">Limpiar filtros</a>
+        <button type="submit" class="btn btn-primary">🔍 Buscar Reportes</button>
+      </div>
+    </div>
+  </form>
+</div> <!-- Cierre de la card de búsqueda mt-3 no-print -->
+
+{% if request.GET.buscar_reportes %}
+  {% if get_ver_instructores == '1' %}
+    <style>
+      @media print {
+        .navbar, .sidebar, .no-print, .divider { display: none !important; }
+        body { background: white !important; color: #111 !important; font-family: 'Inter', sans-serif !important; }
+        .main-content { padding: 0 !important; }
+        .card { background: white !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+        .grid-2 { display: flex !important; gap: 15px !important; margin-bottom: 15px !important; }
+        .stat-card {
+          flex: 1;
+          background: white !important;
+          border: 1px solid #ccc !important;
+          box-shadow: none !important;
+          padding: 10px !important;
+          border-radius: 8px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 10px !important;
+        }
+        .stat-value { color: #111 !important; font-size: 1.6rem !important; font-weight: 700 !important; }
+        .stat-label { color: #555 !important; font-size: 0.8rem !important; }
+        .stat-icon { background: #eee !important; border: 1px solid #bbb !important; color: #111 !important; width: 36px !important; height: 36px !important; font-size: 1.2rem !important; }
+        table { width: 100% !important; border-collapse: collapse !important; margin-top: 15px !important; }
+        th { background: #f5f5f5 !important; color: #111 !important; border-bottom: 2px solid #aaa !important; padding: 8px !important; font-size: 11px !important; }
+        td { border-bottom: 1px solid #eee !important; color: #222 !important; padding: 8px !important; font-size: 11px !important; }
+        .badge { background: #eee !important; color: #111 !important; border: 1px solid #bbb !important; padding: 2px 6px !important; font-size: 10px !important; }
+        .badge-purple { background: #e2e2e2 !important; }
+        .badge-teal { background: #e0f2fe !important; }
+        .photo-placeholder { background: #ddd !important; color: #111 !important; border: 1px solid #bbb !important; }
+        tr[style*="background: rgba(108, 99, 255, 0.08)"] {
+          background: #f9f9f9 !important;
+          border-top: 1px solid #999 !important;
+          border-bottom: 1px solid #999 !important;
+        }
+      }
+    </style>
+
+    <div class="card mt-3">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 class="card-title" style="margin: 0;">📊 Reporte Global: Instructores y Niños Atendidos</h3>
+        <button onclick="window.print()" class="btn btn-ghost btn-sm no-print">🖨️ Imprimir Reporte</button>
+      </div>
+      
+      <div class="grid-2 mb-2">
+        <div class="stat-card" style="background: rgba(108, 99, 255, 0.05); border: 1px solid rgba(108, 99, 255, 0.15); display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 12px;">
+          <div class="stat-icon" style="background: rgba(108, 99, 255, 0.15); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 1.5rem;">👨‍🏫</div>
+          <div>
+            <div class="stat-value" style="color: var(--c-accent2); font-size: 1.8rem; font-weight: 700; line-height: 1.2;">{{ total_instructores }}</div>
+            <div class="stat-label" style="color: var(--c-muted); font-size: 0.85rem;">Instructores Activos</div>
+          </div>
+        </div>
+        
+        <div class="stat-card" style="background: rgba(34, 211, 238, 0.05); border: 1px solid rgba(34, 211, 238, 0.15); display: flex; align-items: center; gap: 1rem; padding: 1rem; border-radius: 12px;">
+          <div class="stat-icon" style="background: rgba(34, 211, 238, 0.15); width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 1.5rem;">👶</div>
+          <div>
+            <div class="stat-value" style="color: var(--c-teal); font-size: 1.8rem; font-weight: 700; line-height: 1.2;">{{ total_ninos_global }}</div>
+            <div class="stat-label" style="color: var(--c-muted); font-size: 0.85rem;">Niños TEA Atendidos</div>
+          </div>
+        </div>
+      </div>
+
+      {% if instructores_report %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Instructor</th>
+                <th>Usuario</th>
+                <th>Correo Electrónico</th>
+                <th>Niños TEA Asignados</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for inst in instructores_report %}
+                <tr {% if inst.pk == instructor.pk %}style="background: rgba(108, 99, 255, 0.08); font-weight: 500;"{% endif %}>
+                  <td>
+                    <div class="d-flex align-center gap-1">
+                      <div class="photo-placeholder" style="width: 32px; height: 32px; font-size: 0.9rem; background: var(--c-accent); display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--c-white); font-weight: 600;">
+                        {{ inst.usuario.username|first|upper }}
+                      </div>
+                      <div>
+                        <strong>{{ inst.usuario.get_full_name|default:inst.usuario.username }}</strong>
+                        {% if inst.pk == instructor.pk %}
+                          <span class="badge badge-purple" style="font-size: 0.65rem; padding: 0.1rem 0.4rem; margin-left: 0.3rem;">Tú</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-muted">@{{ inst.usuario.username }}</td>
+                  <td>{{ inst.usuario.email|default:"Sin correo registrado" }}</td>
+                  <td>
+                    <span class="badge badge-teal" style="font-size: 0.85rem; padding: 0.2rem 0.6rem;">👨‍🎓 {{ inst.total_ninos }} niños</span>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 2rem;">
+          <div class="icon">📊</div>
+          <h3>Sin instructores registrados</h3>
+          <p>No se encontraron otros instructores en el sistema.</p>
+        </div>
+      {% endif %}
+    </div>
+
+  {% else %}
+    <div class="card mt-3">
+      <h3 class="card-title mb-2">📋 Resultados de la búsqueda</h3>
+      {% if reportes %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Estudiante</th>
+                <th>Criterio Comunicación</th>
+                <th>Criterio Conducta</th>
+                <th>Recomendaciones</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for rep in reportes %}
+                <tr>
+                  <td>{{ rep.fecha|date:"d/m/Y - h:i A" }}</td>
+                  <td>
+                    <div class="d-flex align-center gap-1">
+                      {% if rep.estudiante.tiene_foto %}
+                        <img src="{{ rep.estudiante.foto_carnet.url }}" alt="Foto" class="photo-thumb">
+                      {% else %}
+                        <div class="photo-placeholder">{{ rep.estudiante.nombre_completo|first|upper }}</div>
+                      {% endif %}
+                      <strong>{{ rep.estudiante.nombre_completo }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    {% if rep.evaluacion_dsm5 %}
+                      <span class="badge badge-purple">{{ rep.evaluacion_dsm5.get_nivel_comunicacion_social_display }}</span>
+                    {% else %}
+                      <span class="text-muted">No especificado</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if rep.evaluacion_dsm5 %}
+                      <span class="badge badge-teal">{{ rep.evaluacion_dsm5.get_nivel_conductas_repetitivas_display }}</span>
+                    {% else %}
+                      <span class="text-muted">No especificado</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge badge-green">{{ rep.recomendaciones.count }} recs</span>
+                  </td>
+                  <td>
+                    <a href="{% url 'resultados' rep.pk %}" class="btn btn-ghost btn-sm">📄 Ver Reporte</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding: 2rem;">
+          <div class="icon">🔍</div>
+          <h3>No se encontraron reportes</h3>
+          <p>Intenta cambiar los filtros de fecha o año para ampliar la búsqueda.</p>
+        </div>
+      {% endif %}
+    {% endif %}
+  {% endif %}
 {% else %}
 <div class="card">
   <div class="empty-state">

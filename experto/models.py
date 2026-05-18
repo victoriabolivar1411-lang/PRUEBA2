@@ -231,7 +231,7 @@ class EvaluacionDSM5(models.Model):
         related_name='evaluaciones_dsm5',
         verbose_name='Estudiante',
     )
-    fecha = models.DateField(auto_now_add=True, verbose_name='Fecha')
+    fecha = models.DateTimeField(auto_now_add=True, verbose_name='Fecha')
 
     # ── CRITERIO A: Comunicación Social ──────────────────────────────────────
     nivel_comunicacion_social = models.CharField(
@@ -367,7 +367,7 @@ class EvaluacionPedagogica(models.Model):
         related_name='evaluaciones_pedagogicas',
         verbose_name='Evaluación DSM-5 asociada',
     )
-    fecha = models.DateField(auto_now_add=True, verbose_name='Fecha')
+    fecha = models.DateTimeField(auto_now_add=True, verbose_name='Fecha')
 
     # ── Área 1: Comunicación Social ───────────────────────────────────────────
     nivel_comunicacion_social = models.CharField(
