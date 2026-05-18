@@ -2,46 +2,73 @@
 {% block title %}Iniciar Sesión — Sistema TEA{% endblock %}
 {% block content %}
 <style>
-  .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
-  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--r-lg); padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: var(--shadow); }
-  .auth-logo { text-align: center; margin-bottom: 1.75rem; }
-  .auth-icon { font-size: 2.5rem; }
-  .auth-title { font-size: 1.5rem; font-weight: 700; color: var(--c-white); margin-top: .5rem; }
-  .auth-subtitle { font-size: .88rem; color: var(--c-muted); margin-top: .2rem; }
+  .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 20px; padding: 2.75rem 2.25rem; width: 100%; max-width: 430px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+  .auth-logo { text-align: center; margin-bottom: 2rem; }
+  .auth-icon-wrap { display:inline-flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:18px; background:linear-gradient(135deg,var(--c-accent),#8b5cf6); font-size:2rem; box-shadow:0 6px 20px rgba(108,99,255,.4); margin-bottom:.9rem; }
+  .auth-title { font-size: 1.55rem; font-weight: 700; color: var(--c-white); }
+  .auth-subtitle { font-size: .88rem; color: var(--c-muted); margin-top: .3rem; }
+  .auth-label { display:block; font-size:.85rem; font-weight:500; color:var(--c-text); margin-bottom:.45rem; }
+  .input-icon-wrap { position: relative; }
+  .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; color:var(--c-muted); transition:color .2s; }
+  .input-icon-wrap:focus-within .input-icon { color: var(--c-accent2); }
+  .auth-input { width:100%; padding:13px 14px 13px 42px; background:var(--c-surface); border:1.5px solid var(--c-border); border-radius:12px; color:var(--c-text); font-size:.95rem; font-family:'Inter',sans-serif; transition:border-color .25s,box-shadow .25s; outline:none; box-sizing:border-box; }
+  .auth-input::placeholder { color: var(--c-muted); }
+  .auth-input:focus { border-color:var(--c-accent); box-shadow:0 0 0 3px rgba(108,99,255,.22); }
+  .btn-login { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:13px 20px; background:linear-gradient(135deg,var(--c-accent) 0%,#8b5cf6 100%); color:white; font-size:.97rem; font-weight:600; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 18px rgba(108,99,255,.35); transition:transform .2s,box-shadow .2s,filter .2s; margin-top:1.25rem; }
+  .btn-login:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(108,99,255,.5); filter:brightness(1.08); }
+  .btn-login:active { transform: translateY(0); }
+  .auth-footer { text-align:center; font-size:.85rem; color:var(--c-muted); margin-top:1.1rem; }
+  .auth-footer a { color:var(--c-accent2); font-weight:500; }
+  .auth-footer a:hover { text-decoration: underline; }
+  .auth-divider { border:none; border-top:1px solid var(--c-border); margin:1.2rem 0; }
 </style>
+
 <div class="auth-page">
   <div class="auth-card">
+
     <div class="auth-logo">
-      <div class="auth-icon">🧩</div>
+      <div class="auth-icon-wrap">🧩</div>
       <div class="auth-title">Bienvenido/a</div>
-      <div class="auth-subtitle">Inicia sesión en el Sistema Experto TEA</div>
+      <div class="auth-subtitle">Sistema Experto de Apoyo Pedagógico TEA</div>
     </div>
 
-    <form method="post">
+    <form method="post" novalidate>
       {% csrf_token %}
-      {% for field in form %}
-      <div class="form-group">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+
+      <div style="margin-bottom:1rem">
+        <label class="auth-label" for="{{ form.username.id_for_label }}">Usuario</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">👤</span>
+          <input type="text" name="{{ form.username.html_name }}" id="{{ form.username.id_for_label }}"
+            class="auth-input" placeholder="Nombre de usuario"
+            value="{{ form.username.value|default:'' }}" autocomplete="username">
+        </div>
+        {% if form.username.errors %}<ul class="errorlist">{% for e in form.username.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
-      {% endfor %}
+
+      <div>
+        <label class="auth-label" for="{{ form.password.id_for_label }}">Contraseña</label>
+        <div class="input-icon-wrap">
+          <span class="input-icon">🔒</span>
+          <input type="password" name="{{ form.password.html_name }}" id="{{ form.password.id_for_label }}"
+            class="auth-input" placeholder="Tu contraseña" autocomplete="current-password">
+        </div>
+        {% if form.password.errors %}<ul class="errorlist">{% for e in form.password.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
       {% if form.non_field_errors %}
-      <div class="alert alert-error">❌ {{ form.non_field_errors.0 }}</div>
+      <div class="alert alert-error" style="margin-top:.75rem">❌ {{ form.non_field_errors.0 }}</div>
       {% endif %}
-      <button type="submit" class="btn btn-primary w-100 mt-2" style="justify-content:center">
-        🔓 Iniciar sesión
-      </button>
+
+      <button type="submit" class="btn-login">🔓 Iniciar sesión</button>
     </form>
 
-    <div style="text-align:center; margin-top:1.25rem; font-size:.87rem; color:var(--c-muted)">
-      <a href="{% url 'password_reset' %}" style="color:var(--c-accent2)">¿Olvidaste tu contraseña?</a>
-    </div>
-    <hr class="divider">
-    <div style="text-align:center; font-size:.87rem; color:var(--c-muted)">
-      ¿No tienes cuenta?
-      <a href="{% url 'registro_instructor' %}" style="color:var(--c-accent2)">Regístrate aquí</a>
-    </div>
+    <div class="auth-footer"><a href="{% url 'recuperar_contrasena' %}">¿Olvidaste tu contraseña?</a></div>
+    <hr class="auth-divider">
+    <div class="auth-footer">¿No tienes cuenta? <a href="{% url 'registro_instructor' %}">Regístrate aquí</a></div>
+
   </div>
 </div>
 {% endblock %}
+

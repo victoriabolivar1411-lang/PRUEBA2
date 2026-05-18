@@ -503,6 +503,59 @@
     }
     .empty-state .icon { font-size: 3.5rem; margin-bottom: 1rem; }
     .empty-state h3 { color: var(--c-text); margin-bottom: .5rem; }
+
+    /* ── DROPDOWN PERFIL ──────────────────────────────────────── */
+    .user-dropdown { position: relative; }
+    .user-trigger {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      cursor: pointer;
+      padding: .35rem .6rem;
+      border-radius: 10px;
+      transition: background .2s;
+      text-decoration: none;
+    }
+    .user-trigger:hover { background: rgba(255,255,255,.06); text-decoration: none; }
+    .user-trigger .user-name { font-size: .88rem; color: var(--c-muted); }
+    .user-trigger .arrow { font-size: .7rem; color: var(--c-muted); transition: transform .2s; }
+    .user-dropdown:hover .arrow { transform: rotate(180deg); }
+    .dropdown-menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--c-card);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: .5rem;
+      min-width: 180px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity .2s, transform .2s;
+      z-index: 200;
+    }
+    .user-dropdown:hover .dropdown-menu {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateY(0);
+    }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .55rem .75rem;
+      border-radius: 8px;
+      font-size: .88rem;
+      color: var(--c-muted);
+      text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .dropdown-item:hover { background: rgba(108,99,255,.12); color: var(--c-accent2); text-decoration: none; }
+    .dropdown-item.danger { color: var(--c-red); }
+    .dropdown-item.danger:hover { background: rgba(248,113,113,.1); color: var(--c-red); }
+    .dropdown-divider { border: none; border-top: 1px solid var(--c-border); margin: .4rem 0; }
   </style>
 </head>
 <body>
@@ -521,9 +574,22 @@
     <li><a href="{% url 'base_conocimientos' %}">Base de Conocimientos</a></li>
   </ul>
   <div class="navbar-user">
-    <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
-    <span style="font-size:.88rem;color:var(--c-muted)">{{ user.get_full_name|default:user.username }}</span>
-    <a href="{% url 'logout' %}" class="btn-logout">Salir</a>
+    <div class="user-dropdown">
+      <div class="user-trigger">
+        {% if user.instructor.foto_perfil %}
+        <img src="{{ user.instructor.foto_perfil.url }}" alt="Foto" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--c-border);">
+        {% else %}
+        <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+        {% endif %}
+        <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="dropdown-menu">
+        <a href="{% url 'perfil_instructor' %}" class="dropdown-item">👤 Ver mi perfil</a>
+        <hr class="dropdown-divider">
+        <a href="{% url 'logout' %}" class="dropdown-item danger">🚪 Cerrar sesión</a>
+      </div>
+    </div>
   </div>
   {% else %}
   <div class="d-flex gap-1">

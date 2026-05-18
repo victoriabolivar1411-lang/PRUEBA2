@@ -12,6 +12,7 @@ Descripción: Define la estructura de la base de datos del sistema.
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -72,6 +73,18 @@ class Instructor(models.Model):
     )
     telefono = models.CharField(
         max_length=20, blank=True, verbose_name='Teléfono'
+    )
+    foto_perfil = models.ImageField(
+        upload_to='fotos_instructores/',
+        blank=True,
+        null=True,
+        verbose_name='Foto de perfil',
+    )
+    reset_code = models.CharField(
+        max_length=6, blank=True, null=True, verbose_name='Código de recuperación'
+    )
+    reset_code_expires = models.DateTimeField(
+        blank=True, null=True, verbose_name='Expiración del código'
     )
     fecha_registro = models.DateTimeField(
         auto_now_add=True, verbose_name='Fecha de registro'

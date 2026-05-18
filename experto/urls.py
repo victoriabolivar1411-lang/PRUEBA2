@@ -38,4 +38,12 @@ urlpatterns = [
 
     # ── Base de conocimientos ─────────────────────────────────────────────────
     path('base-conocimientos/', views.base_conocimientos, name='base_conocimientos'),
+
+    # ── Perfil del instructor ──────────────────────────────────────────────────
+    path('perfil/', views.perfil_instructor, name='perfil_instructor'),
+    path('perfil/editar/', views.editar_perfil, name='editar_perfil'),
+
+    # ── Recuperación de contraseña personalizada ───────────────────────────────
+    path('recuperar-contrasena/', views.recuperar_contrasena, name='recuperar_contrasena'),
+    path('verificar-codigo/',     views.verificar_codigo,     name='verificar_codigo'),
 ]

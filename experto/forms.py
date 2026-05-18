@@ -235,3 +235,89 @@ class EvaluacionPedagogicaForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. EDITAR PERFIL DEL INSTRUCTOR
+# ─────────────────────────────────────────────────────────────────────────────
+
+class EditarPerfilInstructorForm(forms.Form):
+    first_name = forms.CharField(
+        max_length=80, label='Nombre(s)',
+        widget=forms.TextInput(attrs={'placeholder': 'Tu nombre'}),
+    )
+    last_name = forms.CharField(
+        max_length=80, label='Apellido(s)',
+        widget=forms.TextInput(attrs={'placeholder': 'Tus apellidos'}),
+    )
+    email = forms.EmailField(
+        label='Correo electrónico',
+        widget=forms.EmailInput(attrs={'placeholder': 'tu@correo.com'}),
+        required=False,
+    )
+    telefono = forms.CharField(
+        max_length=20, label='Teléfono', required=False,
+        widget=forms.TextInput(attrs={'placeholder': '+58 412 000 0000'}),
+    )
+    foto_perfil = forms.ImageField(
+        label='Foto de perfil', required=False,
+        widget=forms.FileInput(),
+    )
+    eliminar_foto = forms.BooleanField(
+        label='Eliminar foto actual', required=False,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+        # El input de archivo no necesita la clase form-input
+        self.fields['foto_perfil'].widget.attrs['class'] = ''
+        self.fields['eliminar_foto'].widget.attrs['class'] = 'form-checkbox'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. RECUPERAR CONTRASEÑA — Solicitar código
+# ─────────────────────────────────────────────────────────────────────────────
+
+class RecuperarContrasenaForm(forms.Form):
+    correo = forms.EmailField(
+        label='Correo electrónico registrado',
+        widget=forms.EmailInput(attrs={'placeholder': 'tu@correo.com'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. VERIFICAR CÓDIGO Y NUEVA CONTRASEÑA
+# ─────────────────────────────────────────────────────────────────────────────
+
+class VerificarCodigoForm(forms.Form):
+    codigo = forms.CharField(
+        max_length=6,
+        label='Código de verificación (6 dígitos)',
+        widget=forms.TextInput(attrs={'placeholder': '123456', 'maxlength': '6'}),
+    )
+    nueva_contrasena = forms.CharField(
+        label='Nueva contraseña',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Mínimo 8 caracteres'}),
+        min_length=8,
+    )
+    confirmar_contrasena = forms.CharField(
+        label='Confirmar nueva contraseña',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Repite la contraseña'}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _apply_css(self)
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get('nueva_contrasena')
+        p2 = cleaned.get('confirmar_contrasena')
+        if p1 and p2 and p1 != p2:
+            raise forms.ValidationError('Las contraseñas no coinciden.')
+        return cleaned

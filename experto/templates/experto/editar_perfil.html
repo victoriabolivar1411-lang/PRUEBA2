@@ -1,0 +1,79 @@
+{% extends 'experto/base.html' %}
+{% block title %}Editar Perfil — Sistema TEA{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <div class="breadcrumb">
+      <a href="{% url 'dashboard' %}">Dashboard</a> › 
+      <a href="{% url 'perfil_instructor' %}">Mi Perfil</a> › 
+      Editar Perfil
+    </div>
+    <h1 class="page-title">Editar Perfil</h1>
+  </div>
+</div>
+
+<div class="card" style="max-width: 600px;">
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="form-group" style="margin-bottom: 2rem;">
+      <label class="form-label" style="margin-bottom:.8rem">Foto actual</label>
+      <div style="display:flex; align-items:center; gap:1.5rem;">
+        {% if instructor.foto_perfil %}
+        <img src="{{ instructor.foto_perfil.url }}" alt="Foto" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid var(--c-border);">
+        {% else %}
+        <div style="width:80px; height:80px; border-radius:50%; background:var(--c-surface); display:flex; align-items:center; justify-content:center; font-size:2rem; border:2px dashed var(--c-border); color:var(--c-muted);">
+          📷
+        </div>
+        {% endif %}
+        <div style="flex-grow:1;">
+          <div style="margin-bottom:.5rem;">{{ form.foto_perfil }}</div>
+          {% if instructor.foto_perfil %}
+          <div class="form-checkbox-row" style="display:inline-flex; padding:.4rem .8rem; margin:0;">
+            {{ form.eliminar_foto }}
+            <label for="{{ form.eliminar_foto.id_for_label }}" style="font-size:.85rem; cursor:pointer;">Eliminar foto actual</label>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% if form.foto_perfil.errors %}<div class="errorlist">{{ form.foto_perfil.errors }}</div>{% endif %}
+    </div>
+
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label" for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<ul class="errorlist">{% for e in form.first_name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<ul class="errorlist">{% for e in form.last_name.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+      {{ form.email }}
+      {% if form.email.errors %}<ul class="errorlist">{% for e in form.email.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>
+      {{ form.telefono }}
+      {% if form.telefono.errors %}<ul class="errorlist">{% for e in form.telefono.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-error">❌ {{ form.non_field_errors.0 }}</div>
+    {% endif %}
+
+    <div class="d-flex gap-1 mt-2">
+      <button type="submit" class="btn btn-primary">💾 Guardar cambios</button>
+      <a href="{% url 'perfil_instructor' %}" class="btn btn-ghost">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+{% endblock %}

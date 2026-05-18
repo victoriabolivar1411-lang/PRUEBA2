@@ -1,0 +1,102 @@
+{% extends 'experto/base.html' %}
+{% block title %}Mi Perfil — Sistema TEA{% endblock %}
+{% block content %}
+
+<div class="page-header no-print">
+  <div>
+    <div class="breadcrumb">
+      <a href="{% url 'dashboard' %}">Dashboard</a> › Mi Perfil
+    </div>
+    <h1 class="page-title">Mi Perfil</h1>
+  </div>
+</div>
+
+<div class="grid-2" style="align-items:start">
+
+  <!-- TARJETA PRINCIPAL -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">👤 Datos del Instructor</div>
+    </div>
+
+    <!-- Avatar grande -->
+    <div style="display:flex;align-items:center;gap:1.25rem;margin-bottom:1.5rem;flex-wrap:wrap">
+      {% if instructor.foto_perfil %}
+      <img src="{{ instructor.foto_perfil.url }}" alt="Foto" style="width:72px;height:72px;border-radius:18px;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.35);border:2px solid var(--c-border)">
+      {% else %}
+      <div style="width:72px;height:72px;border-radius:18px;background:linear-gradient(135deg,var(--c-accent),#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:1.9rem;font-weight:700;color:white;flex-shrink:0;box-shadow:0 4px 16px rgba(108,99,255,.35)">
+        {{ instructor.usuario.first_name|first|upper }}{{ instructor.usuario.last_name|first|upper }}
+      </div>
+      {% endif %}
+      <div style="flex-grow:1">
+        <div style="font-size:1.25rem;font-weight:700;color:var(--c-white)">{{ instructor.nombre_completo }}</div>
+        <div class="text-muted" style="font-size:.88rem">@{{ instructor.usuario.username }}</div>
+        <span class="badge badge-purple" style="margin-top:.35rem">Instructor</span>
+      </div>
+      <div>
+        <a href="{% url 'editar_perfil' %}" class="btn btn-ghost btn-sm">✏️ Editar perfil</a>
+      </div>
+    </div>
+
+    <!-- Datos -->
+    <table style="font-size:.9rem;width:100%">
+      <tr>
+        <td style="color:var(--c-muted);width:40%;border:none;padding:.45rem 0">Nombre</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.usuario.first_name }} {{ instructor.usuario.last_name }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Usuario</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.usuario.username }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Correo</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.email|default:"No registrado" }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Teléfono</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.telefono|default:"No registrado" }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Miembro desde</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.fecha_registro|date:"d \d\e F \d\e Y" }}</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- COLUMNA DERECHA -->
+  <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+    <!-- ESTADÍSTICAS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📊 Actividad</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div style="background:var(--c-surface);border-radius:12px;padding:1.1rem;text-align:center;border:1px solid var(--c-border)">
+          <div style="font-size:2rem;font-weight:700;color:var(--c-accent2)">{{ total_estudiantes }}</div>
+          <div style="font-size:.82rem;color:var(--c-muted);margin-top:.2rem">Estudiantes</div>
+        </div>
+        <div style="background:var(--c-surface);border-radius:12px;padding:1.1rem;text-align:center;border:1px solid var(--c-border)">
+          <div style="font-size:2rem;font-weight:700;color:var(--c-teal)">{{ total_evaluaciones }}</div>
+          <div style="font-size:.82rem;color:var(--c-muted);margin-top:.2rem">Evaluaciones</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCIONES RÁPIDAS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">⚡ Acciones rápidas</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.6rem">
+        <a href="{% url 'dashboard' %}" class="btn btn-ghost" style="justify-content:flex-start">📊 Ir al Dashboard</a>
+        <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost" style="justify-content:flex-start">👨‍🎓 Mis estudiantes</a>
+        <a href="{% url 'recuperar_contrasena' %}" class="btn btn-ghost" style="justify-content:flex-start">🔒 Cambiar contraseña</a>
+        <a href="{% url 'logout' %}" class="btn btn-danger btn-sm" style="justify-content:flex-start;margin-top:.4rem">🚪 Cerrar sesión</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

@@ -128,16 +128,23 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # ─────────────────────────────────────────────────────────────────────────────
 # CONFIGURACIÓN DE CORREO ELECTRÓNICO
 # ─────────────────────────────────────────────────────────────────────────────
-# Para DESARROLLO: muestra el correo en la consola (no requiere credenciales)
+
+# ── ACTIVO: Consola (desarrollo) ──────────────────────────────────────────────
+# El código aparece en la terminal del servidor. Funciona sin configuración.
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# Para PRODUCCIÓN con Gmail, comenta la línea anterior y descomenta estas:
+# ── PARA ENVÍO REAL: Gmail SMTP ───────────────────────────────────────────────
+# 1. Activa verificación en 2 pasos en tu cuenta Google
+# 2. Ve a: Cuenta Google → Seguridad → Contraseñas de aplicaciones
+# 3. Genera una contraseña de 16 caracteres y reemplaza los valores abajo
+# 4. Comenta EMAIL_BACKEND de arriba y descomenta las líneas de abajo:
+#
 # EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 # EMAIL_HOST          = 'smtp.gmail.com'
 # EMAIL_PORT          = 587
 # EMAIL_USE_TLS       = True
-# EMAIL_HOST_USER     = 'tu_correo@gmail.com'
-# EMAIL_HOST_PASSWORD = 'tu_app_password_de_gmail'
+# EMAIL_HOST_USER     = 'leonardooliverosv@gmail.com'
+# EMAIL_HOST_PASSWORD = 'xxxx xxxx xxxx xxxx'   # ← Contraseña de app de Google
 
-DEFAULT_FROM_EMAIL  = 'Sistema Experto TEA <noreply@sistema-tea.edu>'
+DEFAULT_FROM_EMAIL   = 'Sistema Experto TEA <noreply@sistema-tea.edu>'
 EMAIL_SUBJECT_PREFIX = '[TEA] '
