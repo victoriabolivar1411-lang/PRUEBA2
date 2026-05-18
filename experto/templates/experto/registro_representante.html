@@ -42,6 +42,21 @@
         </div>
       </div>
 
+      <!-- Cédula y Parentesco -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div class="form-group">
+          <label class="form-label">🪪 Cédula *</label>
+          {{ form.cedula }}
+          {% if form.cedula.errors %}<ul class="errorlist">{% for e in form.cedula.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+          <span class="form-help">Solo números, máx. 15 dígitos</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">👨‍👩‍👦 Parentesco *</label>
+          {{ form.parentesco }}
+          {% if form.parentesco.errors %}<ul class="errorlist">{% for e in form.parentesco.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        </div>
+      </div>
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
         <div class="form-group">
           <label class="form-label">Correo electrónico (opcional)</label>
@@ -55,10 +70,14 @@
         </div>
       </div>
 
+      <!-- Dirección mejorada -->
       <div class="form-group">
-        <label class="form-label">Dirección *</label>
-        {{ form.direccion }}
+        <label class="form-label">📌 Dirección *</label>
+        <div class="direccion-wrapper">
+          {{ form.direccion }}
+        </div>
         {% if form.direccion.errors %}<ul class="errorlist">{% for e in form.direccion.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        <span class="form-help">Ingrese la dirección completa del representante</span>
       </div>
 
       <div class="form-group">

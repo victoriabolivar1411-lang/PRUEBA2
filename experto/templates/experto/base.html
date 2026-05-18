@@ -268,7 +268,26 @@
       border-color: var(--c-accent);
       box-shadow: 0 0 0 3px rgba(108,99,255,.2);
     }
-    .form-textarea { min-height: 100px; resize: vertical; }
+    .form-textarea {
+      width: 100%;
+      background: var(--c-surface);
+      border: 1px solid var(--c-border);
+      border-radius: 9px;
+      color: var(--c-text);
+      padding: .65rem .9rem;
+      font-size: .92rem;
+      font-family: 'Inter', sans-serif;
+      transition: border-color .2s, box-shadow .2s;
+      min-height: 100px;
+      resize: vertical;
+      display: block;
+    }
+    .form-textarea::placeholder { color: var(--c-muted); font-style: italic; }
+    .form-textarea:focus {
+      outline: none;
+      border-color: var(--c-accent);
+      box-shadow: 0 0 0 3px rgba(108,99,255,.2);
+    }
     .form-checkbox-row {
       display: flex;
       align-items: flex-start;

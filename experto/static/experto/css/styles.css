@@ -326,3 +326,31 @@ a:hover { opacity: 0.85; }
   .navbar-links { gap: .6rem; }
   .page-header { flex-direction: column; }
 }
+
+/* ── Campo Dirección Mejorado ─────────────────────────────────── */
+.direccion-wrapper {
+  position: relative;
+}
+.direccion-field {
+  width: 100%;
+  background: var(--bg-input, rgba(255,255,255,.05));
+  border: 1.5px solid var(--border, rgba(255,255,255,.12));
+  border-radius: 8px;
+  color: var(--c-text, #e2e8f0);
+  font-size: .95rem;
+  padding: .75rem 1rem;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+}
+.direccion-field::placeholder {
+  color: var(--c-muted, #94a3b8);
+  font-style: italic;
+}
+.direccion-field:focus {
+  outline: none;
+  border-color: var(--primary, #6c63ff);
+  box-shadow: 0 0 0 3px rgba(108, 99, 255, .18);
+}

@@ -32,6 +32,14 @@ ESTADO_CIVIL_CHOICES = [
     ('union_libre',   'Unión libre'),
 ]
 
+PARENTESCO_CHOICES = [
+    ('padre',   'Padre'),
+    ('madre',   'Madre'),
+    ('tutor',   'Tutor/a'),
+    ('abuelo',  'Abuelo/a'),
+    ('otro',    'Otro'),
+]
+
 # Niveles para Criterio A (Comunicación Social)
 NIVEL_COMUNICACION_CHOICES = [
     ('necesita_apoyo',          'Nivel 1 — Necesita apoyo'),
@@ -177,6 +185,16 @@ class Representante(models.Model):
     )
     correo = models.EmailField(verbose_name='Correo electrónico', blank=True)
     telefono = models.CharField(max_length=20, verbose_name='Teléfono', blank=True, null=True)
+    cedula = models.CharField(
+        max_length=15,
+        verbose_name='Cédula',
+        unique=True,
+    )
+    parentesco = models.CharField(
+        max_length=10,
+        choices=PARENTESCO_CHOICES,
+        verbose_name='Parentesco con el estudiante',
+    )
     direccion = models.TextField(verbose_name='Dirección')
     foto_carnet = models.ImageField(
         upload_to='fotos_representantes/',

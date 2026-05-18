@@ -112,10 +112,19 @@ class RepresentanteForm(forms.ModelForm):
         model  = Representante
         fields = [
             'nombre_completo', 'sexo', 'edad', 'estado_civil',
+            'cedula', 'parentesco',
             'correo', 'telefono', 'direccion', 'foto_carnet',
         ]
         widgets = {
-            'direccion':   forms.Textarea(attrs={'rows': 3}),
+            'direccion':   forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Calle principal #123, Ciudad, País',
+                'class': 'form-textarea direccion-field',
+            }),
+            'cedula':      forms.TextInput(attrs={
+                'placeholder': 'Ej: 1234567890',
+                'maxlength': '15',
+            }),
             'foto_carnet': forms.ClearableFileInput(attrs={'accept': 'image/*'}),
         }
         labels = {
@@ -123,6 +132,8 @@ class RepresentanteForm(forms.ModelForm):
             'sexo':            'Sexo',
             'edad':            'Edad (años)',
             'estado_civil':    'Estado civil',
+            'cedula':          'Cédula',
+            'parentesco':      'Parentesco con el estudiante',
             'correo':          'Correo electrónico (opcional)',
             'telefono':        'Teléfono',
             'direccion':       'Dirección',
@@ -132,6 +143,19 @@ class RepresentanteForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         _apply_css(self)
+        # Sobrescribir clase del textarea dirección para mantener estilos personalizados
+        self.fields['direccion'].widget.attrs['class'] = 'form-textarea direccion-field'
+
+    def clean_cedula(self):
+        cedula = self.cleaned_data.get('cedula', '').strip()
+        if not cedula.isdigit():
+            raise forms.ValidationError('La cédula debe contener solo números.')
+        qs = Representante.objects.filter(cedula=cedula)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('Ya existe un representante registrado con esta cédula.')
+        return cedula
 
 
 # ─────────────────────────────────────────────────────────────────────────────

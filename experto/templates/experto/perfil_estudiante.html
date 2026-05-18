@@ -76,6 +76,8 @@
     <table style="font-size:.9rem">
       <tr><td style="color:var(--c-muted);width:40%;border:none;padding:.3rem 0">Sexo</td><td style="border:none;padding:.3rem 0">{{ representante.get_sexo_display }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Edad</td><td style="border:none;padding:.3rem 0">{{ representante.edad }} años</td></tr>
+      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Cédula</td><td style="border:none;padding:.3rem 0">{{ representante.cedula|default:"No registrada" }}</td></tr>
+      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Parentesco</td><td style="border:none;padding:.3rem 0">{{ representante.get_parentesco_display|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Teléfono</td><td style="border:none;padding:.3rem 0">{{ representante.telefono|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Correo</td><td style="border:none;padding:.3rem 0">{{ representante.correo|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Dirección</td><td style="border:none;padding:.3rem 0">{{ representante.direccion }}</td></tr>
