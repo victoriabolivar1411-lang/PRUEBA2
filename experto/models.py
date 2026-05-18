@@ -71,6 +71,21 @@ class Instructor(models.Model):
         related_name='instructor',
         verbose_name='Usuario del sistema',
     )
+    sexo = models.CharField(
+        max_length=1, choices=SEXO_CHOICES, verbose_name='Sexo', blank=True, null=True
+    )
+    edad = models.PositiveIntegerField(
+        verbose_name='Edad', validators=[MinValueValidator(0), MaxValueValidator(120)], blank=True, null=True
+    )
+    estado_civil = models.CharField(
+        max_length=20, choices=ESTADO_CIVIL_CHOICES, verbose_name='Estado civil', blank=True, null=True
+    )
+    cedula = models.CharField(
+        max_length=15, verbose_name='Cédula', unique=True, blank=True, null=True
+    )
+    estado = models.CharField(max_length=100, blank=True, null=True, verbose_name='Estado')
+    municipio = models.CharField(max_length=100, blank=True, null=True, verbose_name='Municipio')
+    direccion = models.TextField(verbose_name='Dirección detallada', blank=True, null=True)
     telefono = models.CharField(
         max_length=20, blank=True, verbose_name='Teléfono'
     )
@@ -208,7 +223,9 @@ class Representante(models.Model):
         choices=PARENTESCO_CHOICES,
         verbose_name='Parentesco con el estudiante',
     )
-    direccion = models.TextField(verbose_name='Dirección')
+    estado = models.CharField(max_length=100, blank=True, null=True, verbose_name='Estado')
+    municipio = models.CharField(max_length=100, blank=True, null=True, verbose_name='Municipio')
+    direccion = models.TextField(verbose_name='Dirección detallada')
     foto_carnet = models.ImageField(
         upload_to='fotos_representantes/',
         blank=True,

@@ -80,7 +80,15 @@
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Parentesco</td><td style="border:none;padding:.3rem 0">{{ representante.get_parentesco_display|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Teléfono</td><td style="border:none;padding:.3rem 0">{{ representante.telefono|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Correo</td><td style="border:none;padding:.3rem 0">{{ representante.correo|default:"No registrado" }}</td></tr>
-      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Dirección</td><td style="border:none;padding:.3rem 0">{{ representante.direccion }}</td></tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.3rem 0">Dirección</td>
+        <td style="border:none;padding:.3rem 0">
+          {% if representante.municipio and representante.estado %}
+            {{ representante.municipio }}, {{ representante.estado }}.<br>
+          {% endif %}
+          {{ representante.direccion }}
+        </td>
+      </tr>
     </table>
     <a href="{% url 'registro_representante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2 no-print">✏️ Editar Representante</a>
     {% else %}
