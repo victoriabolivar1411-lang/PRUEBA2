@@ -397,6 +397,13 @@ def editar_perfil(request):
             user.save()
 
             instructor.telefono = form.cleaned_data['telefono']
+            instructor.sexo = form.cleaned_data['sexo']
+            instructor.edad = form.cleaned_data['edad']
+            instructor.estado_civil = form.cleaned_data['estado_civil']
+            instructor.cedula = form.cleaned_data['cedula']
+            instructor.estado = form.cleaned_data['estado']
+            instructor.municipio = form.cleaned_data['municipio']
+            instructor.direccion = form.cleaned_data['direccion']
             
             if form.cleaned_data['eliminar_foto']:
                 instructor.foto_perfil.delete()
@@ -412,6 +419,13 @@ def editar_perfil(request):
             'last_name': user.last_name,
             'email': user.email,
             'telefono': instructor.telefono,
+            'sexo': instructor.sexo,
+            'edad': instructor.edad,
+            'estado_civil': instructor.estado_civil,
+            'cedula': instructor.cedula,
+            'estado': instructor.estado,
+            'municipio': instructor.municipio,
+            'direccion': instructor.direccion,
         })
 
     return render(request, 'experto/editar_perfil.html', {

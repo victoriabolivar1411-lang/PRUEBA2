@@ -49,12 +49,36 @@
         <td style="border:none;padding:.45rem 0">{{ instructor.usuario.username }}</td>
       </tr>
       <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Cédula</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.cedula|default:"No registrado" }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Sexo / Edad</td>
+        <td style="border:none;padding:.45rem 0">
+          {{ instructor.get_sexo_display|default:"No registrado" }} 
+          {% if instructor.edad %}({{ instructor.edad }} años){% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Estado civil</td>
+        <td style="border:none;padding:.45rem 0">{{ instructor.get_estado_civil_display|default:"No registrado" }}</td>
+      </tr>
+      <tr>
         <td style="color:var(--c-muted);border:none;padding:.45rem 0">Correo</td>
         <td style="border:none;padding:.45rem 0">{{ instructor.email|default:"No registrado" }}</td>
       </tr>
       <tr>
         <td style="color:var(--c-muted);border:none;padding:.45rem 0">Teléfono</td>
         <td style="border:none;padding:.45rem 0">{{ instructor.telefono|default:"No registrado" }}</td>
+      </tr>
+      <tr>
+        <td style="color:var(--c-muted);border:none;padding:.45rem 0">Dirección</td>
+        <td style="border:none;padding:.45rem 0">
+          {% if instructor.municipio and instructor.estado %}
+            {{ instructor.municipio }}, {{ instructor.estado }}.<br>
+          {% endif %}
+          {{ instructor.direccion|default:"No registrado" }}
+        </td>
       </tr>
       <tr>
         <td style="color:var(--c-muted);border:none;padding:.45rem 0">Miembro desde</td>

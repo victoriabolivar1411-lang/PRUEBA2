@@ -10,7 +10,7 @@ Descripción: Formularios Django para el sistema experto TEA.
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica
+from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica, SEXO_CHOICES, ESTADO_CIVIL_CHOICES
 
 
 CSS = 'form-input'
@@ -43,8 +43,15 @@ class RegistroInstructorForm(UserCreationForm):
     """
     first_name = forms.CharField(max_length=100, label='Nombre', required=True)
     last_name  = forms.CharField(max_length=100, label='Apellido', required=True)
+    sexo       = forms.ChoiceField(choices=SEXO_CHOICES, label='Sexo', required=True)
+    edad       = forms.IntegerField(label='Edad (años)', min_value=18, required=True)
+    estado_civil = forms.ChoiceField(choices=ESTADO_CIVIL_CHOICES, label='Estado civil', required=True)
+    cedula     = forms.CharField(max_length=15, label='Cédula', required=True, widget=forms.TextInput(attrs={'placeholder': 'Ej: 12345678'}))
     email      = forms.EmailField(label='Correo electrónico', required=True)
     telefono   = forms.CharField(max_length=20, label='Teléfono (opcional)', required=False)
+    estado     = forms.CharField(label='Estado', required=True, widget=forms.Select(attrs={'class': 'form-input estado-select'}))
+    municipio  = forms.CharField(label='Municipio / Ciudad', required=True, widget=forms.Select(attrs={'class': 'form-input municipio-select'}))
+    direccion  = forms.CharField(label='Dirección detallada', required=True, widget=forms.Textarea(attrs={'rows': 3}))
 
     class Meta:
         model  = User
@@ -66,6 +73,14 @@ class RegistroInstructorForm(UserCreationForm):
             raise forms.ValidationError('Ya existe una cuenta con este correo electrónico.')
         return email
 
+    def clean_cedula(self):
+        cedula = self.cleaned_data.get('cedula', '').strip()
+        if not cedula.isdigit():
+            raise forms.ValidationError('La cédula debe contener solo números.')
+        if Instructor.objects.filter(cedula=cedula).exists():
+            raise forms.ValidationError('Ya existe una cuenta registrada con esta cédula.')
+        return cedula
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.first_name = self.cleaned_data['first_name']
@@ -75,6 +90,13 @@ class RegistroInstructorForm(UserCreationForm):
             user.save()
             Instructor.objects.create(
                 usuario=user,
+                sexo=self.cleaned_data['sexo'],
+                edad=self.cleaned_data['edad'],
+                estado_civil=self.cleaned_data['estado_civil'],
+                cedula=self.cleaned_data['cedula'],
+                estado=self.cleaned_data['estado'],
+                municipio=self.cleaned_data['municipio'],
+                direccion=self.cleaned_data['direccion'],
                 telefono=self.cleaned_data.get('telefono', ''),
             )
         return user
@@ -113,12 +135,14 @@ class RepresentanteForm(forms.ModelForm):
         fields = [
             'nombre_completo', 'sexo', 'edad', 'estado_civil',
             'cedula', 'parentesco',
-            'correo', 'telefono', 'direccion', 'foto_carnet',
+            'correo', 'telefono', 'estado', 'municipio', 'direccion', 'foto_carnet',
         ]
         widgets = {
+            'estado':      forms.Select(attrs={'class': 'form-input estado-select'}),
+            'municipio':   forms.Select(attrs={'class': 'form-input municipio-select'}),
             'direccion':   forms.Textarea(attrs={
                 'rows': 3,
-                'placeholder': 'Calle principal #123, Ciudad, País',
+                'placeholder': 'Ej. Calle principal, Casa #123, Urb. Centro',
                 'class': 'form-textarea direccion-field',
             }),
             'cedula':      forms.TextInput(attrs={
@@ -136,7 +160,9 @@ class RepresentanteForm(forms.ModelForm):
             'parentesco':      'Parentesco con el estudiante',
             'correo':          'Correo electrónico (opcional)',
             'telefono':        'Teléfono',
-            'direccion':       'Dirección',
+            'estado':          'Estado',
+            'municipio':       'Municipio / Ciudad',
+            'direccion':       'Dirección detallada',
             'foto_carnet':     'Foto carnet (opcional)',
         }
 
@@ -255,10 +281,17 @@ class EditarPerfilInstructorForm(forms.Form):
         widget=forms.EmailInput(attrs={'placeholder': 'tu@correo.com'}),
         required=False,
     )
+    sexo = forms.ChoiceField(choices=SEXO_CHOICES, label='Sexo', required=True)
+    edad = forms.IntegerField(label='Edad (años)', min_value=18, required=True)
+    estado_civil = forms.ChoiceField(choices=ESTADO_CIVIL_CHOICES, label='Estado civil', required=True)
+    cedula = forms.CharField(max_length=15, label='Cédula', required=True)
     telefono = forms.CharField(
         max_length=20, label='Teléfono', required=False,
         widget=forms.TextInput(attrs={'placeholder': '+58 412 000 0000'}),
     )
+    estado = forms.CharField(label='Estado', required=True, widget=forms.Select(attrs={'class': 'form-input estado-select'}))
+    municipio = forms.CharField(label='Municipio / Ciudad', required=True, widget=forms.Select(attrs={'class': 'form-input municipio-select'}))
+    direccion = forms.CharField(label='Dirección detallada', required=True, widget=forms.Textarea(attrs={'rows': 3}))
     foto_perfil = forms.ImageField(
         label='Foto de perfil', required=False,
         widget=forms.FileInput(),
