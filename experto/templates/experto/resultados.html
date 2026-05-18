@@ -1,6 +1,169 @@
 {% extends 'experto/base.html' %}
 {% block title %}Resultados — {{ estudiante.nombre_completo }}{% endblock %}
 {% block content %}
+
+<style>
+  /* ── Normal: ocultar cabecera de impresión ── */
+  .print-only { display: none !important; }
+
+  /* ── Impresión ─────────────────────────────── */
+  @media print {
+    /* Ocultar navegación, botones y breadcrumb */
+    .no-print, .page-header .btn, .header-actions,
+    .breadcrumb, nav, .sidebar, .btn { display: none !important; }
+
+    /* Ajuste de hoja tamaño carta y fuentes más pequeñas */
+    @page { size: letter; margin: 1cm; }
+    
+    /* Mostrar cabecera de impresión */
+    .print-only { display: block !important; }
+
+    /* Colores e imágenes se imprimen */
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: white !important; color: #111 !important; }
+
+    /* Reducción general de fuentes */
+    body, p, div, span, strong, td, th { font-size: 11px !important; }
+    h1, h2, h3, .card-title { font-size: 13px !important; margin-bottom: 4px !important; }
+
+    /* Cards con borde simple y más pequeñas */
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #ccc !important;
+      background: white !important;
+      margin-bottom: 8px !important;
+      padding: 10px !important;
+      border-radius: 4px !important;
+      page-break-inside: avoid;
+    }
+    .card-header { background: #f5f5f5 !important; padding: 6px 10px !important; margin: -10px -10px 10px -10px !important; }
+    .card-title  { color: #111 !important; }
+
+    /* Stat cards en fila, más pequeñas */
+    .grid-3 { display: flex !important; gap: 8px !important; margin-bottom: 8px !important; }
+    .stat-card {
+      flex: 1;
+      border: 1px solid #ccc !important;
+      background: white !important;
+      box-shadow: none !important;
+      padding: 6px !important;
+    }
+    .stat-icon { font-size: 16px !important; width: 24px !important; height: 24px !important; }
+    .stat-value { color: #111 !important; font-size: 14px !important; }
+    .stat-label { color: #111 !important; font-size: 10px !important; }
+
+    /* Texto de recomendaciones */
+    p, div { color: #111 !important; }
+    .text-muted { color: #555 !important; }
+
+    /* ── Quitar fondos oscuros en recomendaciones ── */
+    [style*="background:var(--c-surface)"],
+    [style*="background:rgba(108,99,255"],
+    [style*="background:var(--c-bg)"],
+    [style*="--c-surface"],
+    .profile-card, .evaluations-history {
+      background: white !important;
+      background-color: white !important;
+    }
+    
+    /* Achicar los bloques de recomendación */
+    [style*="padding:1.25rem"] { padding: 0.5rem !important; margin-bottom: 0.5rem !important; }
+    [style*="padding:1rem"] { padding: 0.5rem !important; margin-top: 0.25rem !important; }
+    [style*="margin:1rem 0"] { margin: 0.5rem 0 !important; }
+
+    /* Bordes en lugar de fondos de color */
+    [style*="border-left:3px solid"] {
+      border-left: 3px solid #333 !important;
+    }
+
+    /* Alertas visibles y pequeñas */
+    .alert { border: 1px solid #999 !important; background: #f9f9f9 !important; color: #111 !important; padding: 4px 8px !important; font-size: 10px !important; }
+    .badge { border: 1px solid #999; background: #eee !important; color: #111 !important; padding: 2px 5px !important; font-size: 10px !important; }
+
+    /* Nivel TEA destacado */
+    .nivel-tea-print { 
+      font-size: 13px !important; 
+      font-weight: bold; 
+      background: #eee !important; 
+      padding: 4px 8px !important; 
+      border-radius: 4px; 
+      display: inline-block; 
+      border: 1px solid #ccc;
+    }
+  }
+
+  /* ── Cabecera de impresión (visible solo al imprimir) ── */
+  .print-header-box {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 2px solid #333;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+  .print-header-box .ph-photo img {
+    width: 90px; height: 90px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid #333;
+  }
+  .print-header-box .ph-placeholder {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: #ddd;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; font-weight: bold; border: 2px solid #333;
+  }
+  .print-header-box .ph-info h2 { margin: 0 0 4px; font-size: 1.3rem; }
+  .print-header-box .ph-info p  { margin: 2px 0; font-size: 0.88rem; color: #444; }
+  .print-footer {
+    margin-top: 24px;
+    border-top: 1px solid #ccc;
+    padding-top: 8px;
+    font-size: 0.78rem;
+    color: #888;
+    text-align: center;
+  }
+</style>
+
+<!-- ── Cabecera visible SOLO al imprimir ── -->
+<div class="print-only">
+  <div class="print-header-box">
+    <div class="ph-photo">
+      {% if estudiante.foto_carnet %}
+        <img src="{{ estudiante.foto_carnet.url }}" alt="Foto de {{ estudiante.nombre_completo }}">
+      {% else %}
+        <div class="ph-placeholder">{{ estudiante.nombre_completo|first|upper }}</div>
+      {% endif %}
+    </div>
+    <div class="ph-info" style="width: 100%;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <h2>Ficha de Recomendaciones Pedagógicas</h2>
+          <p><strong>Estudiante:</strong> {{ estudiante.nombre_completo }} &nbsp;|&nbsp; <strong>Edad:</strong> {{ estudiante.edad }} años &nbsp;|&nbsp; <strong>Sexo:</strong> {{ estudiante.sexo }}</p>
+          <p style="margin-top: 6px;">
+            <strong>Nivel TEA:</strong> 
+            <span class="nivel-tea-print">{{ estudiante.get_nivel_tea_display }}</span>
+          </p>
+        </div>
+        <div style="text-align: right; line-height: 1.5;">
+          <p><strong>Fecha de evaluación:</strong> {{ eval_ped.fecha|date:"d/m/Y" }}</p>
+          <p><strong>Instructor:</strong> {{ instructor }}</p>
+          {% if estudiante.representante %}
+          <p><strong>Representante:</strong> {{ estudiante.representante.nombre_completo }} (Tlf: {{ estudiante.representante.telefono|default:"No registrado" }})</p>
+          {% else %}
+          <p><strong>Representante:</strong> <span class="text-muted">No registrado</span></p>
+          {% endif %}
+        </div>
+      </div>
+      <p style="font-size:0.78rem;color:#aaa;margin-top:10px;border-top:1px solid #eee;padding-top:4px;">
+        Generado el {% now "d/m/Y H:i" %} — Sistema Experto TEA (Forward Chaining)
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Cabecera normal ── -->
 <div class="page-header">
   <div>
     <div class="breadcrumb">
@@ -12,6 +175,7 @@
     <p class="page-subtitle">Motor de inferencia — Encadenamiento hacia adelante (Forward Chaining)</p>
   </div>
   <div class="d-flex gap-1 no-print">
+    <button onclick="window.print()" class="btn btn-ghost">🖨️ Imprimir reporte</button>
     <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">📄 Ver ficha</a>
     <a href="{% url 'evaluacion_dsm5' estudiante.pk %}" class="btn btn-primary">🔄 Nueva evaluación</a>
   </div>
@@ -70,6 +234,43 @@
 
 <!-- Recomendaciones -->
 {% if recomendaciones %}
+<div class="card chart-print-card" style="page-break-inside: avoid; padding: 1.25rem; margin-bottom: 1rem;">
+  <div style="text-align: center; font-weight: 700; margin-bottom: 1.25rem; font-size: .95rem; text-transform: uppercase; color: var(--c-white); border-bottom: 1px solid var(--c-border); padding-bottom: .75rem;">
+    📊 Gráficas de Nivel de Afectación (Criterios A y B)
+  </div>
+  
+  <div style="margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .4rem; font-weight: 600; color: var(--c-text);">
+      <span>A. Comunicación Social: {{ eval_ped.get_nivel_comunicacion_social_display }}</span>
+      <span style="color: var(--c-muted)">Gravedad</span>
+    </div>
+    <div style="background: var(--c-bg); height: 18px; border-radius: 6px; width: 100%; border: 1px solid var(--c-border); overflow: hidden;">
+      {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}
+        <div style="width: 33%; height: 100%; background: var(--c-green) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% elif eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}
+        <div style="width: 66%; height: 100%; background: var(--c-yellow) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% elif eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}
+        <div style="width: 100%; height: 100%; background: var(--c-red) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="margin-bottom: .5rem;">
+    <div style="display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .4rem; font-weight: 600; color: var(--c-text);">
+      <span>B. Conductas Repetitivas: {{ eval_ped.get_nivel_conductas_repetitivas_display }}</span>
+      <span style="color: var(--c-muted)">Gravedad</span>
+    </div>
+    <div style="background: var(--c-bg); height: 18px; border-radius: 6px; width: 100%; border: 1px solid var(--c-border); overflow: hidden;">
+      {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}
+        <div style="width: 33%; height: 100%; background: var(--c-green) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}
+        <div style="width: 66%; height: 100%; background: var(--c-yellow) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}
+        <div style="width: 100%; height: 100%; background: var(--c-red) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
 <div class="card">
   <div class="card-header">
     <div class="card-title">🧠 Estrategias pedagógicas sugeridas</div>
@@ -77,13 +278,13 @@
   </div>
 
   {% for rec in recomendaciones %}
-  <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem">
+  <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--r);padding:1.25rem;margin-bottom:1rem;page-break-inside:avoid">
     <div class="d-flex align-center gap-1 mb-1">
       <span class="badge badge-purple">{{ forloop.counter }}</span>
       {% if rec.regla %}
       <strong style="color:var(--c-white)">{{ rec.regla.nombre }}</strong>
       {% endif %}
-      <span class="text-muted" style="font-size:.8rem;margin-left:auto">{{ rec.generada_en|date:"d/m/Y H:i" }}</span>
+      <span class="text-muted no-print" style="font-size:.8rem;margin-left:auto">{{ rec.generada_en|date:"d/m/Y H:i" }}</span>
     </div>
 
     <div style="border-left:3px solid var(--c-accent);padding-left:1rem;margin:1rem 0">
@@ -112,4 +313,12 @@
   </div>
 </div>
 {% endif %}
+
+<!-- Pie de página solo al imprimir -->
+<div class="print-only print-footer">
+  Sistema Experto TEA — Apoyo Pedagógico para Niños con Trastorno del Espectro Autista &nbsp;|&nbsp; Documento confidencial
+</div>
+
 {% endblock %}
+
+

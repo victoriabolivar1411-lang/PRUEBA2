@@ -175,7 +175,8 @@ class Representante(models.Model):
         choices=ESTADO_CIVIL_CHOICES,
         verbose_name='Estado civil',
     )
-    correo = models.EmailField(verbose_name='Correo electrónico')
+    correo = models.EmailField(verbose_name='Correo electrónico', blank=True)
+    telefono = models.CharField(max_length=20, verbose_name='Teléfono', blank=True, null=True)
     direccion = models.TextField(verbose_name='Dirección')
     foto_carnet = models.ImageField(
         upload_to='fotos_representantes/',

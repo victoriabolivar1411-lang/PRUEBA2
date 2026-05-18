@@ -2,17 +2,7 @@
 {% block title %}Perfil — {{ estudiante.nombre_completo }}{% endblock %}
 {% block content %}
 
-<!-- ── CABECERA IMPRIMIBLE (solo visible en impresión) ─────────────── -->
-<div class="print-header">
-  <div>
-    <div style="font-size:1.2rem;font-weight:700">🧩 Sistema Experto TEA</div>
-    <div style="font-size:.85rem;color:#666">Ficha pedagógica — Fecha: {% now "d/m/Y" %}</div>
-  </div>
-  <div style="font-size:.8rem;color:#666;text-align:right">
-    Instructor: {{ instructor.nombre_completo }}<br>
-    {{ instructor.email }}
-  </div>
-</div>
+
 
 <!-- ── HEADER PANTALLA ──────────────────────────────────────────────── -->
 <div class="page-header no-print">
@@ -26,7 +16,6 @@
     <a href="{% url 'evaluacion_dsm5' estudiante.pk %}" class="btn btn-primary">🏥 Evaluar</a>
     <a href="{% url 'registro_representante' estudiante.pk %}" class="btn btn-teal">👨‍👩‍👦 Representante</a>
     <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-ghost">✏️ Editar</a>
-    <button onclick="window.print()" class="btn btn-ghost">🖨️ Imprimir ficha</button>
     <a href="{% url 'borrar_estudiante' estudiante.pk %}" class="btn btn-danger">🗑️</a>
   </div>
 </div>
@@ -88,7 +77,8 @@
     <table style="font-size:.9rem">
       <tr><td style="color:var(--c-muted);width:40%;border:none;padding:.3rem 0">Sexo</td><td style="border:none;padding:.3rem 0">{{ representante.get_sexo_display }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Edad</td><td style="border:none;padding:.3rem 0">{{ representante.edad }} años</td></tr>
-      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Correo</td><td style="border:none;padding:.3rem 0">{{ representante.correo }}</td></tr>
+      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Teléfono</td><td style="border:none;padding:.3rem 0">{{ representante.telefono|default:"No registrado" }}</td></tr>
+      <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Correo</td><td style="border:none;padding:.3rem 0">{{ representante.correo|default:"No registrado" }}</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.3rem 0">Dirección</td><td style="border:none;padding:.3rem 0">{{ representante.direccion }}</td></tr>
     </table>
     <a href="{% url 'registro_representante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2 no-print">✏️ Editar representante</a>

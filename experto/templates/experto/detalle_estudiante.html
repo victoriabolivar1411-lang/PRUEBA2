@@ -15,8 +15,17 @@
 
 <div class="profile-grid">
   <div class="profile-card">
-    <div class="profile-avatar">{{ estudiante.nombre|first }}{{ estudiante.apellido|first }}</div>
-    <div class="profile-detail"><strong>Fecha de nacimiento:</strong> {{ estudiante.fecha_nacimiento|date:"d/m/Y" }}</div>
+    <div style="text-align:center; margin-bottom:20px;">
+      {% if estudiante.foto_carnet %}
+        <img src="{{ estudiante.foto_carnet.url }}" alt="Foto"
+             style="width:100px;height:100px;object-fit:cover;border-radius:50%;border:3px solid #6c63ff;">
+      {% else %}
+        <div class="profile-avatar">{{ estudiante.nombre_completo|first|upper }}</div>
+      {% endif %}
+    </div>
+
+    <div class="profile-detail"><strong>Sexo:</strong> {{ estudiante.sexo }}</div>
+    <div class="profile-detail"><strong>Edad:</strong> {{ estudiante.edad }} años</div>
     <div class="profile-detail"><strong>Instructor:</strong> {{ estudiante.instructor }}</div>
     <div class="profile-detail"><strong>Nivel TEA:</strong> {{ estudiante.get_nivel_tea_display }}</div>
     {% if estudiante.observaciones %}
@@ -47,3 +56,4 @@
   </div>
 </div>
 {% endblock %}
+

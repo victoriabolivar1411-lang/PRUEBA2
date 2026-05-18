@@ -112,7 +112,7 @@ class RepresentanteForm(forms.ModelForm):
         model  = Representante
         fields = [
             'nombre_completo', 'sexo', 'edad', 'estado_civil',
-            'correo', 'direccion', 'foto_carnet',
+            'correo', 'telefono', 'direccion', 'foto_carnet',
         ]
         widgets = {
             'direccion':   forms.Textarea(attrs={'rows': 3}),
@@ -123,7 +123,8 @@ class RepresentanteForm(forms.ModelForm):
             'sexo':            'Sexo',
             'edad':            'Edad (años)',
             'estado_civil':    'Estado civil',
-            'correo':          'Correo electrónico',
+            'correo':          'Correo electrónico (opcional)',
+            'telefono':        'Teléfono',
             'direccion':       'Dirección',
             'foto_carnet':     'Foto carnet (opcional)',
         }
