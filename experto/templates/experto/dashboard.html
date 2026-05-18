@@ -44,11 +44,50 @@
 <div class="grid-2 mt-2">
   <!-- Estudiantes recientes -->
   <div class="card">
-    <div class="card-header">
+    <div class="card-header" style="flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
       <div>
         <div class="card-title">Mis estudiantes</div>
-        <div class="card-subtitle">Últimos registrados</div>
+        <div class="card-subtitle">
+          {% if search_query %}
+            Resultados de búsqueda
+          {% else %}
+            Últimos registrados
+          {% endif %}
+        </div>
       </div>
+      
+      <!-- Buscador de Estudiantes y Representantes -->
+      <form method="GET" action="{% url 'dashboard' %}" class="search-form" style="margin: 0; display: flex; align-items: center; gap: 6px; flex-grow: 1; justify-content: flex-end; max-width: 320px;">
+        <div style="position: relative; width: 100%;">
+          <input type="text" name="search" id="studentSearch" placeholder="🔍 Buscar estudiante o rep..." value="{{ search_query|default:'' }}" style="
+            width: 100%;
+            padding: 8px 12px;
+            padding-right: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--c-border);
+            color: var(--c-white);
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.3s ease;
+          ">
+          {% if search_query %}
+            <a href="{% url 'dashboard' %}" style="
+              position: absolute;
+              right: 10px;
+              top: 50%;
+              transform: translateY(-50%);
+              color: var(--c-muted);
+              font-size: 1rem;
+              text-decoration: none;
+              cursor: pointer;
+              transition: color 0.2s ease;
+            " onmouseover="this.style.color='var(--c-accent2)'" onmouseout="this.style.color='var(--c-muted)'">✕</a>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" style="padding: 8px 12px; min-height: auto; font-size: 0.82rem;">Buscar</button>
+      </form>
+
       <a href="{% url 'lista_estudiantes' %}" class="btn btn-ghost btn-sm">Ver todos</a>
     </div>
     {% if estudiantes %}
@@ -66,8 +105,15 @@
               <div class="photo-placeholder">{{ est.nombre_completo|first|upper }}</div>
               {% endif %}
               <div>
-                <div style="font-weight:500">{{ est.nombre_completo }}</div>
-                <div class="text-muted" style="font-size:.8rem">{{ est.get_sexo_display }}</div>
+                <div style="font-weight:600">{{ est.nombre_completo }}</div>
+                <div class="text-muted" style="font-size:.8rem; display: flex; flex-direction: column; gap: 2px; margin-top: 2px;">
+                  <span>{{ est.get_sexo_display }}</span>
+                  {% if est.tiene_representante %}
+                    <span style="color: var(--c-teal); font-weight: 500; font-size: 0.76rem; display: flex; align-items: center; gap: 4px;">
+                      👤 Rep: <strong style="color: rgba(255,255,255,0.85);">{{ est.representante.nombre_completo }}</strong>
+                    </span>
+                  {% endif %}
+                </div>
               </div>
             </div>
           </td>
@@ -79,11 +125,17 @@
       </table>
     </div>
     {% else %}
-    <div class="empty-state" style="padding:2rem">
+    <div class="empty-state" style="padding:3rem 2rem">
       <div class="icon">👨‍🎓</div>
-      <h3>Sin estudiantes aún</h3>
-      <p>Registra tu primer estudiante</p>
-      <a href="{% url 'registro_estudiante' %}" class="btn btn-primary mt-2">➕ Nuevo estudiante</a>
+      {% if search_query %}
+        <h3>No se encontraron resultados</h3>
+        <p>No hay estudiantes o representantes que coincidan con "<strong>{{ search_query }}</strong>"</p>
+        <a href="{% url 'dashboard' %}" class="btn btn-ghost mt-2">Limpiar búsqueda</a>
+      {% else %}
+        <h3>Sin estudiantes aún</h3>
+        <p>Registra tu primer estudiante</p>
+        <a href="{% url 'registro_estudiante' %}" class="btn btn-primary mt-2">➕ Nuevo estudiante</a>
+      {% endif %}
     </div>
     {% endif %}
   </div>
@@ -122,4 +174,18 @@
     {% endif %}
   </div>
 </div>
+{% if search_query %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('studentSearch');
+    if (input) {
+      input.focus();
+      // Mueve el cursor de texto al final
+      const val = input.value;
+      input.value = '';
+      input.value = val;
+    }
+  });
+</script>
+{% endif %}
 {% endblock %}

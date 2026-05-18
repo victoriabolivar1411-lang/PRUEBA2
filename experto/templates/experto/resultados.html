@@ -90,6 +90,69 @@
       display: inline-block; 
       border: 1px solid #ccc;
     }
+    
+    /* Gráfica de puntos en impresión */
+    .print-track-bg {
+      background: #ddd !important;
+    }
+    .print-track-fill {
+      background: #333 !important;
+    }
+    .chart-dot {
+      background: #fff !important;
+      border: 2px solid #ccc !important;
+    }
+    .chart-dot div {
+      background: #bbb !important;
+    }
+    .chart-dot-label {
+      color: #777 !important;
+    }
+    .chart-dot-active-1 {
+      background: #e6f4ea !important;
+      border: 3px solid #137333 !important;
+    }
+    .chart-dot-active-1 div {
+      background: #137333 !important;
+      display: block !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+    }
+    .chart-label-active-1 {
+      color: #137333 !important;
+      font-weight: bold !important;
+    }
+    .chart-dot-active-2 {
+      background: #fef7e0 !important;
+      border: 3px solid #b06000 !important;
+    }
+    .chart-dot-active-2 div {
+      background: #b06000 !important;
+      display: block !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+    }
+    .chart-label-active-2 {
+      color: #b06000 !important;
+      font-weight: bold !important;
+    }
+    .chart-dot-active-3 {
+      background: #fce8e6 !important;
+      border: 3px solid #c5221f !important;
+    }
+    .chart-dot-active-3 div {
+      background: #c5221f !important;
+      display: block !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+    }
+    .chart-label-active-3 {
+      color: #c5221f !important;
+      font-weight: bold !important;
+    }
   }
 
   /* ── Cabecera de impresión (visible solo al imprimir) ── */
@@ -141,10 +204,15 @@
         <div>
           <h2>Ficha de Recomendaciones Pedagógicas</h2>
           <p><strong>Estudiante:</strong> {{ estudiante.nombre_completo }} &nbsp;|&nbsp; <strong>Edad:</strong> {{ estudiante.edad }} años &nbsp;|&nbsp; <strong>Sexo:</strong> {{ estudiante.sexo }}</p>
-          <p style="margin-top: 6px;">
-            <strong>Nivel TEA:</strong> 
-            <span class="nivel-tea-print">{{ estudiante.get_nivel_tea_display }}</span>
-          </p>
+          <div style="margin-top: 8px; font-size: 0.82rem; display: flex; flex-direction: column; gap: 5px; align-items: flex-start;">
+            <strong style="color: #333; margin-bottom: 2px;">Niveles TEA:</strong>
+            <span style="display: inline-flex; align-items: center; background: #f3e8ff !important; border: 1px solid #d8b4fe !important; padding: 2px 8px !important; border-radius: 5px !important; font-size: 0.75rem !important; color: #6b21a8 !important; font-weight: 600 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+              🗣️ Com. Social: {{ eval_ped.get_nivel_comunicacion_social_display }}
+            </span>
+            <span style="display: inline-flex; align-items: center; background: #e0f2fe !important; border: 1px solid #bae6fd !important; padding: 2px 8px !important; border-radius: 5px !important; font-size: 0.75rem !important; color: #0369a1 !important; font-weight: 600 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;">
+              🔄 Conductas: {{ eval_ped.get_nivel_conductas_repetitivas_display }}
+            </span>
+          </div>
         </div>
         <div style="text-align: right; line-height: 1.5;">
           <p><strong>Fecha de evaluación:</strong> {{ eval_ped.fecha|date:"d/m/Y" }}</p>
@@ -234,40 +302,230 @@
 
 <!-- Recomendaciones -->
 {% if recomendaciones %}
-<div class="card chart-print-card" style="page-break-inside: avoid; padding: 1.25rem; margin-bottom: 1rem;">
-  <div style="text-align: center; font-weight: 700; margin-bottom: 1.25rem; font-size: .95rem; text-transform: uppercase; color: var(--c-white); border-bottom: 1px solid var(--c-border); padding-bottom: .75rem;">
-    📊 Gráficas de Nivel de Afectación (Criterios A y B)
+<div class="card chart-print-card" style="page-break-inside: avoid; padding: 1.5rem 1.25rem; margin-bottom: 1rem;">
+  <div style="text-align: center; font-weight: 700; margin-bottom: 1.5rem; font-size: .95rem; text-transform: uppercase; color: var(--c-white); border-bottom: 1px solid var(--c-border); padding-bottom: .75rem;">
+    📊 Escala del Nivel de Afectación (Criterios A y B)
   </div>
   
-  <div style="margin-bottom: 1rem;">
-    <div style="display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .4rem; font-weight: 600; color: var(--c-text);">
-      <span>A. Comunicación Social: {{ eval_ped.get_nivel_comunicacion_social_display }}</span>
-      <span style="color: var(--c-muted)">Gravedad</span>
+  <!-- Criterio A -->
+  <div style="margin-bottom: 2rem;">
+    <div style="font-size: .88rem; margin-bottom: 1.2rem; font-weight: 600; color: var(--c-white); display: flex; align-items: center; gap: 6px;">
+      <span style="color: var(--c-accent2); font-size: 1.1rem;">🗣️</span> A. Comunicación Social: 
+      <span style="font-weight: 700; color: var(--c-accent2);">{{ eval_ped.get_nivel_comunicacion_social_display }}</span>
     </div>
-    <div style="background: var(--c-bg); height: 18px; border-radius: 6px; width: 100%; border: 1px solid var(--c-border); overflow: hidden;">
-      {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}
-        <div style="width: 33%; height: 100%; background: var(--c-green) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% elif eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}
-        <div style="width: 66%; height: 100%; background: var(--c-yellow) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% elif eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}
-        <div style="width: 100%; height: 100%; background: var(--c-red) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% endif %}
+    
+    <div style="position: relative; padding: 0 10px; margin-bottom: 1.5rem;">
+      <!-- Connecting Line Background with Nested Active Progress Line -->
+      <div style="position: absolute; top: 11px; left: 40px; right: 40px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; z-index: 1;" class="print-track-bg">
+        <!-- Active Progress Line -->
+        <div style="
+          height: 100%; 
+          border-radius: 2px; 
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+          {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}
+            width: 0%; background: #10b981 !important;
+          {% elif eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}
+            width: 50%; background: linear-gradient(90deg, #10b981, #f59e0b) !important;
+          {% elif eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}
+            width: 100%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444) !important;
+          {% endif %}
+        " class="print-track-fill"></div>
+      </div>
+      
+      <!-- Three Dots -->
+      <div style="display: flex; justify-content: space-between; position: relative; z-index: 3;">
+        <!-- Dot 1 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}
+              background: #10b981 !important;
+              border: 4px solid rgba(16, 185, 129, 0.3);
+              box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}chart-dot-active-1{% endif %}">
+            {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}color: #10b981;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_comunicacion_social == 'necesita_apoyo' %}chart-label-active-1{% endif %}">Grado 1<br>Leve</span>
+        </div>
+        
+        <!-- Dot 2 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}
+              background: #f59e0b !important;
+              border: 4px solid rgba(245, 158, 11, 0.3);
+              box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}chart-dot-active-2{% endif %}">
+            {% if eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}color: #f59e0b;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_comunicacion_social == 'apoyo_sustancial' %}chart-label-active-2{% endif %}">Grado 2<br>Moderado</span>
+        </div>
+        
+        <!-- Dot 3 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}
+              background: #ef4444 !important;
+              border: 4px solid rgba(239, 68, 68, 0.3);
+              box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}chart-dot-active-3{% endif %}">
+            {% if eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}color: #ef4444;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_comunicacion_social == 'apoyo_constante' %}chart-label-active-3{% endif %}">Grado 3<br>Grave</span>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Criterio B -->
   <div style="margin-bottom: .5rem;">
-    <div style="display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .4rem; font-weight: 600; color: var(--c-text);">
-      <span>B. Conductas Repetitivas: {{ eval_ped.get_nivel_conductas_repetitivas_display }}</span>
-      <span style="color: var(--c-muted)">Gravedad</span>
+    <div style="font-size: .88rem; margin-bottom: 1.2rem; font-weight: 600; color: var(--c-white); display: flex; align-items: center; gap: 6px;">
+      <span style="color: var(--c-yellow); font-size: 1.1rem;">🔄</span> B. Conductas Repetitivas: 
+      <span style="font-weight: 700; color: var(--c-yellow);">{{ eval_ped.get_nivel_conductas_repetitivas_display }}</span>
     </div>
-    <div style="background: var(--c-bg); height: 18px; border-radius: 6px; width: 100%; border: 1px solid var(--c-border); overflow: hidden;">
-      {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}
-        <div style="width: 33%; height: 100%; background: var(--c-green) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}
-        <div style="width: 66%; height: 100%; background: var(--c-yellow) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}
-        <div style="width: 100%; height: 100%; background: var(--c-red) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
-      {% endif %}
+    
+    <div style="position: relative; padding: 0 10px; margin-bottom: 1rem;">
+      <!-- Connecting Line Background with Nested Active Progress Line -->
+      <div style="position: absolute; top: 11px; left: 40px; right: 40px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; z-index: 1;" class="print-track-bg">
+        <!-- Active Progress Line -->
+        <div style="
+          height: 100%; 
+          border-radius: 2px; 
+          -webkit-print-color-adjust: exact; print-color-adjust: exact;
+          {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}
+            width: 0%; background: #10b981 !important;
+          {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}
+            width: 50%; background: linear-gradient(90deg, #10b981, #f59e0b) !important;
+          {% elif eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}
+            width: 100%; background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444) !important;
+          {% endif %}
+        " class="print-track-fill"></div>
+      </div>
+      
+      <!-- Three Dots -->
+      <div style="display: flex; justify-content: space-between; position: relative; z-index: 3;">
+        <!-- Dot 1 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}
+              background: #10b981 !important;
+              border: 4px solid rgba(16, 185, 129, 0.3);
+              box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}chart-dot-active-1{% endif %}">
+            {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}color: #10b981;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_conductas_repetitivas == 'necesita_ayuda' %}chart-label-active-1{% endif %}">Grado 1<br>Leve</span>
+        </div>
+        
+        <!-- Dot 2 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}
+              background: #f59e0b !important;
+              border: 4px solid rgba(245, 158, 11, 0.3);
+              box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}chart-dot-active-2{% endif %}">
+            {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}color: #f59e0b;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_notable' %}chart-label-active-2{% endif %}">Grado 2<br>Moderado</span>
+        </div>
+        
+        <!-- Dot 3 -->
+        <div style="display: flex; flex-direction: column; align-items: center; width: 60px; text-align: center;">
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            border-radius: 50%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            transition: all 0.3s ease;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}
+              background: #ef4444 !important;
+              border: 4px solid rgba(239, 68, 68, 0.3);
+              box-shadow: 0 0 12px rgba(239, 68, 68, 0.6);
+            {% else %}
+              background: #1e293b !important;
+              border: 2px solid rgba(255, 255, 255, 0.2);
+            {% endif %}
+          " class="chart-dot {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}chart-dot-active-3{% endif %}">
+            {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}
+              <div style="width: 8px; height: 8px; border-radius: 50%; background: white !important;"></div>
+            {% endif %}
+          </div>
+          <span style="font-size: 0.72rem; margin-top: 8px; font-weight: 700; {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}color: #ef4444;{% else %}color: var(--c-muted);{% endif %}" class="chart-dot-label {% if eval_ped.nivel_conductas_repetitivas == 'ayuda_muy_notable' %}chart-label-active-3{% endif %}">Grado 3<br>Grave</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>

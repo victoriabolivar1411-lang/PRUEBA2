@@ -185,6 +185,7 @@
                 <th>Usuario</th>
                 <th>Correo Electrónico</th>
                 <th>Niños TEA Asignados</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -207,6 +208,9 @@
                   <td>{{ inst.usuario.email|default:"Sin correo registrado" }}</td>
                   <td>
                     <span class="badge badge-teal" style="font-size: 0.85rem; padding: 0.2rem 0.6rem;">👨‍🎓 {{ inst.total_ninos }} niños</span>
+                  </td>
+                  <td>
+                    <a href="{% url 'borrar_instructor' inst.pk %}" class="btn btn-danger btn-sm no-print" title="Eliminar Instructor">🗑️</a>
                   </td>
                 </tr>
               {% endfor %}

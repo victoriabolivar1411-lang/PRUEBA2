@@ -11,7 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib import messages
-from django.db.models import Count
+from django.db.models import Count, Q
 
 from .models import (
     Instructor, Estudiante, Representante,
@@ -91,8 +91,18 @@ def logout_view(request):
 @login_required(login_url='login')
 def dashboard(request):
     instructor   = _get_instructor(request)
-    estudiantes  = Estudiante.objects.filter(instructor=instructor)
-    total_est    = estudiantes.count()
+    estudiantes_all = Estudiante.objects.filter(instructor=instructor)
+    
+    query = request.GET.get('search', '').strip()
+    if query:
+        estudiantes = estudiantes_all.filter(
+            Q(nombre_completo__icontains=query) |
+            Q(representante__nombre_completo__icontains=query)
+        ).distinct()
+    else:
+        estudiantes = estudiantes_all
+
+    total_est    = estudiantes_all.count()
     total_dsm5   = EvaluacionDSM5.objects.filter(estudiante__instructor=instructor).count()
     total_ped    = EvaluacionPedagogica.objects.filter(estudiante__instructor=instructor).count()
     total_rec    = Recomendacion.objects.filter(
@@ -109,7 +119,8 @@ def dashboard(request):
         'total_ped':     total_ped,
         'total_rec':     total_rec,
         'ultimas_eval':  ultimas_eval,
-        'estudiantes':   estudiantes[:6],
+        'estudiantes':   estudiantes if query else estudiantes[:6],
+        'search_query':  query,
     })
 
 
@@ -514,3 +525,32 @@ def verificar_codigo(request):
             return redirect('login')
 
     return render(request, 'experto/verificar_codigo.html', {'form': form})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GESTIÓN DE INSTRUCTORES
+# ─────────────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def borrar_instructor(request, pk):
+    instructor_auth = _get_instructor(request)
+    inst_to_delete = get_object_or_404(Instructor, pk=pk)
+    
+    if request.method == 'POST':
+        nombre = inst_to_delete.usuario.username
+        user_to_delete = inst_to_delete.usuario
+        is_self = (inst_to_delete == instructor_auth)
+        
+        user_to_delete.delete()
+        
+        if is_self:
+            messages.success(request, 'Tu cuenta ha sido eliminada correctamente.')
+            return redirect('login')
+            
+        messages.success(request, f'Instructor "{nombre}" eliminado correctamente.')
+        return redirect('/estudiantes/?buscar_reportes=1&ver_instructores=1')
+        
+    return render(request, 'experto/confirmar_borrar_instructor.html', {
+        'instructor': instructor_auth, 
+        'inst_to_delete': inst_to_delete
+    })

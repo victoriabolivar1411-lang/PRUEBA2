@@ -42,6 +42,7 @@ urlpatterns = [
     # ── Perfil del instructor ──────────────────────────────────────────────────
     path('perfil/', views.perfil_instructor, name='perfil_instructor'),
     path('perfil/editar/', views.editar_perfil, name='editar_perfil'),
+    path('instructores/<int:pk>/borrar/', views.borrar_instructor, name='borrar_instructor'),
 
     # ── Recuperación de contraseña personalizada ───────────────────────────────
     path('recuperar-contrasena/', views.recuperar_contrasena, name='recuperar_contrasena'),
