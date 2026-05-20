@@ -8,13 +8,26 @@ Descripción: Configuración principal del proyecto Django.
              correo electrónico y autenticación.
 =============================================================================
 """
-
 from pathlib import Path
+import os
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RUTAS BASE
 # ─────────────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Cargar archivo .env si existe en la raíz del proyecto para configuración local
+env_path = BASE_DIR / '.env'
+if env_path.exists():
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#'):
+                try:
+                    key, val = line.split('=', 1)
+                    os.environ[key.strip()] = val.strip().strip("'\"")
+                except ValueError:
+                    pass
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -129,22 +142,33 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # CONFIGURACIÓN DE CORREO ELECTRÓNICO
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── ACTIVO: Consola (desarrollo) ──────────────────────────────────────────────
-# El código aparece en la terminal del servidor. Funciona sin configuración.
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Se intenta cargar la configuración de correo desde el archivo .env o variables de entorno.
+# Si se definen EMAIL_HOST_USER y EMAIL_HOST_PASSWORD, se usa el backend SMTP real.
+# De lo contrario, se usa el backend de consola para desarrollo (los correos se imprimen en terminal).
 
-# ── PARA ENVÍO REAL: Gmail SMTP ───────────────────────────────────────────────
-# 1. Activa verificación en 2 pasos en tu cuenta Google
-# 2. Ve a: Cuenta Google → Seguridad → Contraseñas de aplicaciones
-# 3. Genera una contraseña de 16 caracteres y reemplaza los valores abajo
-# 4. Comenta EMAIL_BACKEND de arriba y descomenta las líneas de abajo:
-#
-# EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_HOST          = 'smtp.gmail.com'
-# EMAIL_PORT          = 587
-# EMAIL_USE_TLS       = True
-# EMAIL_HOST_USER     = 'leonardooliverosv@gmail.com'
-# EMAIL_HOST_PASSWORD = 'xxxx xxxx xxxx xxxx'   # ← Contraseña de app de Google
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 
-DEFAULT_FROM_EMAIL   = 'Sistema Experto TEA <noreply@sistema-tea.edu>'
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1', 't', 'y', 'yes')
+
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', f'Sistema Experto TEA <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'Sistema Experto TEA <noreply@sistema-tea.edu>')
 EMAIL_SUBJECT_PREFIX = '[TEA] '
+
+# CONFIGURACIÓN DE SMS (TWILIO)
+# ─────────────────────────────────────────────────────────────────────────────
+TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN', '')
+TWILIO_FROM_NUMBER = os.getenv('TWILIO_FROM_NUMBER', '')
+
+# CONFIGURACIÓN DE WHATSAPP (ULTRAMSG / TWILIO)
+# ─────────────────────────────────────────────────────────────────────────────
+ULTRAMSG_INSTANCE_ID = os.getenv('ULTRAMSG_INSTANCE_ID', '')
+ULTRAMSG_TOKEN = os.getenv('ULTRAMSG_TOKEN', '')
+TWILIO_WHATSAPP_FROM = os.getenv('TWILIO_WHATSAPP_FROM', '')

@@ -193,9 +193,13 @@
                 <tr {% if inst.pk == instructor.pk %}style="background: rgba(108, 99, 255, 0.08); font-weight: 500;"{% endif %}>
                   <td>
                     <div class="d-flex align-center gap-1">
+                      {% if inst.foto_perfil %}
+                      <img src="{{ inst.foto_perfil.url }}" alt="" class="photo-thumb" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
+                      {% else %}
                       <div class="photo-placeholder" style="width: 32px; height: 32px; font-size: 0.9rem; background: var(--c-accent); display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--c-white); font-weight: 600;">
                         {{ inst.usuario.username|first|upper }}
                       </div>
+                      {% endif %}
                       <div>
                         <strong>{{ inst.usuario.get_full_name|default:inst.usuario.username }}</strong>
                         {% if inst.pk == instructor.pk %}

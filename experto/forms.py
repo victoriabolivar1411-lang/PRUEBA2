@@ -313,9 +313,9 @@ class EditarPerfilInstructorForm(forms.Form):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class RecuperarContrasenaForm(forms.Form):
-    correo = forms.EmailField(
-        label='Correo electrónico registrado',
-        widget=forms.EmailInput(attrs={'placeholder': 'tu@correo.com'}),
+    credencial = forms.CharField(
+        label='Correo electrónico o Teléfono',
+        widget=forms.TextInput(attrs={'placeholder': 'tu@correo.com o tu teléfono'}),
     )
 
     def __init__(self, *args, **kwargs):

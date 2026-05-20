@@ -28,25 +28,25 @@
     <div class="auth-logo">
       <div class="auth-icon-wrap">📧</div>
       <div class="auth-title">Recuperar Contraseña</div>
-      <div class="auth-subtitle">Ingresa tu correo electrónico registrado y te enviaremos un código de 6 dígitos para restablecer tu contraseña.</div>
+      <div class="auth-subtitle">Ingresa tu correo electrónico o teléfono registrado y te enviaremos un código de 6 dígitos para restablecer tu contraseña.</div>
     </div>
 
     <form method="post" novalidate>
       {% csrf_token %}
 
       <div style="margin-bottom:1rem">
-        <label class="auth-label" for="{{ form.correo.id_for_label }}">Correo electrónico</label>
+        <label class="auth-label" for="{{ form.credencial.id_for_label }}">Correo electrónico o Teléfono</label>
         <div class="input-icon-wrap">
-          <span class="input-icon">📧</span>
-          <input type="email"
-            name="{{ form.correo.html_name }}"
-            id="{{ form.correo.id_for_label }}"
+          <span class="input-icon">🔑</span>
+          <input type="text"
+            name="{{ form.credencial.html_name }}"
+            id="{{ form.credencial.id_for_label }}"
             class="auth-input"
-            placeholder="tu@correo.com"
-            value="{{ form.correo.value|default:'' }}"
-            autocomplete="email">
+            placeholder="tu@correo.com o tu teléfono"
+            value="{{ form.credencial.value|default:'' }}"
+            autocomplete="username">
         </div>
-        {% if form.correo.errors %}<ul class="errorlist">{% for e in form.correo.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% if form.credencial.errors %}<ul class="errorlist">{% for e in form.credencial.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
       {% if form.non_field_errors %}
