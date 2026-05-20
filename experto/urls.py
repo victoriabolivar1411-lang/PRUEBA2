@@ -46,4 +46,7 @@ urlpatterns = [
     # ── Recuperación de contraseña personalizada ───────────────────────────────
     path('recuperar-contrasena/', views.recuperar_contrasena, name='recuperar_contrasena'),
     path('verificar-codigo/',     views.verificar_codigo,     name='verificar_codigo'),
+
+    # ── Chatbot NLP ────────────────────────────────────────────────────────────
+    path('chatbot/', views.chatbot_api, name='chatbot_api'),
 ]

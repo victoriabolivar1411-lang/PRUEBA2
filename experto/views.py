@@ -12,6 +12,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib import messages
 from django.db.models import Count
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 from .models import (
     Instructor, Estudiante, Representante,
@@ -25,6 +29,7 @@ from .forms import (
 )
 from .expert_system import generar_recomendaciones
 from .utils import enviar_bienvenida
+from .chatbot_engine import detectar_intencion, generar_respuesta, mensaje_bienvenida
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -488,3 +493,65 @@ def verificar_codigo(request):
             return redirect('login')
 
     return render(request, 'experto/verificar_codigo.html', {'form': form})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CHATBOT API
+# ─────────────────────────────────────────────────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def chatbot_api(request):
+    """
+    Endpoint JSON para el chatbot NLP.
+    Recibe: { "mensaje": str, "bienvenida": bool (opcional) }
+    Retorna: { "texto": str, "botones": list, "intencion": str }
+    """
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, Exception):
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    # ── Mensaje de bienvenida inicial ──────────────────────────────────────
+    if data.get('bienvenida'):
+        nombre = ''
+        if request.user.is_authenticated:
+            nombre = request.user.first_name or request.user.username
+        respuesta = mensaje_bienvenida(nombre)
+        # Inicializar historial de sesión
+        request.session['chat_historial'] = []
+        return JsonResponse(respuesta)
+
+    mensaje_usuario = data.get('mensaje', '').strip()
+    if not mensaje_usuario:
+        return JsonResponse({'error': 'Mensaje vacío'}, status=400)
+
+    # ── Recuperar historial de sesión (últimos 5 intercambios) ────────────
+    historial = request.session.get('chat_historial', [])
+
+    # ── Detectar intención ────────────────────────────────────────────────
+    intencion = detectar_intencion(mensaje_usuario, historial)
+
+    # ── Contexto del usuario autenticado y mensaje original ───────────────
+    contexto = {
+        'autenticado': request.user.is_authenticated,
+        'mensaje': mensaje_usuario
+    }
+    if request.user.is_authenticated:
+        contexto['nombre'] = request.user.first_name or request.user.username
+
+    # ── Generar respuesta ─────────────────────────────────────────────────
+    respuesta = generar_respuesta(intencion, contexto)
+
+    # ── Guardar en historial de sesión ────────────────────────────────────
+    historial.append({'role': 'user', 'text': mensaje_usuario})
+    historial.append({
+        'role': 'bot',
+        'text': respuesta['texto'],
+        'intencion': intencion,
+    })
+    # Mantener solo los últimos 10 mensajes (5 intercambios)
+    request.session['chat_historial'] = historial[-10:]
+    request.session.modified = True
+
+    return JsonResponse(respuesta)
