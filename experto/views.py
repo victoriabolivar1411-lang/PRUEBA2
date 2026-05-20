@@ -162,7 +162,14 @@ def lista_estudiantes(request):
             if estudiante_id:
                 reportes = reportes.filter(estudiante_id=estudiante_id)
             if fecha:
-                reportes = reportes.filter(fecha__date=fecha)
+                from django.utils.dateparse import parse_date
+                from datetime import datetime, time
+                from django.utils.timezone import make_aware
+                d = parse_date(fecha)
+                if d:
+                    start = make_aware(datetime.combine(d, time.min))
+                    end = make_aware(datetime.combine(d, time.max))
+                    reportes = reportes.filter(fecha__range=(start, end))
             if ano:
                 reportes = reportes.filter(fecha__year=ano)
 
