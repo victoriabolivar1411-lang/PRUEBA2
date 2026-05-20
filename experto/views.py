@@ -12,6 +12,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
+import json
+from .chatbot_engine import detectar_intencion, mensaje_bienvenida, generar_respuesta
 
 from .models import (
     Instructor, Estudiante, Representante,
@@ -700,184 +705,59 @@ def borrar_instructor(request, pk):
     })
 
 
-@login_required(login_url='login')
-def chatbot_query(request):
-    import json
-    if request.method != 'POST':
-        from django.http import JsonResponse
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
-    
+@csrf_exempt
+@require_POST
+def chatbot_api(request):
+    """
+    Endpoint JSON para el chatbot NLP.
+    Recibe: { "mensaje": str, "bienvenida": bool (opcional) }
+    Retorna: { "texto": str, "botones": list, "intencion": str }
+    """
     try:
         data = json.loads(request.body)
-        user_message = data.get('message', '').strip()
-    except Exception:
-        from django.http import JsonResponse
-        return JsonResponse({'error': 'Formato inválido'}, status=400)
-    
-    from django.http import JsonResponse
-    if not user_message:
-        return JsonResponse({'response': 'Por favor, escribe un mensaje.'})
-    
-    # Normalización del mensaje para búsqueda
-    import unicodedata
-    def normalizar(t):
-        return "".join(
-            c for c in unicodedata.normalize('NFD', t.lower())
-            if unicodedata.category(c) != 'Mn'
-        )
-    
-    msg_norm = normalizar(user_message)
-    response = ""
-    
-    # 1. Crisis / Rabietas / Desregulación
-    if any(k in msg_norm for k in ['crisis', 'rabieta', 'agresividad', 'enojo', 'llanto', 'grit', 'pegar', 'desregulacion', 'tranquil', 'calmar']):
-        response = """
-        <p><strong>🚨 Manejo de Crisis o Desregulación Conductual:</strong></p>
-        <p>Cuando un niño con TEA se desregula, suele deberse a sobrecarga sensorial o frustración. Sigue estos pasos clave:</p>
-        <ol>
-            <li><strong>Mantén la calma y baja la voz:</strong> Tu estado emocional regula al niño. Habla con tono suave y calmado.</li>
-            <li><strong>Crea un espacio seguro:</strong> Retira estímulos auditivos, visuales o físicos fuertes (luces intensas, ruidos).</li>
-            <li><strong>Usa lenguaje claro y directo:</strong> Evita discursos largos. Usa frases simples de 2 o 3 palabras como: <em>"Estás a salvo"</em>, <em>"Respira"</em>.</li>
-            <li><strong>No fuerces el contacto físico:</strong> Algunos niños se calman con un abrazo fuerte, pero otros sienten invasión sensorial. Observa su preferencia.</li>
-            <li><strong>Ofrece elementos de calma:</strong> Juguetes sensoriales, mordedores o audífonos canceladores de ruido si hay mucha sobreestimulación.</li>
-        </ol>
-        """
-    
-    # 2. Comunicación / Habla / Pictogramas
-    elif any(k in msg_norm for k in ['comunicacion', 'habla', 'lenguaje', 'no habla', 'expresar', 'pictograma', 'visual', 'agenda', 'entender']):
-        response = """
-        <p><strong>💬 Estrategias de Comunicación y Apoyo Visual:</strong></p>
-        <p>Las personas con TEA procesan la información visual de forma mucho más efectiva que la auditiva:</p>
-        <ul>
-            <li><strong>Usa Pictogramas y Agendas Visuales:</strong> Diseña una secuencia diaria con imágenes de las actividades (ej: <em>desayuno ➔ escuela ➔ parque ➔ dormir</em>). Esto reduce significativamente la ansiedad.</li>
-            <li><strong>Anticipación constante:</strong> Antes de cambiar de actividad, avísale visualmente: <em>"Faltan 5 minutos para guardar los juguetes"</em>.</li>
-            <li><strong>Lenguaje literal y sin metáforas:</strong> Evita modismos, sarcasmos o ironías. Di exactamente lo que quieres decir.</li>
-            <li><strong>Tiempo de procesamiento:</strong> Dale al niño entre 5 y 10 segundos para responder a una instrucción antes de repetirla.</li>
-        </ul>
-        """
-        
-    # 3. Interacción Social / Socializar / Compartir / Aislamiento
-    elif any(k in msg_norm for k in ['social', 'interaccion', 'jugar', 'aisla', 'compartir', 'amigo', 'integracion', 'socializar']):
-        response = """
-        <p><strong>🤝 Fomento de la Interacción Social:</strong></p>
-        <p>El desarrollo de habilidades sociales requiere de un modelaje explícito y estructurado:</p>
-        <ul>
-            <li><strong>Historias Sociales:</strong> Escribe pequeños cuentos ilustrados donde expliques situaciones comunes y conductas esperadas (ej. cómo saludar, cómo pedir un de juguete prestado).</li>
-            <li><strong>Juego Estructurado:</strong> Inicia con juegos de causa y efecto o de turnos simples (lanzar pelota, armar torres por turnos) para enseñar la reciprocidad social de forma amena.</li>
-            <li><strong>Respeta sus momentos de juego solitario:</strong> El juego libre individual es necesario para su autorregulación. No lo obligues a socializar continuamente si muestra fatiga social.</li>
-        </ul>
-        """
-        
-    # 4. DSM-5 / Niveles / Criterios diagnósticos
-    elif any(k in msg_norm for k in ['dsm5', 'dsm-5', 'nivel', 'criterio', 'diagnostico', 'grado', 'evalua', 'clasificacion']):
-        response = """
-        <p><strong>🏥 Criterios y Niveles del DSM-5 para TEA:</strong></p>
-        <p>El Manual DSM-5 clasifica el autismo bajo dos dominios principales:</p>
-        <ol>
-            <li><strong>Criterio A:</strong> Deficiencias persistentes en la comunicación e interacción social.</li>
-            <li><strong>Criterio B:</strong> Patrones repetitivos y restringidos de comportamiento, intereses o actividades.</li>
-        </ol>
-        <p><strong>Niveles de Gravedad según el Apoyo requerido:</strong></p>
-        <ul>
-            <li><strong>Nivel 1 (Leve):</strong> Requiere apoyo. Puede comunicarse bien pero tiene problemas para iniciar interacciones o cambiar de tarea.</li>
-            <li><strong>Nivel 2 (Moderado):</strong> Requiere apoyo sustancial. Presenta marcadas dificultades de comunicación verbal y no verbal, y gran resistencia a los cambios.</li>
-            <li><strong>Nivel 3 (Severo):</strong> Requiere apoyo muy constante/sustancial. Déficit severo en la comunicación y conductas inflexibles que interfieren gravemente con la vida diaria.</li>
-        </ul>
-        """
-        
-    # 5. Ayuda general / Funcionalidades del sistema / Instrucciones
-    elif any(k in msg_norm for k in ['ayuda', 'sistema', 'que haces', 'funciona', 'evaluar', 'registro', 'recomendacion', 'como uso', 'menu']):
-        response = """
-        <p><strong>🤖 ¡Hola! Soy tu Asistente Virtual de Apoyo TEA.</strong></p>
-        <p>Puedo ayudarte con información pedagógica y a navegar el sistema. Aquí tienes lo que puedes hacer:</p>
-        <ul>
-            <li><strong>Registrar niños y representantes:</strong> Ve a <em>Gestión > Nuevo estudiante</em> en el menú lateral.</li>
-            <li><strong>Realizar Evaluaciones:</strong> Entra al perfil de un estudiante y presiona <em>🏥 Evaluar</em>. Completarás la evaluación DSM-5 y luego la pedagógica para que el sistema experto genere recomendaciones.</li>
-            <li><strong>Consultar la Base de Conocimientos:</strong> Visita <em>Sistema Experto > Base de conocimientos</em> para ver las reglas lógicas que rigen el motor de inferencia pedagógica.</li>
-        </ul>
-        <p>Pregúntame sobre <strong>crisis</strong>, <strong>comunicación</strong>, <strong>habilidades sociales</strong> o el <strong>DSM-5</strong> para recibir pautas educativas de inmediato.</p>
-        """
+    except (json.JSONDecodeError, Exception):
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
 
-    # 6. Apoyo Emocional / Estrés del Instructor (Pausa Activa / Respiración)
-    elif any(k in msg_norm for k in ['estres', 'cansad', 'agobiad', 'triste', 'dificil', 'presion', 'agoto', 'frustrad', 'mal dia']):
-        response = """
-        <p><strong>🧘 Pausa de Apoyo e Inteligencia Emocional:</strong></p>
-        <p>Sé que guiar y apoyar a niños con TEA puede ser física y emocionalmente agotador. ¡Tu dedicación es increíblemente valiosa! ❤️</p>
-        <p>Hagamos juntos una breve pausa activa de respiración para liberar tensión:</p>
-        <ol>
-            <li>Inhala aire profundamente por la nariz durante <strong>4 segundos</strong>...</li>
-            <li>Mantén el aire por <strong>4 segundos</strong>...</li>
-            <li>Exhala lentamente por la boca durante <strong>4 segundos</strong>...</li>
-            <li>Descansa por <strong>4 segundos</strong> y repite una vez más.</li>
-        </ol>
-        <p>¿Te sientes un poco mejor? Podemos seguir charlando sobre alguna recomendación pedagógica o sobre cómo te ha ido hoy. ¿Qué te gustaría hacer?</p>
-        """
+    # ── Mensaje de bienvenida inicial ──────────────────────────────────────
+    if data.get('bienvenida'):
+        nombre = ''
+        if request.user.is_authenticated:
+            nombre = request.user.first_name or request.user.username
+        respuesta = mensaje_bienvenida(nombre)
+        # Inicializar historial de sesión
+        request.session['chat_historial'] = []
+        return JsonResponse(respuesta)
 
-    # 7. Humor / Chistes (Interacción simpática)
-    elif any(k in msg_norm for k in ['chiste', 'brom', 'gracios', 'divertid', 'reir']):
-        response = """
-        <p><strong>😄 ¡Un poco de humor para alegrar tu jornada!</strong></p>
-        <p>Aquí tienes un chiste pedagógico y positivo:</p>
-        <blockquote style="border-left: 3px solid var(--c-accent); padding-left: 10px; margin: 10px 0; color: var(--c-accent2);">
-            ¿Qué le dice una pieza de rompecabezas a otra?<br>
-            <em>— ¡Hacemos una pareja perfecta! 🧩</em>
-        </blockquote>
-        <p>O este otro:</p>
-        <blockquote style="border-left: 3px solid var(--c-teal); padding-left: 10px; margin: 10px 0; color: var(--c-teal);">
-            ¿Por qué los pájaros vuelan al sur en invierno?<br>
-            <em>— ¡Porque caminar les tomaría demasiado tiempo! 🐦</em>
-        </blockquote>
-        <p>Reír un poco libera la tensión del aula. ¿De qué más te gustaría conversar?</p>
-        """
+    mensaje_usuario = data.get('mensaje', '').strip()
+    if not mensaje_usuario:
+        return JsonResponse({'error': 'Mensaje vacío'}, status=400)
 
-    # 8. Motivación / Frases Inspiradoras
-    elif any(k in msg_norm for k in ['motivacion', 'frase', 'inspiracion', 'aliento', 'quote', 'reflexion', 'consejo']):
-        response = """
-        <p><strong>✨ Frase Inspiradora para hoy:</strong></p>
-        <blockquote style="border-left: 4px solid var(--c-green); padding-left: 12px; margin: 12px 0; font-style: italic; color: var(--c-text);">
-            "El autismo no es una enfermedad que deba curarse, sino una forma diferente de comunicarse y experimentar el mundo que merece ser comprendida."
-        </blockquote>
-        <p>Y recuerda siempre esta hermosa pauta de Temple Grandin:</p>
-        <blockquote style="border-left: 4px solid var(--c-accent); padding-left: 12px; margin: 12px 0; font-style: italic; color: var(--c-text);">
-            "El mundo necesita todo tipo de mentes."
-        </blockquote>
-        <p>¡Gracias por ser ese puente de aprendizaje y comprensión para tus alumnos! ¿Quieres ver alguna estrategia o tienes alguna otra consulta?</p>
-        """
+    # ── Recuperar historial de sesión (últimos 5 intercambios) ────────────
+    historial = request.session.get('chat_historial', [])
 
-    # 9. Compartir el Día / Progreso de Estudiantes
-    elif any(k in msg_norm for k in ['jornada', 'clase', 'dia de hoy', 'mis estudiantes', 'alumno', 'avance', 'logro', 'progreso']):
-        response = """
-        <p><strong>❤️ ¡Gracias por compartirlo conmigo!</strong></p>
-        <p>Cada pequeño avance en niños con TEA (como mantener el contacto visual por un segundo más, usar un nuevo pictograma para pedir algo, o calmar una rabieta de manera autónoma) es un paso gigante hacia su independencia.</p>
-        <p>Tu paciencia y constancia marcan una diferencia real en sus vidas. ¿Hay algún tema o recomendación específica sobre el que te gustaría conversar ahora?</p>
-        """
+    # ── Detectar intención ────────────────────────────────────────────────
+    intencion = detectar_intencion(mensaje_usuario, historial)
 
-    # 10. Saludo e Interacción General
-    elif any(k in msg_norm for k in ['hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'saludos', 'hey', 'hello', 'como estas', 'que tal', 'como te va', 'todo bien']):
-        response = """
-        <p>👋 ¡Hola! Qué alegría saludarte. Estoy de maravilla y listo para apoyarte hoy. 😊</p>
-        <p>Como tu asistente virtual de apoyo TEA, puedo guiarte con estrategias pedagógicas, responder dudas sobre el DSM-5, o simplemente charlar e intercambiar una frase motivadora si has tenido una jornada agotadora.</p>
-        <p>Cuéntame, ¿cómo ha estado tu día con tus estudiantes hoy?</p>
-        """
-        
-    # 11. Agradecimiento / Despedida
-    elif any(k in msg_norm for k in ['gracias', 'gracia', 'adios', 'chao', 'despedida', 'ok', 'excelente', 'buenisimo']):
-        response = """
-        <p>¡De nada! Es un verdadero placer ser tu compañero de apoyo pedagógico. 🧩</p>
-        <p>Si necesitas pautas sobre autismo, una pausa activa o solo una palabra de aliento, aquí estaré. ¡Que tengas un excelente día!</p>
-        """
+    # ── Contexto del usuario autenticado y mensaje original ───────────────
+    contexto = {
+        'autenticado': request.user.is_authenticated,
+        'mensaje': mensaje_usuario
+    }
+    if request.user.is_authenticated:
+        contexto['nombre'] = request.user.first_name or request.user.username
 
-    # 12. Fallback general inteligente
-    else:
-        response = f"""
-        <p>Interesante pregunta sobre <em>"{user_message}"</em>.</p>
-        <p>Como sugerencia general para el aula o el hogar:</p>
-        <ul>
-            <li>Establece rutinas claras utilizando apoyos visuales (pictogramas).</li>
-            <li>Identifica qué estímulos (ruidos, luces, texturas) pueden estar sobrecargando sensorialmente al niño.</li>
-            <li>Refuerza positivamente cada pequeño logro que alcance para fomentar su motivación e independencia.</li>
-        </ul>
-        <p>Si deseas detalles específicos, prueba preguntándome sobre: <strong>crisis</strong>, <strong>pictogramas</strong>, <strong>habilidades sociales</strong> o <strong>DSM-5</strong>. También puedes pedirme un <strong>chiste</strong>, una <strong>frase de motivación</strong> o contarme cómo estuvo tu <strong>día</strong>. 😊</p>
-        """
-        
-    return JsonResponse({'response': response})
+    # ── Generar respuesta ─────────────────────────────────────────────────
+    respuesta = generar_respuesta(intencion, contexto)
+
+    # ── Guardar en historial de sesión ────────────────────────────────────
+    historial.append({'role': 'user', 'text': mensaje_usuario})
+    historial.append({
+        'role': 'bot',
+        'text': respuesta['texto'],
+        'intencion': intencion,
+    })
+    # Mantener solo los últimos 10 mensajes (5 intercambios)
+    request.session['chat_historial'] = historial[-10:]
+    request.session.modified = True
+
+    return JsonResponse(respuesta)
