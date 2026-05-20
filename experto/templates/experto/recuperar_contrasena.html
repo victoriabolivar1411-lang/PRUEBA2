@@ -3,7 +3,7 @@
 {% block content %}
 <style>
   .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
-  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 20px; padding: 2.75rem 2.25rem; width: 100%; max-width: 430px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+  .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 20px; padding: 2.75rem 2.25rem; width: 100%; max-width: 450px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
   .auth-logo { text-align: center; margin-bottom: 2rem; }
   .auth-icon-wrap { display:inline-flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:18px; background:linear-gradient(135deg,#0891b2,var(--c-teal)); font-size:2rem; box-shadow:0 6px 20px rgba(8,145,178,.4); margin-bottom:.9rem; }
   .auth-title { font-size: 1.45rem; font-weight: 700; color: var(--c-white); }
@@ -20,41 +20,107 @@
   .auth-footer { text-align:center; font-size:.85rem; color:var(--c-muted); margin-top:1.1rem; }
   .auth-footer a { color:var(--c-accent2); font-weight:500; }
   .auth-divider { border:none; border-top:1px solid var(--c-border); margin:1.2rem 0; }
+  .questions-container { display: flex; flex-direction: column; gap: 1.25rem; }
+  .question-block { background: var(--c-surface); border: 1px solid var(--c-border); padding: 1.25rem; border-radius: 12px; }
+  .question-title { font-size: 0.9rem; font-weight: 600; color: var(--c-white); margin-bottom: 0.75rem; }
 </style>
 
 <div class="auth-page">
   <div class="auth-card">
 
+    {% if step == 'identify' %}
     <div class="auth-logo">
-      <div class="auth-icon-wrap">📧</div>
+      <div class="auth-icon-wrap">🛡️</div>
       <div class="auth-title">Recuperar Contraseña</div>
-      <div class="auth-subtitle">Ingresa tu correo electrónico o teléfono registrado y te enviaremos un código de 6 dígitos para restablecer tu contraseña.</div>
+      <div class="auth-subtitle">Ingresa tu nombre de usuario o cédula registrada para comenzar con las preguntas de seguridad.</div>
     </div>
 
     <form method="post" novalidate>
       {% csrf_token %}
 
       <div style="margin-bottom:1rem">
-        <label class="auth-label" for="{{ form.credencial.id_for_label }}">Correo electrónico o Teléfono</label>
+        <label class="auth-label" for="{{ form.usuario_o_cedula.id_for_label }}">Nombre de usuario o Cédula</label>
         <div class="input-icon-wrap">
-          <span class="input-icon">🔑</span>
+          <span class="input-icon">👤</span>
           <input type="text"
-            name="{{ form.credencial.html_name }}"
-            id="{{ form.credencial.id_for_label }}"
+            name="{{ form.usuario_o_cedula.html_name }}"
+            id="{{ form.usuario_o_cedula.id_for_label }}"
             class="auth-input"
-            placeholder="tu@correo.com o tu teléfono"
-            value="{{ form.credencial.value|default:'' }}"
+            placeholder="Tu nombre de usuario o tu cédula"
+            value="{{ form.usuario_o_cedula.value|default:'' }}"
             autocomplete="username">
         </div>
-        {% if form.credencial.errors %}<ul class="errorlist">{% for e in form.credencial.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% if form.usuario_o_cedula.errors %}<ul class="errorlist">{% for e in form.usuario_o_cedula.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
       {% if form.non_field_errors %}
       <div class="alert alert-error" style="margin-top:.75rem">❌ {{ form.non_field_errors.0 }}</div>
       {% endif %}
 
-      <button type="submit" class="btn-send">📨 Enviar código de recuperación</button>
+      <button type="submit" class="btn-send">Siguiente Paso ➡️</button>
     </form>
+
+    {% else %}
+    <div class="auth-logo">
+      <div class="auth-icon-wrap">🔒</div>
+      <div class="auth-title">Preguntas de Seguridad</div>
+      <div class="auth-subtitle">Hola <strong>{{ instructor.usuario.first_name }}</strong>, por favor responde correctamente a las preguntas de seguridad configuradas en tu perfil.</div>
+    </div>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div class="questions-container">
+        <!-- Pregunta 1 -->
+        <div class="question-block">
+          <div class="question-title">❓ ¿Cuál es el nombre de tu primera mascota?</div>
+          <div class="input-icon-wrap">
+            <span class="input-icon">🐾</span>
+            <input type="text"
+              name="respuesta_1"
+              required
+              class="auth-input"
+              style="padding-left:42px"
+              placeholder="Tu respuesta">
+          </div>
+        </div>
+
+        <!-- Pregunta 2 -->
+        <div class="question-block">
+          <div class="question-title">❓ ¿En qué ciudad naciste?</div>
+          <div class="input-icon-wrap">
+            <span class="input-icon">🏙️</span>
+            <input type="text"
+              name="respuesta_2"
+              required
+              class="auth-input"
+              style="padding-left:42px"
+              placeholder="Tu respuesta">
+          </div>
+        </div>
+
+        <!-- Pregunta 3 -->
+        <div class="question-block">
+          <div class="question-title">❓ ¿Cuál es tu comida favorita?</div>
+          <div class="input-icon-wrap">
+            <span class="input-icon">🍕</span>
+            <input type="text"
+              name="respuesta_3"
+              required
+              class="auth-input"
+              style="padding-left:42px"
+              placeholder="Tu respuesta">
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-send">🔑 Verificar respuestas y obtener código</button>
+      
+      <div style="text-align: center; margin-top: 1.5rem;">
+        <a href="?reiniciar=1" style="font-size: 0.85rem; color: var(--c-muted); text-decoration: underline;">⬅️ Cambiar de usuario</a>
+      </div>
+    </form>
+    {% endif %}
 
     <hr class="auth-divider">
     <div class="auth-footer">

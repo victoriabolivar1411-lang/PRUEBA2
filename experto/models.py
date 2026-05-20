@@ -95,6 +95,15 @@ class Instructor(models.Model):
         null=True,
         verbose_name='Foto de perfil',
     )
+    respuesta_1 = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name='Respuesta a pregunta 1: Mascota'
+    )
+    respuesta_2 = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name='Respuesta a pregunta 2: Ciudad natal'
+    )
+    respuesta_3 = models.CharField(
+        max_length=200, blank=True, null=True, verbose_name='Respuesta a pregunta 3: Comida favorita'
+    )
     reset_code = models.CharField(
         max_length=6, blank=True, null=True, verbose_name='Código de recuperación'
     )

@@ -79,6 +79,27 @@
 
       <hr class="divider">
 
+      <h3 style="color: var(--c-white); font-size: 1.15rem; margin: 1.5rem 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">🛡️ Preguntas de Seguridad</h3>
+      <p style="font-size: 0.82rem; color: var(--c-muted); margin-bottom: 1.25rem;">Por favor, responde estas 3 preguntas. Se usarán para recuperar tu contraseña si la olvidas.</p>
+
+      <div class="form-group">
+        <label class="form-label">¿Cuál es el nombre de tu primera mascota? *</label>
+        {{ form.respuesta_1 }}
+        {% if form.respuesta_1.errors %}<ul class="errorlist">{% for e in form.respuesta_1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿En qué ciudad naciste? *</label>
+        {{ form.respuesta_2 }}
+        {% if form.respuesta_2.errors %}<ul class="errorlist">{% for e in form.respuesta_2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">¿Cuál es tu comida favorita? *</label>
+        {{ form.respuesta_3 }}
+        {% if form.respuesta_3.errors %}<ul class="errorlist">{% for e in form.respuesta_3.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+
+      <hr class="divider">
+
       <div class="form-group">
         <label class="form-label">Correo electrónico *</label>
         {{ form.email }}

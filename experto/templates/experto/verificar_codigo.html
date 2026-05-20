@@ -23,6 +23,67 @@
   .auth-divider { border:none; border-top:1px solid var(--c-border); margin:1.2rem 0; }
   .code-hint { background:rgba(74,222,128,.08); border:1px solid rgba(74,222,128,.2); border-radius:10px; padding:.75rem 1rem; font-size:.83rem; color:var(--c-green); margin-bottom:1.25rem; text-align:center; }
   .section-sep { font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:var(--c-muted); margin:1.25rem 0 .75rem; border-top:1px solid var(--c-border); padding-top:1rem; }
+  
+  /* Premium reset-code display container */
+  .reset-code-display {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(20, 184, 166, 0.15));
+    border: 1.5px dashed rgba(34, 197, 94, 0.4);
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.1), inset 0 0 15px rgba(20, 184, 166, 0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .reset-code-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--c-muted);
+    margin-bottom: 0.4rem;
+  }
+  .reset-code-value {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    color: #4ade80;
+    text-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+    font-family: 'Courier New', Courier, monospace;
+    display: inline-block;
+    padding-left: 0.25em;
+    user-select: all;
+  }
+  .reset-code-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+    padding: 5px 14px;
+    font-size: 0.75rem;
+    border-radius: 20px;
+    cursor: pointer;
+    margin-top: 0.6rem;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+  }
+  .reset-code-copy-btn:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #4ade80;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 222, 128, 0.2);
+  }
+  .reset-code-copy-btn:active {
+    transform: translateY(1px);
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.85; }
+    100% { transform: scale(1.05); opacity: 1; text-shadow: 0 0 8px rgba(249, 115, 22, 0.6); }
+  }
 </style>
 
 <div class="auth-page">
@@ -30,11 +91,24 @@
 
     <div class="auth-logo">
       <div class="auth-icon-wrap">🔑</div>
-      <div class="auth-title">Verificar Código</div>
-      <div class="auth-subtitle">Ingresa el código de 6 dígitos que enviamos a tu correo y establece tu nueva contraseña.</div>
+      <div class="auth-title">Restablecer Contraseña</div>
+      <div class="auth-subtitle">Usa el código generado a continuación e ingresa tu nueva contraseña para recuperar el acceso.</div>
     </div>
 
-    <div class="code-hint">⏱️ El código expira en <strong>10 minutos</strong> desde que fue enviado.</div>
+    <!-- On-screen Display of the Reset Code -->
+    {% if reset_code %}
+    <div class="reset-code-display">
+      <div class="reset-code-title">🔑 Tu Código de Recuperación</div>
+      <div class="reset-code-value" id="reset-code-text">{{ reset_code }}</div>
+      <div>
+        <button type="button" class="reset-code-copy-btn" id="btn-copy-code">
+          <span id="copy-icon">📋</span> <span id="copy-text">Copiar código</span>
+        </button>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="code-hint">⏱️ El código expira en <strong id="countdown-timer">--:--</strong>.</div>
 
     <form method="post" novalidate>
       {% csrf_token %}
@@ -95,22 +169,89 @@
       <button type="submit" class="btn-reset">✅ Restablecer contraseña</button>
     </form>
 
-    {% if instructor_telefono and reset_code %}
-    <div style="margin-top: 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-      <span style="font-size: 0.8rem; color: var(--c-muted);">¿Quieres recibir la notificación automática en tu teléfono?</span>
-      <a href="?send_whatsapp=1" 
-         style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 13px 20px; background-color: #16a34a; color: white; border: none; border-radius: 12px; cursor: pointer; text-decoration: none; font-size: 0.95rem; font-weight: 600; font-family: 'Inter', sans-serif; box-shadow: 0 4px 18px rgba(22,163,74,0.25); transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; box-sizing: border-box;">
-        💬 Enviar notificación a mi WhatsApp
-      </a>
-    </div>
-    {% endif %}
-
     <hr class="auth-divider">
     <div class="auth-footer">
-      ¿No recibiste el código?
-      <a href="{% url 'recuperar_contrasena' %}">Solicitar nuevo código</a>
+      ¿Problemas con el código?
+      <a href="{% url 'recuperar_contrasena' %}?reiniciar=1">Iniciar proceso de nuevo</a>
     </div>
 
   </div>
 </div>
+
+<script>
+  // Copy to clipboard utility
+  document.getElementById('btn-copy-code')?.addEventListener('click', function() {
+    const codeText = document.getElementById('reset-code-text').textContent;
+    navigator.clipboard.writeText(codeText).then(() => {
+      const copyTextSpan = document.getElementById('copy-text');
+      const copyIconSpan = document.getElementById('copy-icon');
+      if (copyTextSpan && copyIconSpan) {
+        copyTextSpan.textContent = '¡Copiado!';
+        copyIconSpan.textContent = '✨';
+        setTimeout(() => {
+          copyTextSpan.textContent = 'Copiar código';
+          copyIconSpan.textContent = '📋';
+        }, 2000);
+      }
+    }).catch(err => {
+      console.error('Error al copiar el código: ', err);
+    });
+  });
+
+  // Countdown timer utility
+  (function() {
+    const remainingSeconds = parseInt("{{ remaining_seconds|default:300 }}");
+    let timeLeft = remainingSeconds;
+    const timerDisplay = document.getElementById('countdown-timer');
+
+    function updateTimer() {
+      if (timeLeft <= 0) {
+        clearInterval(countdownInterval);
+        if (timerDisplay) {
+          timerDisplay.textContent = "00:00";
+          timerDisplay.style.color = "#ef4444";
+        }
+        
+        // Disable form inputs
+        const card = document.querySelector('.auth-card');
+        const inputs = card.querySelectorAll('input, button');
+        inputs.forEach(el => el.disabled = true);
+        
+        // Show automatic warning block
+        const hintDiv = document.querySelector('.code-hint');
+        if (hintDiv) {
+          hintDiv.className = 'code-hint';
+          hintDiv.style.background = 'rgba(239, 68, 68, 0.08)';
+          hintDiv.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+          hintDiv.style.color = '#ef4444';
+          hintDiv.innerHTML = '⏱️ <strong>El código ha expirado.</strong> Generando un nuevo código automáticamente...';
+        }
+        
+        // Redirect to automatic regeneration
+        setTimeout(() => {
+          window.location.href = "?regenerar=1";
+        }, 2500);
+        return;
+      }
+
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      if (timerDisplay) {
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Urgent state styling under 60 seconds
+        if (timeLeft <= 60) {
+          timerDisplay.style.color = "#f97316";
+          timerDisplay.style.animation = "pulse 1s infinite alternate";
+          timerDisplay.style.display = "inline-block";
+        }
+      }
+
+      timeLeft--;
+    }
+
+    updateTimer();
+    const countdownInterval = setInterval(updateTimer, 1000);
+  })();
+</script>
 {% endblock %}

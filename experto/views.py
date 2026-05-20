@@ -417,6 +417,9 @@ def editar_perfil(request):
             instructor.estado = form.cleaned_data['estado']
             instructor.municipio = form.cleaned_data['municipio']
             instructor.direccion = form.cleaned_data['direccion']
+            instructor.respuesta_1 = form.cleaned_data['respuesta_1'].strip()
+            instructor.respuesta_2 = form.cleaned_data['respuesta_2'].strip()
+            instructor.respuesta_3 = form.cleaned_data['respuesta_3'].strip()
             
             if form.cleaned_data['eliminar_foto']:
                 instructor.foto_perfil.delete()
@@ -439,6 +442,9 @@ def editar_perfil(request):
             'estado': instructor.estado,
             'municipio': instructor.municipio,
             'direccion': instructor.direccion,
+            'respuesta_1': instructor.respuesta_1,
+            'respuesta_2': instructor.respuesta_2,
+            'respuesta_3': instructor.respuesta_3,
         })
 
     return render(request, 'experto/editar_perfil.html', {
@@ -460,134 +466,130 @@ from django.conf import settings as django_settings
 
 def recuperar_contrasena(request):
     """
-    Paso 1: El usuario ingresa su correo o su teléfono.
-    Se genera un código de 6 dígitos, se guarda en Instructor y se envía por correo/SMS.
+    Recuperación de contraseña en 2 pasos por Preguntas de Seguridad.
+    Paso 1: Identificar al usuario con su Nombre de usuario o Cédula.
+    Paso 2: Responder 3 preguntas de seguridad.
     """
-    form = RecuperarContrasenaForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        credencial = form.cleaned_data['credencial'].strip()
-        from django.contrib.auth.models import User
-        from .models import Instructor
-        
-        user = None
-        instructor = None
-        
-        # 1. Intentar buscar por correo electrónico
-        if '@' in credencial:
+    from django.contrib.auth.models import User
+    from .models import Instructor
+
+    step = request.session.get('recovery_step', 'identify')
+    user_id = request.session.get('recovery_user_id')
+    
+    # Si por alguna razón estamos en paso de preguntas pero no hay id de usuario en sesión
+    if step == 'questions' and not user_id:
+        step = 'identify'
+        request.session['recovery_step'] = 'identify'
+
+    form_identify = None
+    instructor = None
+
+    if step == 'identify':
+        form_identify = RecuperarContrasenaForm(request.POST or None)
+        if request.method == 'POST' and form_identify.is_valid():
+            usuario_o_cedula = form_identify.cleaned_data['usuario_o_cedula'].strip()
+            user = None
+            
+            # Buscar por username
             try:
-                user = User.objects.get(email=credencial)
-                instructor = user.instructor
-            except (User.DoesNotExist, Exception):
-                pass
-        
-        # 2. Si no se encuentra, intentar buscar por teléfono del Instructor
-        if not user:
-            digits_only = ''.join(filter(str.isdigit, credencial))
-            if digits_only:
-                for inst in Instructor.objects.all():
-                    inst_phone_digits = ''.join(filter(str.isdigit, inst.telefono or ''))
-                    if inst_phone_digits and inst_phone_digits == digits_only:
-                        instructor = inst
-                        user = inst.usuario
-                        break
-                        
-        if not user or not instructor:
-            # Mensaje genérico por seguridad (no revelar si la cuenta existe)
-            messages.success(
-                request,
-                'Si los datos ingresados corresponden a una cuenta, recibirás tu código de recuperación en breve.'
-            )
+                user = User.objects.get(username=usuario_o_cedula)
+            except User.DoesNotExist:
+                # Intentar buscar por cédula
+                try:
+                    instructor_obj = Instructor.objects.get(cedula=usuario_o_cedula)
+                    user = instructor_obj.usuario
+                except Instructor.DoesNotExist:
+                    pass
+            
+            if user and hasattr(user, 'instructor'):
+                request.session['recovery_user_id'] = user.pk
+                request.session['recovery_step'] = 'questions'
+                messages.success(request, 'Usuario identificado. Responde las siguientes preguntas de seguridad.')
+                return redirect('recuperar_contrasena')
+            else:
+                form_identify.add_error('usuario_o_cedula', 'El usuario o cédula ingresado no está registrado en el sistema.')
+
+    elif step == 'questions':
+        try:
+            user = User.objects.get(pk=user_id)
+            instructor = user.instructor
+        except Exception:
+            messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
+            request.session['recovery_step'] = 'identify'
             return redirect('recuperar_contrasena')
 
-        # Generar código de 6 dígitos
-        codigo = str(random.randint(100000, 999999))
-        instructor.reset_code = codigo
-        instructor.reset_code_expires = timezone.now() + timedelta(minutes=10)
-        instructor.save()
-
-        # Enviar correo de forma segura si tiene correo
-        email_enviado = False
-        if user.email:
-            try:
-                send_mail(
-                    subject='[TEA] Código de recuperación de contraseña',
-                    message=(
-                        f'Hola {user.first_name or user.username},\n\n'
-                        f'Tu código de recuperación es: {codigo}\n\n'
-                        f'Este código expira en 10 minutos.\n\n'
-                        f'Si no solicitaste este cambio, ignora este mensaje.'
-                    ),
-                    from_email=django_settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                email_enviado = True
-            except Exception as e:
-                if django_settings.DEBUG:
-                    messages.warning(
-                        request,
-                        f'No se pudo enviar el correo real (SMTP). Error: {e}'
-                    )
-
-        # Enviar SMS de forma segura si tiene teléfono registrado y Twilio está configurado
-        sms_enviado = False
-        if instructor.telefono and getattr(django_settings, 'TWILIO_ACCOUNT_SID', '') and getattr(django_settings, 'TWILIO_AUTH_TOKEN', ''):
-            from .utils import enviar_codigo_sms
-            sms_enviado, sms_msg = enviar_codigo_sms(instructor.telefono, codigo)
-            if not sms_enviado and django_settings.DEBUG:
-                messages.warning(
-                    request,
-                    f'No se pudo enviar el SMS real (Twilio). Detalle: {sms_msg}'
-                )
-
-        # Enviar WhatsApp de forma segura si tiene teléfono registrado y está configurado
-        whatsapp_enviado = False
-        whatsapp_configurado = (
-            (getattr(django_settings, 'ULTRAMSG_INSTANCE_ID', '') and getattr(django_settings, 'ULTRAMSG_TOKEN', '')) or
-            (getattr(django_settings, 'TWILIO_ACCOUNT_SID', '') and getattr(django_settings, 'TWILIO_AUTH_TOKEN', '') and getattr(django_settings, 'TWILIO_WHATSAPP_FROM', ''))
-        )
-        if instructor.telefono and whatsapp_configurado:
-            from .utils import enviar_codigo_whatsapp
-            whatsapp_enviado, wa_msg = enviar_codigo_whatsapp(instructor.telefono, codigo)
-            if not whatsapp_enviado and django_settings.DEBUG:
-                messages.warning(
-                    request,
-                    f'No se pudo enviar el WhatsApp real. Detalle: {wa_msg}'
-                )
-
-        # Guardar user id en sesión para el paso 2
-        request.session['reset_user_id'] = user.pk
-        
-        if email_enviado or sms_enviado or whatsapp_enviado:
-            messages.success(
-                request,
-                'Código de recuperación enviado con éxito a tu cuenta.'
-            )
-        else:
-            messages.success(
-                request,
-                'Si los datos ingresados corresponden a una cuenta, recibirás tu código de recuperación en breve.'
-            )
-        
-        # En modo desarrollo, mostrar el código en la pantalla para pruebas fáciles
-        if django_settings.DEBUG:
-            messages.info(
-                request,
-                f'[DESARROLLO] El código de recuperación generado es: {codigo} (Solo visible porque DEBUG=True)'
-            )
+        if request.method == 'POST':
+            r1 = request.POST.get('respuesta_1', '').strip()
+            r2 = request.POST.get('respuesta_2', '').strip()
+            r3 = request.POST.get('respuesta_3', '').strip()
             
-        return redirect('verificar_codigo')
+            # Helper to normalize strings for comparison (lowercase, spaces, accents)
+            import unicodedata
+            def normalizar(text):
+                if not text:
+                    return ""
+                # Normalize NFD to remove accents, lower case, strip
+                text_norm = "".join(
+                    c for c in unicodedata.normalize('NFD', text.lower())
+                    if unicodedata.category(c) != 'Mn'
+                )
+                return text_norm.replace(" ", "")
 
-    return render(request, 'experto/recuperar_contrasena.html', {'form': form})
+            ans1_db = normalizar(instructor.respuesta_1)
+            ans2_db = normalizar(instructor.respuesta_2)
+            ans3_db = normalizar(instructor.respuesta_3)
+
+            ans1_input = normalizar(r1)
+            ans2_input = normalizar(r2)
+            ans3_input = normalizar(r3)
+
+            # Verificar si el instructor no tiene configuradas las respuestas
+            if not ans1_db or not ans2_db or not ans3_db:
+                messages.error(request, 'Tu cuenta no tiene configuradas las preguntas de seguridad. Por favor, contacta al soporte técnico o administrador del sistema.')
+                return redirect('recuperar_contrasena')
+
+            if ans1_db == ans1_input and ans2_db == ans2_input and ans3_db == ans3_input:
+                # Generar código de 6 dígitos
+                codigo = str(random.randint(100000, 999999))
+                instructor.reset_code = codigo
+                instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
+                instructor.save()
+
+                # Limpiar datos de identificación de la sesión y guardar reset_user_id
+                request.session['reset_user_id'] = user.pk
+                if 'recovery_user_id' in request.session:
+                    del request.session['recovery_user_id']
+                if 'recovery_step' in request.session:
+                    del request.session['recovery_step']
+
+                messages.success(request, '¡Preguntas respondidas correctamente! El código de recuperación se muestra a continuación.')
+                return redirect('verificar_codigo')
+            else:
+                messages.error(request, 'Una o más respuestas son incorrectas. Inténtalo de nuevo.')
+
+    # Si se pide reiniciar el flujo
+    reset_flow = request.GET.get('reiniciar')
+    if reset_flow == '1':
+        if 'recovery_user_id' in request.session:
+            del request.session['recovery_user_id']
+        if 'recovery_step' in request.session:
+            del request.session['recovery_step']
+        return redirect('recuperar_contrasena')
+
+    return render(request, 'experto/recuperar_contrasena.html', {
+        'step': step,
+        'form': form_identify,
+        'instructor': instructor
+    })
 
 
 def verificar_codigo(request):
     """
-    Paso 2: El usuario ingresa el código y su nueva contraseña.
+    Paso 3: El sistema muestra el código generado y el usuario ingresa dicho código y su nueva contraseña.
     """
     user_id = request.session.get('reset_user_id')
     if not user_id:
-        messages.error(request, 'Sesión expirada. Solicita un nuevo código.')
+        messages.error(request, 'Sesión expirada. Por favor, inicia el proceso de recuperación de nuevo.')
         return redirect('recuperar_contrasena')
 
     from django.contrib.auth.models import User
@@ -598,29 +600,14 @@ def verificar_codigo(request):
         messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
         return redirect('recuperar_contrasena')
 
-    # Envío automatizado de WhatsApp desde el servidor cuando se hace clic en el botón
-    send_whatsapp = request.GET.get('send_whatsapp')
-    if send_whatsapp == '1':
-        if instructor.telefono:
-            from .utils import enviar_codigo_whatsapp
-            exito, msg = enviar_codigo_whatsapp(instructor.telefono, instructor.reset_code)
-            if exito:
-                messages.success(request, 'Se ha enviado la notificación de WhatsApp con el código.')
-            elif django_settings.DEBUG:
-                # En desarrollo, si no está configurado, simular el envío para pruebas locales sin errores
-                messages.success(
-                    request,
-                    f'[SIMULACIÓN - DESARROLLO] Se envió la notificación de WhatsApp al teléfono {instructor.telefono} de forma simulada. '
-                    f'Mensaje enviado: "Tu código de recuperación es {instructor.reset_code}"'
-                )
-            else:
-                messages.error(
-                    request,
-                    f'No se pudo enviar la notificación automática. Detalle: {msg}. '
-                    f'Por favor, asegúrate de configurar tu archivo .env con las credenciales de UltraMsg o Twilio WhatsApp.'
-                )
-        else:
-            messages.error(request, 'El instructor no tiene un teléfono registrado.')
+    # Regenerar código automáticamente cuando se solicite
+    if request.GET.get('regenerar') == '1':
+        import random
+        codigo = str(random.randint(100000, 999999))
+        instructor.reset_code = codigo
+        instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
+        instructor.save()
+        messages.info(request, 'Código de recuperación renovado automáticamente.')
         return redirect('verificar_codigo')
 
     form = VerificarCodigoForm(request.POST or None)
@@ -631,9 +618,9 @@ def verificar_codigo(request):
         # Validar código y expiración
         if instructor.reset_code != codigo_ingresado:
             form.add_error('codigo', 'El código ingresado no es correcto.')
-        elif instructor.reset_code_expires < timezone.now():
-            messages.error(request, 'El código ha expirado. Solicita uno nuevo.')
-            return redirect('recuperar_contrasena')
+        elif instructor.reset_code_expires and instructor.reset_code_expires < timezone.now():
+            messages.error(request, 'El código ha expirado. Generando uno nuevo.')
+            return redirect('verificar_codigo')
         else:
             # Actualizar contraseña y limpiar código
             user.set_password(nueva)
@@ -648,19 +635,16 @@ def verificar_codigo(request):
             )
             return redirect('login')
 
-    # Formatear el teléfono para el enlace de WhatsApp (formato internacional sin caracteres especiales)
-    tel_limpio = ''.join(filter(str.isdigit, instructor.telefono or ''))
-    if tel_limpio:
-        if not tel_limpio.startswith('58') and (tel_limpio.startswith('04') or tel_limpio.startswith('4')):
-            if tel_limpio.startswith('0'):
-                tel_limpio = '58' + tel_limpio[1:]
-            else:
-                tel_limpio = '58' + tel_limpio
+    # Calcular segundos restantes
+    remaining_seconds = 0
+    if instructor.reset_code_expires:
+        delta = instructor.reset_code_expires - timezone.now()
+        remaining_seconds = max(0, int(delta.total_seconds()))
 
     return render(request, 'experto/verificar_codigo.html', {
         'form': form,
-        'instructor_telefono': tel_limpio,
         'reset_code': instructor.reset_code,
+        'remaining_seconds': remaining_seconds,
     })
 
 

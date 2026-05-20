@@ -106,6 +106,27 @@
       {{ form.direccion }}
     </div>
 
+    <hr class="divider" style="margin: 2rem 0;">
+
+    <h3 style="color: var(--c-white); font-size: 1.15rem; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">🛡️ Preguntas de Seguridad</h3>
+    <p style="font-size: 0.82rem; color: var(--c-muted); margin-bottom: 1.25rem;">Configura tus respuestas de seguridad para poder recuperar tu contraseña si la olvidas.</p>
+
+    <div class="form-group">
+      <label class="form-label">¿Cuál es el nombre de tu primera mascota? *</label>
+      {{ form.respuesta_1 }}
+      {% if form.respuesta_1.errors %}<ul class="errorlist">{% for e in form.respuesta_1.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label">¿En qué ciudad naciste? *</label>
+      {{ form.respuesta_2 }}
+      {% if form.respuesta_2.errors %}<ul class="errorlist">{% for e in form.respuesta_2.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+    <div class="form-group">
+      <label class="form-label">¿Cuál es tu comida favorita? *</label>
+      {{ form.respuesta_3 }}
+      {% if form.respuesta_3.errors %}<ul class="errorlist">{% for e in form.respuesta_3.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+    </div>
+
     {% if form.non_field_errors %}
     <div class="alert alert-error">❌ {{ form.non_field_errors.0 }}</div>
     {% endif %}

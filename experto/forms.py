@@ -52,6 +52,9 @@ class RegistroInstructorForm(UserCreationForm):
     estado     = forms.CharField(label='Estado', required=True, widget=forms.Select(attrs={'class': 'form-input estado-select'}))
     municipio  = forms.CharField(label='Municipio / Ciudad', required=True, widget=forms.Select(attrs={'class': 'form-input municipio-select'}))
     direccion  = forms.CharField(label='Dirección detallada', required=True, widget=forms.Textarea(attrs={'rows': 3}))
+    respuesta_1 = forms.CharField(max_length=200, label='¿Cuál es el nombre de tu primera mascota? *', required=True, widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 1'}))
+    respuesta_2 = forms.CharField(max_length=200, label='¿En qué ciudad naciste? *', required=True, widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 2'}))
+    respuesta_3 = forms.CharField(max_length=200, label='¿Cuál es tu comida favorita? *', required=True, widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 3'}))
 
     class Meta:
         model  = User
@@ -98,6 +101,9 @@ class RegistroInstructorForm(UserCreationForm):
                 municipio=self.cleaned_data['municipio'],
                 direccion=self.cleaned_data['direccion'],
                 telefono=self.cleaned_data.get('telefono', ''),
+                respuesta_1=self.cleaned_data['respuesta_1'].strip(),
+                respuesta_2=self.cleaned_data['respuesta_2'].strip(),
+                respuesta_3=self.cleaned_data['respuesta_3'].strip(),
             )
         return user
 
@@ -296,6 +302,18 @@ class EditarPerfilInstructorForm(forms.Form):
         label='Foto de perfil', required=False,
         widget=forms.FileInput(),
     )
+    respuesta_1 = forms.CharField(
+        max_length=200, label='¿Cuál es el nombre de tu primera mascota? *', required=True,
+        widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 1'}),
+    )
+    respuesta_2 = forms.CharField(
+        max_length=200, label='¿En qué ciudad naciste? *', required=True,
+        widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 2'}),
+    )
+    respuesta_3 = forms.CharField(
+        max_length=200, label='¿Cuál es tu comida favorita? *', required=True,
+        widget=forms.TextInput(attrs={'placeholder': 'Respuesta a la pregunta 3'}),
+    )
     eliminar_foto = forms.BooleanField(
         label='Eliminar foto actual', required=False,
     )
@@ -313,9 +331,9 @@ class EditarPerfilInstructorForm(forms.Form):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class RecuperarContrasenaForm(forms.Form):
-    credencial = forms.CharField(
-        label='Correo electrónico o Teléfono',
-        widget=forms.TextInput(attrs={'placeholder': 'tu@correo.com o tu teléfono'}),
+    usuario_o_cedula = forms.CharField(
+        label='Nombre de usuario o Cédula',
+        widget=forms.TextInput(attrs={'placeholder': 'Tu nombre de usuario o cédula'}),
     )
 
     def __init__(self, *args, **kwargs):
