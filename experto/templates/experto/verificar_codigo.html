@@ -95,6 +95,16 @@
       <button type="submit" class="btn-reset">✅ Restablecer contraseña</button>
     </form>
 
+    {% if instructor_telefono and reset_code %}
+    <div style="margin-top: 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+      <span style="font-size: 0.8rem; color: var(--c-muted);">¿Quieres recibir la notificación automática en tu teléfono?</span>
+      <a href="?send_whatsapp=1" 
+         style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 13px 20px; background-color: #16a34a; color: white; border: none; border-radius: 12px; cursor: pointer; text-decoration: none; font-size: 0.95rem; font-weight: 600; font-family: 'Inter', sans-serif; box-shadow: 0 4px 18px rgba(22,163,74,0.25); transition: transform 0.2s, box-shadow 0.2s, filter 0.2s; box-sizing: border-box;">
+        💬 Enviar notificación a mi WhatsApp
+      </a>
+    </div>
+    {% endif %}
+
     <hr class="auth-divider">
     <div class="auth-footer">
       ¿No recibiste el código?

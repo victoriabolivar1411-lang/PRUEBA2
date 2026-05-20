@@ -92,13 +92,26 @@ def logout_view(request):
 def dashboard(request):
     instructor   = _get_instructor(request)
     estudiantes_all = Estudiante.objects.filter(instructor=instructor)
-    
     query = request.GET.get('search', '').strip()
     if query:
-        estudiantes = estudiantes_all.filter(
-            Q(nombre_completo__icontains=query) |
-            Q(representante__nombre_completo__icontains=query)
-        ).distinct()
+        import unicodedata
+        
+        def normalizar(t):
+            if not t:
+                return ""
+            return "".join(
+                c for c in unicodedata.normalize('NFD', t.lower())
+                if unicodedata.category(c) != 'Mn'
+            ).strip()
+            
+        palabras_busqueda = normalizar(query).split()
+        estudiantes_filtrados = []
+        for est in estudiantes_all:
+            nom_norm = normalizar(est.nombre_completo)
+            rep_norm = normalizar(est.representante.nombre_completo) if hasattr(est, 'representante') else ""
+            if all(p in nom_norm or p in rep_norm for p in palabras_busqueda):
+                estudiantes_filtrados.append(est)
+        estudiantes = estudiantes_filtrados
     else:
         estudiantes = estudiantes_all
 
@@ -454,21 +467,42 @@ from django.conf import settings as django_settings
 
 def recuperar_contrasena(request):
     """
-    Paso 1: El usuario ingresa su correo.
-    Se genera un código de 6 dígitos, se guarda en Instructor y se envía por email.
+    Paso 1: El usuario ingresa su correo o su teléfono.
+    Se genera un código de 6 dígitos, se guarda en Instructor y se envía por correo/SMS.
     """
     form = RecuperarContrasenaForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
-        correo = form.cleaned_data['correo']
+        credencial = form.cleaned_data['credencial'].strip()
         from django.contrib.auth.models import User
-        try:
-            user = User.objects.get(email=correo)
-            instructor = user.instructor
-        except (User.DoesNotExist, Exception):
-            # Mensaje genérico por seguridad (no revelar si el correo existe)
+        from .models import Instructor
+        
+        user = None
+        instructor = None
+        
+        # 1. Intentar buscar por correo electrónico
+        if '@' in credencial:
+            try:
+                user = User.objects.get(email=credencial)
+                instructor = user.instructor
+            except (User.DoesNotExist, Exception):
+                pass
+        
+        # 2. Si no se encuentra, intentar buscar por teléfono del Instructor
+        if not user:
+            digits_only = ''.join(filter(str.isdigit, credencial))
+            if digits_only:
+                for inst in Instructor.objects.all():
+                    inst_phone_digits = ''.join(filter(str.isdigit, inst.telefono or ''))
+                    if inst_phone_digits and inst_phone_digits == digits_only:
+                        instructor = inst
+                        user = inst.usuario
+                        break
+                        
+        if not user or not instructor:
+            # Mensaje genérico por seguridad (no revelar si la cuenta existe)
             messages.success(
                 request,
-                'Si ese correo está registrado, recibirás un código en breve.'
+                'Si los datos ingresados corresponden a una cuenta, recibirás tu código de recuperación en breve.'
             )
             return redirect('recuperar_contrasena')
 
@@ -478,26 +512,77 @@ def recuperar_contrasena(request):
         instructor.reset_code_expires = timezone.now() + timedelta(minutes=10)
         instructor.save()
 
-        # Enviar correo
-        send_mail(
-            subject='[TEA] Código de recuperación de contraseña',
-            message=(
-                f'Hola {user.first_name or user.username},\n\n'
-                f'Tu código de recuperación es: {codigo}\n\n'
-                f'Este código expira en 10 minutos.\n\n'
-                f'Si no solicitaste este cambio, ignora este mensaje.'
-            ),
-            from_email=django_settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[correo],
-            fail_silently=False,
+        # Enviar correo de forma segura si tiene correo
+        email_enviado = False
+        if user.email:
+            try:
+                send_mail(
+                    subject='[TEA] Código de recuperación de contraseña',
+                    message=(
+                        f'Hola {user.first_name or user.username},\n\n'
+                        f'Tu código de recuperación es: {codigo}\n\n'
+                        f'Este código expira en 10 minutos.\n\n'
+                        f'Si no solicitaste este cambio, ignora este mensaje.'
+                    ),
+                    from_email=django_settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                email_enviado = True
+            except Exception as e:
+                if django_settings.DEBUG:
+                    messages.warning(
+                        request,
+                        f'No se pudo enviar el correo real (SMTP). Error: {e}'
+                    )
+
+        # Enviar SMS de forma segura si tiene teléfono registrado y Twilio está configurado
+        sms_enviado = False
+        if instructor.telefono and getattr(django_settings, 'TWILIO_ACCOUNT_SID', '') and getattr(django_settings, 'TWILIO_AUTH_TOKEN', ''):
+            from .utils import enviar_codigo_sms
+            sms_enviado, sms_msg = enviar_codigo_sms(instructor.telefono, codigo)
+            if not sms_enviado and django_settings.DEBUG:
+                messages.warning(
+                    request,
+                    f'No se pudo enviar el SMS real (Twilio). Detalle: {sms_msg}'
+                )
+
+        # Enviar WhatsApp de forma segura si tiene teléfono registrado y está configurado
+        whatsapp_enviado = False
+        whatsapp_configurado = (
+            (getattr(django_settings, 'ULTRAMSG_INSTANCE_ID', '') and getattr(django_settings, 'ULTRAMSG_TOKEN', '')) or
+            (getattr(django_settings, 'TWILIO_ACCOUNT_SID', '') and getattr(django_settings, 'TWILIO_AUTH_TOKEN', '') and getattr(django_settings, 'TWILIO_WHATSAPP_FROM', ''))
         )
+        if instructor.telefono and whatsapp_configurado:
+            from .utils import enviar_codigo_whatsapp
+            whatsapp_enviado, wa_msg = enviar_codigo_whatsapp(instructor.telefono, codigo)
+            if not whatsapp_enviado and django_settings.DEBUG:
+                messages.warning(
+                    request,
+                    f'No se pudo enviar el WhatsApp real. Detalle: {wa_msg}'
+                )
 
         # Guardar user id en sesión para el paso 2
         request.session['reset_user_id'] = user.pk
-        messages.success(
-            request,
-            'Si ese correo está registrado, recibirás un código en breve.'
-        )
+        
+        if email_enviado or sms_enviado or whatsapp_enviado:
+            messages.success(
+                request,
+                'Código de recuperación enviado con éxito a tu cuenta.'
+            )
+        else:
+            messages.success(
+                request,
+                'Si los datos ingresados corresponden a una cuenta, recibirás tu código de recuperación en breve.'
+            )
+        
+        # En modo desarrollo, mostrar el código en la pantalla para pruebas fáciles
+        if django_settings.DEBUG:
+            messages.info(
+                request,
+                f'[DESARROLLO] El código de recuperación generado es: {codigo} (Solo visible porque DEBUG=True)'
+            )
+            
         return redirect('verificar_codigo')
 
     return render(request, 'experto/recuperar_contrasena.html', {'form': form})
@@ -512,18 +597,43 @@ def verificar_codigo(request):
         messages.error(request, 'Sesión expirada. Solicita un nuevo código.')
         return redirect('recuperar_contrasena')
 
+    from django.contrib.auth.models import User
+    try:
+        user = User.objects.get(pk=user_id)
+        instructor = user.instructor
+    except Exception:
+        messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
+        return redirect('recuperar_contrasena')
+
+    # Envío automatizado de WhatsApp desde el servidor cuando se hace clic en el botón
+    send_whatsapp = request.GET.get('send_whatsapp')
+    if send_whatsapp == '1':
+        if instructor.telefono:
+            from .utils import enviar_codigo_whatsapp
+            exito, msg = enviar_codigo_whatsapp(instructor.telefono, instructor.reset_code)
+            if exito:
+                messages.success(request, 'Se ha enviado la notificación de WhatsApp con el código.')
+            elif django_settings.DEBUG:
+                # En desarrollo, si no está configurado, simular el envío para pruebas locales sin errores
+                messages.success(
+                    request,
+                    f'[SIMULACIÓN - DESARROLLO] Se envió la notificación de WhatsApp al teléfono {instructor.telefono} de forma simulada. '
+                    f'Mensaje enviado: "Tu código de recuperación es {instructor.reset_code}"'
+                )
+            else:
+                messages.error(
+                    request,
+                    f'No se pudo enviar la notificación automática. Detalle: {msg}. '
+                    f'Por favor, asegúrate de configurar tu archivo .env con las credenciales de UltraMsg o Twilio WhatsApp.'
+                )
+        else:
+            messages.error(request, 'El instructor no tiene un teléfono registrado.')
+        return redirect('verificar_codigo')
+
     form = VerificarCodigoForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         codigo_ingresado = form.cleaned_data['codigo']
         nueva = form.cleaned_data['nueva_contrasena']
-
-        from django.contrib.auth.models import User
-        try:
-            user = User.objects.get(pk=user_id)
-            instructor = user.instructor
-        except Exception:
-            messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
-            return redirect('recuperar_contrasena')
 
         # Validar código y expiración
         if instructor.reset_code != codigo_ingresado:
@@ -541,11 +651,24 @@ def verificar_codigo(request):
             del request.session['reset_user_id']
             messages.success(
                 request,
-                '\u00a1Contraseña actualizada correctamente! Ahora puedes iniciar sesión.'
+                '¡Contraseña actualizada correctamente! Ahora puedes iniciar sesión.'
             )
             return redirect('login')
 
-    return render(request, 'experto/verificar_codigo.html', {'form': form})
+    # Formatear el teléfono para el enlace de WhatsApp (formato internacional sin caracteres especiales)
+    tel_limpio = ''.join(filter(str.isdigit, instructor.telefono or ''))
+    if tel_limpio:
+        if not tel_limpio.startswith('58') and (tel_limpio.startswith('04') or tel_limpio.startswith('4')):
+            if tel_limpio.startswith('0'):
+                tel_limpio = '58' + tel_limpio[1:]
+            else:
+                tel_limpio = '58' + tel_limpio
+
+    return render(request, 'experto/verificar_codigo.html', {
+        'form': form,
+        'instructor_telefono': tel_limpio,
+        'reset_code': instructor.reset_code,
+    })
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -575,3 +698,186 @@ def borrar_instructor(request, pk):
         'instructor': instructor_auth, 
         'inst_to_delete': inst_to_delete
     })
+
+
+@login_required(login_url='login')
+def chatbot_query(request):
+    import json
+    if request.method != 'POST':
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        data = json.loads(request.body)
+        user_message = data.get('message', '').strip()
+    except Exception:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Formato inválido'}, status=400)
+    
+    from django.http import JsonResponse
+    if not user_message:
+        return JsonResponse({'response': 'Por favor, escribe un mensaje.'})
+    
+    # Normalización del mensaje para búsqueda
+    import unicodedata
+    def normalizar(t):
+        return "".join(
+            c for c in unicodedata.normalize('NFD', t.lower())
+            if unicodedata.category(c) != 'Mn'
+        )
+    
+    msg_norm = normalizar(user_message)
+    response = ""
+    
+    # 1. Crisis / Rabietas / Desregulación
+    if any(k in msg_norm for k in ['crisis', 'rabieta', 'agresividad', 'enojo', 'llanto', 'grit', 'pegar', 'desregulacion', 'tranquil', 'calmar']):
+        response = """
+        <p><strong>🚨 Manejo de Crisis o Desregulación Conductual:</strong></p>
+        <p>Cuando un niño con TEA se desregula, suele deberse a sobrecarga sensorial o frustración. Sigue estos pasos clave:</p>
+        <ol>
+            <li><strong>Mantén la calma y baja la voz:</strong> Tu estado emocional regula al niño. Habla con tono suave y calmado.</li>
+            <li><strong>Crea un espacio seguro:</strong> Retira estímulos auditivos, visuales o físicos fuertes (luces intensas, ruidos).</li>
+            <li><strong>Usa lenguaje claro y directo:</strong> Evita discursos largos. Usa frases simples de 2 o 3 palabras como: <em>"Estás a salvo"</em>, <em>"Respira"</em>.</li>
+            <li><strong>No fuerces el contacto físico:</strong> Algunos niños se calman con un abrazo fuerte, pero otros sienten invasión sensorial. Observa su preferencia.</li>
+            <li><strong>Ofrece elementos de calma:</strong> Juguetes sensoriales, mordedores o audífonos canceladores de ruido si hay mucha sobreestimulación.</li>
+        </ol>
+        """
+    
+    # 2. Comunicación / Habla / Pictogramas
+    elif any(k in msg_norm for k in ['comunicacion', 'habla', 'lenguaje', 'no habla', 'expresar', 'pictograma', 'visual', 'agenda', 'entender']):
+        response = """
+        <p><strong>💬 Estrategias de Comunicación y Apoyo Visual:</strong></p>
+        <p>Las personas con TEA procesan la información visual de forma mucho más efectiva que la auditiva:</p>
+        <ul>
+            <li><strong>Usa Pictogramas y Agendas Visuales:</strong> Diseña una secuencia diaria con imágenes de las actividades (ej: <em>desayuno ➔ escuela ➔ parque ➔ dormir</em>). Esto reduce significativamente la ansiedad.</li>
+            <li><strong>Anticipación constante:</strong> Antes de cambiar de actividad, avísale visualmente: <em>"Faltan 5 minutos para guardar los juguetes"</em>.</li>
+            <li><strong>Lenguaje literal y sin metáforas:</strong> Evita modismos, sarcasmos o ironías. Di exactamente lo que quieres decir.</li>
+            <li><strong>Tiempo de procesamiento:</strong> Dale al niño entre 5 y 10 segundos para responder a una instrucción antes de repetirla.</li>
+        </ul>
+        """
+        
+    # 3. Interacción Social / Socializar / Compartir / Aislamiento
+    elif any(k in msg_norm for k in ['social', 'interaccion', 'jugar', 'aisla', 'compartir', 'amigo', 'integracion', 'socializar']):
+        response = """
+        <p><strong>🤝 Fomento de la Interacción Social:</strong></p>
+        <p>El desarrollo de habilidades sociales requiere de un modelaje explícito y estructurado:</p>
+        <ul>
+            <li><strong>Historias Sociales:</strong> Escribe pequeños cuentos ilustrados donde expliques situaciones comunes y conductas esperadas (ej. cómo saludar, cómo pedir un de juguete prestado).</li>
+            <li><strong>Juego Estructurado:</strong> Inicia con juegos de causa y efecto o de turnos simples (lanzar pelota, armar torres por turnos) para enseñar la reciprocidad social de forma amena.</li>
+            <li><strong>Respeta sus momentos de juego solitario:</strong> El juego libre individual es necesario para su autorregulación. No lo obligues a socializar continuamente si muestra fatiga social.</li>
+        </ul>
+        """
+        
+    # 4. DSM-5 / Niveles / Criterios diagnósticos
+    elif any(k in msg_norm for k in ['dsm5', 'dsm-5', 'nivel', 'criterio', 'diagnostico', 'grado', 'evalua', 'clasificacion']):
+        response = """
+        <p><strong>🏥 Criterios y Niveles del DSM-5 para TEA:</strong></p>
+        <p>El Manual DSM-5 clasifica el autismo bajo dos dominios principales:</p>
+        <ol>
+            <li><strong>Criterio A:</strong> Deficiencias persistentes en la comunicación e interacción social.</li>
+            <li><strong>Criterio B:</strong> Patrones repetitivos y restringidos de comportamiento, intereses o actividades.</li>
+        </ol>
+        <p><strong>Niveles de Gravedad según el Apoyo requerido:</strong></p>
+        <ul>
+            <li><strong>Nivel 1 (Leve):</strong> Requiere apoyo. Puede comunicarse bien pero tiene problemas para iniciar interacciones o cambiar de tarea.</li>
+            <li><strong>Nivel 2 (Moderado):</strong> Requiere apoyo sustancial. Presenta marcadas dificultades de comunicación verbal y no verbal, y gran resistencia a los cambios.</li>
+            <li><strong>Nivel 3 (Severo):</strong> Requiere apoyo muy constante/sustancial. Déficit severo en la comunicación y conductas inflexibles que interfieren gravemente con la vida diaria.</li>
+        </ul>
+        """
+        
+    # 5. Ayuda general / Funcionalidades del sistema / Instrucciones
+    elif any(k in msg_norm for k in ['ayuda', 'sistema', 'que haces', 'funciona', 'evaluar', 'registro', 'recomendacion', 'como uso', 'menu']):
+        response = """
+        <p><strong>🤖 ¡Hola! Soy tu Asistente Virtual de Apoyo TEA.</strong></p>
+        <p>Puedo ayudarte con información pedagógica y a navegar el sistema. Aquí tienes lo que puedes hacer:</p>
+        <ul>
+            <li><strong>Registrar niños y representantes:</strong> Ve a <em>Gestión > Nuevo estudiante</em> en el menú lateral.</li>
+            <li><strong>Realizar Evaluaciones:</strong> Entra al perfil de un estudiante y presiona <em>🏥 Evaluar</em>. Completarás la evaluación DSM-5 y luego la pedagógica para que el sistema experto genere recomendaciones.</li>
+            <li><strong>Consultar la Base de Conocimientos:</strong> Visita <em>Sistema Experto > Base de conocimientos</em> para ver las reglas lógicas que rigen el motor de inferencia pedagógica.</li>
+        </ul>
+        <p>Pregúntame sobre <strong>crisis</strong>, <strong>comunicación</strong>, <strong>habilidades sociales</strong> o el <strong>DSM-5</strong> para recibir pautas educativas de inmediato.</p>
+        """
+
+    # 6. Apoyo Emocional / Estrés del Instructor (Pausa Activa / Respiración)
+    elif any(k in msg_norm for k in ['estres', 'cansad', 'agobiad', 'triste', 'dificil', 'presion', 'agoto', 'frustrad', 'mal dia']):
+        response = """
+        <p><strong>🧘 Pausa de Apoyo e Inteligencia Emocional:</strong></p>
+        <p>Sé que guiar y apoyar a niños con TEA puede ser física y emocionalmente agotador. ¡Tu dedicación es increíblemente valiosa! ❤️</p>
+        <p>Hagamos juntos una breve pausa activa de respiración para liberar tensión:</p>
+        <ol>
+            <li>Inhala aire profundamente por la nariz durante <strong>4 segundos</strong>...</li>
+            <li>Mantén el aire por <strong>4 segundos</strong>...</li>
+            <li>Exhala lentamente por la boca durante <strong>4 segundos</strong>...</li>
+            <li>Descansa por <strong>4 segundos</strong> y repite una vez más.</li>
+        </ol>
+        <p>¿Te sientes un poco mejor? Podemos seguir charlando sobre alguna recomendación pedagógica o sobre cómo te ha ido hoy. ¿Qué te gustaría hacer?</p>
+        """
+
+    # 7. Humor / Chistes (Interacción simpática)
+    elif any(k in msg_norm for k in ['chiste', 'brom', 'gracios', 'divertid', 'reir']):
+        response = """
+        <p><strong>😄 ¡Un poco de humor para alegrar tu jornada!</strong></p>
+        <p>Aquí tienes un chiste pedagógico y positivo:</p>
+        <blockquote style="border-left: 3px solid var(--c-accent); padding-left: 10px; margin: 10px 0; color: var(--c-accent2);">
+            ¿Qué le dice una pieza de rompecabezas a otra?<br>
+            <em>— ¡Hacemos una pareja perfecta! 🧩</em>
+        </blockquote>
+        <p>O este otro:</p>
+        <blockquote style="border-left: 3px solid var(--c-teal); padding-left: 10px; margin: 10px 0; color: var(--c-teal);">
+            ¿Por qué los pájaros vuelan al sur en invierno?<br>
+            <em>— ¡Porque caminar les tomaría demasiado tiempo! 🐦</em>
+        </blockquote>
+        <p>Reír un poco libera la tensión del aula. ¿De qué más te gustaría conversar?</p>
+        """
+
+    # 8. Motivación / Frases Inspiradoras
+    elif any(k in msg_norm for k in ['motivacion', 'frase', 'inspiracion', 'aliento', 'quote', 'reflexion', 'consejo']):
+        response = """
+        <p><strong>✨ Frase Inspiradora para hoy:</strong></p>
+        <blockquote style="border-left: 4px solid var(--c-green); padding-left: 12px; margin: 12px 0; font-style: italic; color: var(--c-text);">
+            "El autismo no es una enfermedad que deba curarse, sino una forma diferente de comunicarse y experimentar el mundo que merece ser comprendida."
+        </blockquote>
+        <p>Y recuerda siempre esta hermosa pauta de Temple Grandin:</p>
+        <blockquote style="border-left: 4px solid var(--c-accent); padding-left: 12px; margin: 12px 0; font-style: italic; color: var(--c-text);">
+            "El mundo necesita todo tipo de mentes."
+        </blockquote>
+        <p>¡Gracias por ser ese puente de aprendizaje y comprensión para tus alumnos! ¿Quieres ver alguna estrategia o tienes alguna otra consulta?</p>
+        """
+
+    # 9. Compartir el Día / Progreso de Estudiantes
+    elif any(k in msg_norm for k in ['jornada', 'clase', 'dia de hoy', 'mis estudiantes', 'alumno', 'avance', 'logro', 'progreso']):
+        response = """
+        <p><strong>❤️ ¡Gracias por compartirlo conmigo!</strong></p>
+        <p>Cada pequeño avance en niños con TEA (como mantener el contacto visual por un segundo más, usar un nuevo pictograma para pedir algo, o calmar una rabieta de manera autónoma) es un paso gigante hacia su independencia.</p>
+        <p>Tu paciencia y constancia marcan una diferencia real en sus vidas. ¿Hay algún tema o recomendación específica sobre el que te gustaría conversar ahora?</p>
+        """
+
+    # 10. Saludo e Interacción General
+    elif any(k in msg_norm for k in ['hola', 'buenos dias', 'buenas tardes', 'buenas noches', 'saludos', 'hey', 'hello', 'como estas', 'que tal', 'como te va', 'todo bien']):
+        response = """
+        <p>👋 ¡Hola! Qué alegría saludarte. Estoy de maravilla y listo para apoyarte hoy. 😊</p>
+        <p>Como tu asistente virtual de apoyo TEA, puedo guiarte con estrategias pedagógicas, responder dudas sobre el DSM-5, o simplemente charlar e intercambiar una frase motivadora si has tenido una jornada agotadora.</p>
+        <p>Cuéntame, ¿cómo ha estado tu día con tus estudiantes hoy?</p>
+        """
+        
+    # 11. Agradecimiento / Despedida
+    elif any(k in msg_norm for k in ['gracias', 'gracia', 'adios', 'chao', 'despedida', 'ok', 'excelente', 'buenisimo']):
+        response = """
+        <p>¡De nada! Es un verdadero placer ser tu compañero de apoyo pedagógico. 🧩</p>
+        <p>Si necesitas pautas sobre autismo, una pausa activa o solo una palabra de aliento, aquí estaré. ¡Que tengas un excelente día!</p>
+        """
+
+    # 12. Fallback general inteligente
+    else:
+        response = f"""
+        <p>Interesante pregunta sobre <em>"{user_message}"</em>.</p>
+        <p>Como sugerencia general para el aula o el hogar:</p>
+        <ul>
+            <li>Establece rutinas claras utilizando apoyos visuales (pictogramas).</li>
+            <li>Identifica qué estímulos (ruidos, luces, texturas) pueden estar sobrecargando sensorialmente al niño.</li>
+            <li>Refuerza positivamente cada pequeño logro que alcance para fomentar su motivación e independencia.</li>
+        </ul>
+        <p>Si deseas detalles específicos, prueba preguntándome sobre: <strong>crisis</strong>, <strong>pictogramas</strong>, <strong>habilidades sociales</strong> o <strong>DSM-5</strong>. También puedes pedirme un <strong>chiste</strong>, una <strong>frase de motivación</strong> o contarme cómo estuvo tu <strong>día</strong>. 😊</p>
+        """
+        
+    return JsonResponse({'response': response})
