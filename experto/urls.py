@@ -48,6 +48,6 @@ urlpatterns = [
     path('recuperar-contrasena/', views.recuperar_contrasena, name='recuperar_contrasena'),
     path('verificar-codigo/',     views.verificar_codigo,     name='verificar_codigo'),
 
-    # ── Chatbot ────────────────────────────────────────────────────────────────
-    path('chatbot/',              views.chatbot_query,        name='chatbot_query'),
+    # ── Chatbot NLP ────────────────────────────────────────────────────────────
+    path('chatbot/', views.chatbot_api, name='chatbot_api'),
 ]
