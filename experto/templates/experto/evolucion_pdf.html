@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte de Evolución — {{ estudiante.nombre_completo }}</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 1.5cm;
+      margin-bottom: 2.2cm;
+      @frame footer_frame {
+        -pdf-frame-content: page-footer;
+        bottom: 1cm;
+        left: 1.5cm;
+        right: 1.5cm;
+        height: 1cm;
+      }
+    }
+    
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #2d3748;
+      line-height: 1.4;
+      font-size: 9pt;
+      background-color: #ffffff;
+    }
+
+    /* ─── HEADER ────────────────────────────────────────────── */
+    .header-table {
+      width: 100%;
+      border-bottom: 2px solid #4f46e5;
+      padding-bottom: 12px;
+      margin-bottom: 25px;
+    }
+    .header-logo {
+      font-size: 22pt;
+      font-weight: bold;
+      color: #4f46e5;
+    }
+    .header-subtitle {
+      font-size: 9pt;
+      color: #718096;
+      text-align: right;
+      vertical-align: bottom;
+    }
+
+    /* ─── TITLE & REPORT DATE ────────────────────────────────── */
+    .report-title {
+      font-size: 16pt;
+      font-weight: bold;
+      color: #1a202c;
+      margin-bottom: 5px;
+    }
+    .report-meta {
+      font-size: 8pt;
+      color: #a0aec0;
+      margin-bottom: 20px;
+    }
+
+    /* ─── DATA SECTIONS ──────────────────────────────────────── */
+    .section-title {
+      font-size: 11pt;
+      font-weight: bold;
+      color: #4f46e5;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+      margin-top: 15px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    /* Info tables */
+    .info-table {
+      width: 100%;
+      margin-bottom: 15px;
+    }
+    .info-table td {
+      padding: 4px 8px;
+      vertical-align: top;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #4a5568;
+      width: 140px;
+    }
+    .info-value {
+      color: #2d3748;
+    }
+
+    /* ─── METRIC BLOCKS (using table grid) ───────────────────── */
+    .metrics-table {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .metric-box {
+      border: 1px solid #e2e8f0;
+      background-color: #f7fafc;
+      padding: 10px;
+      text-align: center;
+      width: 25%;
+    }
+    .metric-label {
+      font-size: 7.5pt;
+      color: #718096;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-weight: bold;
+    }
+    .metric-value {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #2d3748;
+    }
+    .metric-value.positive { color: #10b981; }
+    .metric-value.negative { color: #ef4444; }
+    .metric-value.stable { color: #f59e0b; }
+
+    /* ─── CHART IMAGE ────────────────────────────────────────── */
+    .chart-container {
+      text-align: center;
+      margin-top: 15px;
+      margin-bottom: 25px;
+      page-break-inside: avoid;
+    }
+    .chart-img {
+      width: 540px;
+      height: auto;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+    }
+
+    /* ─── HISTORY TABLE ──────────────────────────────────────── */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+    .history-table th {
+      background-color: #4f46e5;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 8.5pt;
+      padding: 7px 10px;
+      text-align: left;
+      border: 1px solid #4f46e5;
+    }
+    .history-table td {
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      font-size: 8pt;
+    }
+    .history-table tr:nth-child(even) {
+      background-color: #f7fafc;
+    }
+
+    /* Badges in PDF */
+    .badge {
+      display: inline-block;
+      padding: 2px 5px;
+      background-color: #edf2f7;
+      color: #4a5568;
+      font-size: 7.5pt;
+      border-radius: 4px;
+      border: 1px solid #cbd5e0;
+    }
+    .badge-trend {
+      font-weight: bold;
+    }
+    .badge-positive { background-color: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge-negative { background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .badge-stable { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-purple { background-color: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <table class="header-table">
+    <tr>
+      <td class="header-logo">📈 Sistema Experto TEA</td>
+      <td class="header-subtitle">Reporte Formal de Evolución Pedagógica</td>
+    </tr>
+  </table>
+
+  <!-- TITULO Y METADATOS -->
+  <div class="report-title">INFORME DE EVOLUCIÓN PEDAGÓGICA Y CLÍNICA</div>
+  <div class="report-meta">
+    Generado el: <strong>{{ fecha_reporte }}</strong> | Instructor responsable: <strong>{{ instructor.nombre_completo }}</strong>
+  </div>
+
+  <!-- FICHA INFORMATIVA (ESTUDIANTE Y REPRESENTANTE) -->
+  <div class="section-title">Datos Informativos</div>
+  <table class="info-table">
+    <tr>
+      <td class="info-label">Estudiante:</td>
+      <td class="info-value"><strong>{{ estudiante.nombre_completo }}</strong></td>
+      <td class="info-label">Edad actual:</td>
+      <td class="info-value">{{ estudiante.edad_calculada }} años</td>
+    </tr>
+    <tr>
+      <td class="info-label">Sexo:</td>
+      <td class="info-value">{{ estudiante.get_sexo_display }}</td>
+      <td class="info-label">Fecha Nacimiento:</td>
+      <td class="info-value">{{ estudiante.fecha_nacimiento|date:"d/m/Y"|default:"No registrada" }}</td>
+    </tr>
+    {% if representante %}
+    <tr>
+      <td class="info-label">Representante:</td>
+      <td class="info-value">{{ representante.nombre_completo }}</td>
+      <td class="info-label">Parentesco:</td>
+      <td class="info-value">{{ representante.get_parentesco_display }}</td>
+    </tr>
+    <tr>
+      <td class="info-label">Cédula Rep:</td>
+      <td class="info-value">{{ representante.cedula }}</td>
+      <td class="info-label">Contacto Tel:</td>
+      <td class="info-value">{{ representante.telefono|default:"No registrado" }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  <!-- RESUMEN DE MÉTRICAS -->
+  <div class="section-title">Resumen del Avance</div>
+  <table class="metrics-table">
+    <tr>
+      <td class="metric-box">
+        <div class="metric-label">Evaluaciones</div>
+        <div class="metric-value">{{ total_evals }}</div>
+      </td>
+      <td class="metric-box">
+        <div class="metric-label">Avance Promedio</div>
+        <div class="metric-value">{{ promedio|floatformat:1 }}%</div>
+      </td>
+      <td class="metric-box">
+        <div class="metric-label">Mejor Avance</div>
+        <div class="metric-value">{% if mejor %}{{ mejor.porcentaje|floatformat:1 }}%{% else %}0.0%{% endif %}</div>
+      </td>
+      <td class="metric-box">
+        <div class="metric-label">Tendencia General</div>
+        <div class="metric-value {% if tendencia_general == 'Positiva' %}positive{% elif tendencia_general == 'Negativa' %}negative{% elif tendencia_general == 'Estable' %}stable{% endif %}">
+          {{ tendencia_general }}
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- GRÁFICA DE EVOLUCIÓN (Si existe captura de pantalla) -->
+  {% if chart_image %}
+  <div class="section-title">Gráfica Interactiva de Aprendizaje</div>
+  <div class="chart-container">
+    <img class="chart-img" src="{{ chart_image }}" alt="Gráfica de Evolución">
+  </div>
+  {% endif %}
+
+  <!-- TABLA DE HISTORIAL -->
+  <div class="section-title" style="page-break-before: always;">Historial de Evaluaciones Periódicas</div>
+  {% if total_evals > 0 %}
+  <table class="history-table">
+    <thead>
+      <tr>
+        <th style="width: 70px;">Fecha</th>
+        <th style="width: 150px;">Nombre Evaluación</th>
+        <th style="width: 80px;">Tipo</th>
+        <th style="width: 70px;">Puntaje</th>
+        <th style="width: 55px;">Porcentaje</th>
+        <th style="width: 70px;">Progreso</th>
+        <th>Observaciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in evaluaciones %}
+      <tr>
+        <td><strong>{{ item.eval.fecha|date:"d/m/Y" }}</strong></td>
+        <td>{{ item.eval.nombre }}</td>
+        <td>{{ item.eval.get_tipo_display }}</td>
+        <td>{{ item.eval.puntaje_obtenido|floatformat:1 }} / {{ item.eval.puntaje_maximo|floatformat:1 }}</td>
+        <td style="font-weight: bold;">{{ item.eval.porcentaje }}%</td>
+        <td>
+          {% if item.tendencia == "Inicial" %}
+            <span class="badge badge-purple">Inicial</span>
+          {% elif item.tendencia == "Estable" %}
+            <span class="badge badge-stable">Estable</span>
+          {% elif item.diff >= 3 %}
+            <span class="badge badge-positive">▲ {{ item.tendencia }}</span>
+          {% else %}
+            <span class="badge badge-negative">▼ {{ item.tendencia }}</span>
+          {% endif %}
+        </td>
+        <td style="font-size: 7.5pt; color: #4a5568;">
+          {{ item.eval.observaciones|default:"Sin observaciones registradas." }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color: #718096; font-style: italic;">No se han registrado evaluaciones de evolución periódicas para este estudiante.</p>
+  {% endif %}
+
+  <!-- FOOTER TEMPLATE FOR ALL PAGES -->
+  <div id="page-footer" style="border-top: 1px solid #cbd5e0; padding-top: 6px; font-size: 7.5pt; color: #a0aec0; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+    <table style="width: 100%; border: none;">
+      <tr>
+        <td style="text-align: left; width: 75%; border: none; padding: 0; color: #a0aec0;">
+          Este documento es un reporte formal y confidencial generado por el Sistema Experto TEA. © 2026.
+        </td>
+        <td style="text-align: right; width: 25%; border: none; padding: 0; color: #718096; font-weight: bold;">
+          Página <pdf:pagenumber> de <pdf:pagecount>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+</body>
+</html>

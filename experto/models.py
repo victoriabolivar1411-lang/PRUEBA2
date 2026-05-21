@@ -155,6 +155,9 @@ class Estudiante(models.Model):
         verbose_name='Edad',
         validators=[MinValueValidator(0), MaxValueValidator(120)],
     )
+    fecha_nacimiento = models.DateField(
+        blank=True, null=True, verbose_name='Fecha de nacimiento'
+    )
     foto_carnet = models.ImageField(
         upload_to='fotos_estudiantes/',
         blank=True,
@@ -180,6 +183,16 @@ class Estudiante(models.Model):
     @property
     def tiene_representante(self):
         return hasattr(self, 'representante')
+
+    @property
+    def edad_calculada(self):
+        """Retorna la edad calculada desde fecha_nacimiento o el campo edad manual."""
+        if self.fecha_nacimiento:
+            from django.utils import timezone
+            hoy = timezone.now().date()
+            delta = hoy - self.fecha_nacimiento
+            return delta.days // 365
+        return self.edad
 
     @property
     def ultima_evaluacion_dsm5(self):
@@ -507,3 +520,67 @@ class Recomendacion(models.Model):
 
     def __str__(self):
         return f'Recomendación para {self.evaluacion_pedagogica.estudiante}'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. EVALUACIÓN DE EVOLUCIÓN
+# ─────────────────────────────────────────────────────────────────────────────
+
+TIPO_EVALUACION_CHOICES = [
+    ('TEA',       'TEA'),
+    ('TDAH',      'TDAH'),
+    ('LENGUAJE',  'Lenguaje'),
+    ('CONDUCTA',  'Conducta'),
+    ('SENSORIAL', 'Sensorial'),
+    ('OTRO',      'Otro'),
+]
+
+
+class Evaluacion(models.Model):
+    """
+    Evaluación periódica para rastrear la evolución del estudiante a lo largo
+    del tiempo. Permite visualizar el progreso mediante gráficas de líneas.
+    """
+    estudiante = models.ForeignKey(
+        Estudiante,
+        on_delete=models.CASCADE,
+        related_name='evaluaciones_evolucion',
+        verbose_name='Estudiante',
+    )
+    fecha = models.DateField(verbose_name='Fecha de la evaluación')
+    nombre = models.CharField(max_length=200, verbose_name='Nombre de la evaluación')
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_EVALUACION_CHOICES,
+        default='TEA',
+        verbose_name='Tipo de evaluación',
+    )
+    puntaje_obtenido = models.FloatField(
+        verbose_name='Puntaje obtenido',
+        validators=[MinValueValidator(0)],
+    )
+    puntaje_maximo = models.FloatField(
+        default=100.0,
+        verbose_name='Puntaje máximo',
+        validators=[MinValueValidator(1)],
+    )
+    porcentaje = models.FloatField(
+        editable=False,
+        default=0.0,
+        verbose_name='Porcentaje (%)',
+    )
+    observaciones = models.TextField(blank=True, verbose_name='Observaciones')
+
+    class Meta:
+        verbose_name        = 'Evaluación de Evolución'
+        verbose_name_plural = 'Evaluaciones de Evolución'
+        ordering            = ['fecha']
+
+    def save(self, *args, **kwargs):
+        """Calcula el porcentaje automáticamente antes de guardar."""
+        if self.puntaje_maximo and self.puntaje_maximo > 0:
+            self.porcentaje = round((self.puntaje_obtenido / self.puntaje_maximo) * 100, 2)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.nombre} — {self.estudiante} ({self.fecha})'
