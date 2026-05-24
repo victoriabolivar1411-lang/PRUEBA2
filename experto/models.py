@@ -291,27 +291,51 @@ class EvaluacionDSM5(models.Model):
     )
     fecha = models.DateTimeField(auto_now_add=True, verbose_name='Fecha')
 
+    NIVELES_APOYO = [
+        ('ausente', 'Ausente / No aplica'),
+        ('leve', 'Leve (requiere apoyo)'),
+        ('moderado', 'Moderado (requiere apoyo sustancial)'),
+        ('grave', 'Grave (requiere apoyo muy sustancial)'),
+    ]
+
     # ── CRITERIO A: Comunicación Social ──────────────────────────────────────
     nivel_comunicacion_social = models.CharField(
         max_length=30,
         choices=NIVEL_COMUNICACION_CHOICES,
-        verbose_name='Nivel de comunicación social (Criterio A)',
+        verbose_name='Nivel general de comunicación social (Criterio A)',
     )
+    
     # A.1 Reciprocidad socioemocional
-    obs_reciprocidad = models.TextField(
-        blank=True,
-        verbose_name='A.1 — Reciprocidad socioemocional (observaciones)',
+    a1_reciprocidad = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.1 — Deficiencias en la reciprocidad socioemocional'
     )
+    a1_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.1 — Observaciones'
+    )
+    
     # A.2 Comunicación no verbal
-    obs_comunicacion_no_verbal = models.TextField(
-        blank=True,
-        verbose_name='A.2 — Comunicación no verbal (observaciones)',
+    a2_comunicacion_no_verbal = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.2 — Deficiencias en conductas comunicativas no verbales'
     )
+    a2_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.2 — Observaciones'
+    )
+    
     # A.3 Desarrollo y comprensión de relaciones
-    obs_desarrollo_relaciones = models.TextField(
-        blank=True,
-        verbose_name='A.3 — Desarrollo y comprensión de relaciones (observaciones)',
+    a3_relaciones = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.3 — Deficiencias en desarrollo, mantenimiento y comprensión de relaciones'
     )
+    a3_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.3 — Observaciones'
+    )
+
+    puntaje_total_a = models.IntegerField(editable=False, default=0, verbose_name='Puntaje Total Criterio A')
 
     # ── CRITERIO B: Comportamientos Restringidos y Repetitivos ───────────────
     nivel_conductas_repetitivas = models.CharField(
@@ -375,7 +399,18 @@ class EvaluacionDSM5(models.Model):
         ordering            = ['-fecha']
 
     def __str__(self):
-        return f'DSM-5 de {self.estudiante} — {self.fecha}'
+        return f"DSM-5 de {self.estudiante} - {self.fecha.strftime('%d/%m/%Y')}"
+
+    def save(self, *args, **kwargs):
+        # Calcular puntaje: ausente=0, leve=1, moderado=2, grave=3
+        valores = {
+            'ausente': 0, 'leve': 1, 'moderado': 2, 'grave': 3
+        }
+        total = valores.get(self.a1_reciprocidad, 0) + \
+                valores.get(self.a2_comunicacion_no_verbal, 0) + \
+                valores.get(self.a3_relaciones, 0)
+        self.puntaje_total_a = total
+        super().save(*args, **kwargs)
 
     def cumple_criterio_b(self) -> bool:
         """
