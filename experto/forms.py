@@ -199,12 +199,6 @@ class EvaluacionDSM5Form(forms.ModelForm):
         model  = EvaluacionDSM5
         exclude = ['estudiante', 'fecha']
         widgets = {
-            'a1_reciprocidad':            forms.RadioSelect(attrs={'class': 'radio-group'}),
-            'a1_observaciones':           forms.Textarea(attrs={'rows': 2}),
-            'a2_comunicacion_no_verbal':  forms.RadioSelect(attrs={'class': 'radio-group'}),
-            'a2_observaciones':           forms.Textarea(attrs={'rows': 2}),
-            'a3_relaciones':              forms.RadioSelect(attrs={'class': 'radio-group'}),
-            'a3_observaciones':           forms.Textarea(attrs={'rows': 2}),
             'condicion_medica_asociada':  forms.TextInput(),
         }
         labels = {
@@ -225,6 +219,9 @@ class EvaluacionDSM5Form(forms.ModelForm):
             'no_explicado_otra_condicion': 'E — No se explica mejor por discapacidad intelectual',
             'discapacidad_intelectual':    'Con discapacidad intelectual acompañante',
             'deterioro_lenguaje':          'Con deterioro del lenguaje acompañante',
+            'asociado_trastorno_neurodesarrollo': 'Asociado a otro trastorno del neurodesarrollo, mental o del comportamiento',
+            'con_catatonia':               'Con catatonía',
+            'perdida_habilidades':         'Pérdida de habilidades previamente adquiridas',
             'condicion_medica_asociada':   'Afección médica o genética asociada (opcional)',
         }
 
