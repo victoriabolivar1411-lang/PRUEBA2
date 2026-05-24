@@ -762,7 +762,11 @@
   @keyframes blink-status {
     0%,100% { opacity: 1; } 50% { opacity: .35; }
   }
-  .chat-close-btn {
+  .chat-header-actions {
+    display: flex;
+    gap: .4rem;
+  }
+  .chat-action-btn {
     background: rgba(255,255,255,.08);
     border: none;
     color: var(--c-muted);
@@ -774,7 +778,8 @@
     transition: background .2s, color .2s;
     flex-shrink: 0;
   }
-  .chat-close-btn:hover { background: rgba(248,113,113,.2); color: var(--c-red); }
+  .chat-action-btn:hover { background: rgba(255,255,255,.2); color: var(--c-white); }
+  .chat-action-btn.danger:hover { background: rgba(248,113,113,.2); color: var(--c-red); }
 
   /* ── Área de mensajes ───────────────────────────────────────────────── */
   #chat-messages {
@@ -969,7 +974,10 @@
       <div class="chat-bot-name">TEAbot</div>
       <div class="chat-bot-status">En línea</div>
     </div>
-    <button class="chat-close-btn" id="chat-close-btn" aria-label="Cerrar chat">✕</button>
+    <div class="chat-header-actions">
+      <button class="chat-action-btn" id="chat-reset-btn" aria-label="Reiniciar chat" title="Borrar y reiniciar conversación">↺</button>
+      <button class="chat-action-btn danger" id="chat-close-btn" aria-label="Cerrar chat" title="Cerrar chat">✕</button>
+    </div>
   </div>
 
   <!-- Mensajes -->
@@ -1011,6 +1019,7 @@
   const badge      = document.getElementById('chat-badge');
   const win        = document.getElementById('chat-window');
   const closeBtn   = document.getElementById('chat-close-btn');
+  const resetBtn   = document.getElementById('chat-reset-btn');
   const messages   = document.getElementById('chat-messages');
   const typing     = document.getElementById('chat-typing');
   const input      = document.getElementById('chat-input');
@@ -1233,6 +1242,14 @@
   /* ── Eventos ───────────────────────────────────────────────────────────── */
   fab.addEventListener('click', toggleChat);
   closeBtn.addEventListener('click', toggleChat);
+
+  resetBtn.addEventListener('click', () => {
+    // Vaciar el DOM de mensajes
+    messages.innerHTML = '';
+    messages.appendChild(typing); // Reinsertar indicador de escritura
+    welcomed = false; // Resetear estado de bienvenida
+    loadWelcome(); // Cargar bienvenida que limpia la sesión en el backend
+  });
 
   sendBtn.addEventListener('click', () => sendMessage());
 

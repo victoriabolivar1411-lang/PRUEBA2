@@ -12,6 +12,19 @@ Descripción: Motor NLP ligero (sin dependencias externas) para el chatbot
 
 import unicodedata
 import re
+import os
+
+try:
+    import google.generativeai as genai
+    # Si hay clave en el entorno, configurarla
+    _api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if _api_key:
+        genai.configure(api_key=_api_key)
+        GEMINI_AVAILABLE = True
+    else:
+        GEMINI_AVAILABLE = False
+except ImportError:
+    GEMINI_AVAILABLE = False
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NORMALIZACIÓN DE TEXTO
@@ -239,16 +252,18 @@ def detectar_intencion(texto: str, historial: list) -> str:
         if max_score > 0:
             puntuaciones[intencion] = max_score
 
-    if not puntuaciones:
-        return _resolver_por_contexto(historial)
-
-    mejor = max(puntuaciones, key=puntuaciones.get)
+    mejor = max(puntuaciones, key=puntuaciones.get) if puntuaciones else None
 
     # Umbral mínimo de confianza ajustado a 0.8
-    if puntuaciones[mejor] < 0.8:
-        return _resolver_por_contexto(historial)
+    if mejor and puntuaciones[mejor] >= 0.8:
+        return mejor
 
-    return mejor
+    # Si ninguna intención supera el umbral, intentamos buscar en la base de conocimientos
+    # usando la duda como posible síntoma o comportamiento.
+    if buscar_reglas_por_palabras(texto):
+        return 'comportamiento_duda'
+
+    return _resolver_por_contexto(historial)
 
 
 def _resolver_por_contexto(historial: list) -> str:
@@ -742,6 +757,37 @@ def generar_respuesta(intencion: str, contexto: dict) -> dict:
 
     respuesta = respuestas.get(intencion, respuestas['fallback'])
     respuesta['intencion'] = intencion
+
+    # ── INTEGRACIÓN CON GEMINI IA ──────────────────────────────────────────
+    # Si la intención es de dominio general o clínica (no operativa) o es un fallback
+    intenciones_operativas = [
+        'saludo', 'despedida', 'horarios', 'contacto', 'ubicacion', 
+        'funcionalidades', 'ayuda', 'problemas_tecnicos', 
+        'registro_estudiante', 'registro_usuario', 'evaluacion', 
+        'resultados', 'perfil'
+    ]
+                              
+    if GEMINI_AVAILABLE and intencion not in intenciones_operativas:
+        mensaje_original = contexto.get('mensaje', '')
+        if mensaje_original:
+            try:
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                prompt = (
+                    f"Eres TEAbot, un asistente experto en Trastorno del Espectro Autista (TEA) y desarrollo infantil. "
+                    f"El usuario te pregunta: '{mensaje_original}'. "
+                    f"Responde de forma empática, clara, exacta y directa a la pregunta en menos de 120 palabras. "
+                    f"Usa formato HTML básico para negritas (<strong>) o listas si es necesario. "
+                    f"No uses markdown clásico como ** o *."
+                )
+                response = model.generate_content(prompt)
+                if response and response.text:
+                    texto_ia = response.text.replace('\n', '<br>')
+                    texto_ia += f'{AVISO_MEDICO}'
+                    # Reemplazamos el texto predefinido por el de la IA, pero mantenemos los botones
+                    respuesta['texto'] = texto_ia
+            except Exception as e:
+                pass # Si falla la IA por conexión o algo, cae silenciosamente al texto predefinido.
+
     return respuesta
 
 
