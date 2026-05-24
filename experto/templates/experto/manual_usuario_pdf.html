@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Manual de Usuario - Sistema Experto TEA</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 1.5cm;
+      @frame footer {
+        -pdf-frame-content: footerContent;
+        bottom: 1cm;
+        margin-left: 1.5cm;
+        margin-right: 1.5cm;
+        height: 1cm;
+      }
+    }
+    
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11pt;
+      color: #111827;
+      line-height: 1.5;
+    }
+    
+    h1, h2, h3 {
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    
+    h1 {
+      color: #1e40af;
+      font-size: 24pt;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    h2 {
+      color: #1e40af;
+      font-size: 16pt;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 5px;
+      margin-top: 30px;
+    }
+    
+    h3 {
+      color: #374151;
+      font-size: 13pt;
+      margin-top: 20px;
+    }
+    
+    p {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+    
+    ul, ol {
+      margin-bottom: 15px;
+      margin-left: 20px;
+    }
+    
+    li {
+      margin-bottom: 5px;
+    }
+    
+    .cover {
+      text-align: center;
+      padding-top: 150px;
+      page-break-after: always;
+    }
+    
+    .cover-title {
+      font-size: 36pt;
+      font-weight: bold;
+      color: #1e40af;
+      margin-bottom: 20px;
+    }
+    
+    .cover-subtitle {
+      font-size: 20pt;
+      color: #374151;
+      margin-bottom: 100px;
+    }
+    
+    .cover-info {
+      font-size: 14pt;
+      color: #4b5563;
+    }
+    
+    .note-box {
+      background-color: #f3f4f6;
+      border-left: 4px solid #1e40af;
+      padding: 10px 15px;
+      margin: 15px 0;
+    }
+    
+    .table-container {
+      margin: 20px 0;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    
+    th {
+      background-color: #f3f4f6;
+      color: #1e40af;
+      font-weight: bold;
+      text-align: left;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+    }
+    
+    td {
+      padding: 10px;
+      border: 1px solid #d1d5db;
+    }
+    
+    .page-break {
+      page-break-before: always;
+    }
+    
+    #footerContent {
+      text-align: center;
+      font-size: 9pt;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Paginación -->
+  <div id="footerContent">
+    Página <pdf:pagenumber> de <pdf:pagecount>
+  </div>
+
+  <!-- PORTADA -->
+  <div class="cover">
+    <div class="cover-title">Manual de Usuario</div>
+    <div class="cover-subtitle">Sistema Experto para Apoyo Pedagógico en TEA</div>
+    
+    <div class="cover-info">
+      <p>Generado para: <strong>{{ instructor }}</strong></p>
+      <p>Fecha de generación: <strong>{{ fecha }}</strong></p>
+    </div>
+  </div>
+
+  <!-- SECCIÓN 1: INTRODUCCIÓN -->
+  <h2>SECCIÓN 1: INTRODUCCIÓN</h2>
+  <p>Bienvenido al Sistema Experto para Apoyo Pedagógico en TEA (Trastorno del Espectro Autista). Este manual tiene como objetivo guiarte paso a paso por todas las funcionalidades que ofrece el sistema para garantizar una experiencia óptima.</p>
+  <p>Este sistema está dirigido a docentes, instructores y especialistas encargados de evaluar y realizar el seguimiento del desarrollo pedagógico y conductual de estudiantes, facilitando la creación de recomendaciones personalizadas basadas en criterios clínicos (DSM-5).</p>
+
+  <!-- SECCIÓN 2: ACCESO AL SISTEMA -->
+  <h2>SECCIÓN 2: ACCESO AL SISTEMA</h2>
+  <h3>2.1. Iniciar sesión</h3>
+  <p>Para ingresar al sistema, dirígete a la página de inicio y haz clic en "Iniciar Sesión". Necesitarás tu nombre de usuario y tu contraseña. Una vez ingreses correctamente estos datos, serás redirigido al <strong>Dashboard (Panel Principal)</strong>.</p>
+  
+  <h3>2.2. Recuperar contraseña</h3>
+  <p>Si olvidas tu contraseña, el sistema cuenta con un método seguro de recuperación en dos pasos:</p>
+  <ol>
+    <li>Haz clic en "Olvidé mi contraseña" en la pantalla de login.</li>
+    <li>Ingresa tu nombre de usuario o número de cédula.</li>
+    <li>Responde correctamente a las <strong>3 preguntas de seguridad</strong> que configuraste al editar tu perfil.</li>
+    <li>Si las respuestas son correctas, el sistema generará un <strong>código de 6 dígitos</strong> válido por 5 minutos.</li>
+    <li>Ingresa el código junto con tu nueva contraseña para restaurar el acceso.</li>
+  </ol>
+
+  <!-- SECCIÓN 3: PERFIL DEL ESTUDIANTE -->
+  <div class="page-break"></div>
+  <h2>SECCIÓN 3: PERFIL DEL ESTUDIANTE</h2>
+  <p>El sistema permite gestionar de manera detallada la información de los estudiantes y sus representantes legales.</p>
+  
+  <h3>3.1. Gestionar Estudiante</h3>
+  <ul>
+    <li><strong>Ver perfil:</strong> Desde la lista de estudiantes, haz clic en "Ver perfil" para acceder a toda la información del niño, incluyendo su historial clínico y evaluaciones.</li>
+    <li><strong>Editar datos:</strong> Utiliza el botón "Editar Estudiante" para modificar información personal como nombre, fecha de nacimiento, sexo, o subir una foto.</li>
+  </ul>
+
+  <h3>3.2. Gestionar Representante y Dirección</h3>
+  <ul>
+    <li><strong>Editar representante:</strong> En el perfil del estudiante, haz clic en "Editar Representante" para actualizar los datos del padre, madre o tutor legal.</li>
+    <li><strong>Campos de dirección:</strong> Encontrarás campos estructurados para registrar el Estado, Municipio y la Dirección detallada de residencia, asegurando un registro preciso.</li>
+  </ul>
+
+  <!-- SECCIÓN 4: EVALUACIONES -->
+  <h2>SECCIÓN 4: EVALUACIONES</h2>
+  <p>El núcleo del sistema es su capacidad para evaluar a los estudiantes y generar recomendaciones basadas en reglas expertas.</p>
+  
+  <h3>4.1. Tipos de Evaluaciones</h3>
+  <p>El sistema maneja varias áreas de evaluación:</p>
+  <ul>
+    <li><strong>Evaluación DSM-5:</strong> Criterios diagnósticos clínicos (ver Sección 6).</li>
+    <li><strong>Evaluación Pedagógica:</strong> Comunicación Social, Conductas Repetitivas, Sensorialidad y Lenguaje.</li>
+  </ul>
+
+  <h3>4.2. Registro e Historial</h3>
+  <p>Para registrar una evaluación, accede al perfil del estudiante y selecciona "Nueva Evaluación". El historial completo de evaluaciones anteriores siempre estará disponible en su perfil para su revisión y comparación.</p>
+
+  <!-- SECCIÓN 5: EVOLUCIÓN DEL ESTUDIANTE -->
+  <div class="page-break"></div>
+  <h2>SECCIÓN 5: EVOLUCIÓN DEL ESTUDIANTE</h2>
+  <p>La sección de Evolución permite visualizar el progreso del estudiante a lo largo del tiempo de manera gráfica e intuitiva.</p>
+  
+  <h3>5.1. Gráfica de Tendencias</h3>
+  <p>El sistema genera una gráfica de líneas que muestra la variación de los puntajes obtenidos en cada evaluación. Los puntos en la gráfica utilizan un código de colores:</p>
+  <ul>
+    <li><strong>Puntos Verdes:</strong> El estudiante ha mejorado su puntaje respecto a la evaluación anterior.</li>
+    <li><strong>Puntos Rojos:</strong> El estudiante ha disminuido su puntaje (empeoró).</li>
+    <li><strong>Puntos Naranjas:</strong> El puntaje se mantiene estable.</li>
+  </ul>
+
+  <h3>5.2. Resumen y Reporte PDF</h3>
+  <p>Debajo de la gráfica encontrarás una tabla detallada con cada evaluación, junto con un resumen automático que indica la tendencia general, el mejor puntaje y el último puntaje obtenido.</p>
+  <div class="note-box">
+    <strong>Tip:</strong> Puedes hacer clic en el botón <strong>"📄 Imprimir Reporte (PDF)"</strong> para generar un documento listo para entregar a los padres o archivar en el expediente físico.
+  </div>
+
+  <!-- SECCIÓN 6: DSM-5 - CRITERIO A -->
+  <h2>SECCIÓN 6: DSM-5 - CRITERIO A</h2>
+  <p>El formulario del Criterio A (Deficiencias en Comunicación e Interacción Social) ha sido optimizado para la recolección precisa de datos clínicos.</p>
+  
+  <h3>Opciones Múltiples</h3>
+  <p>Cada uno de los 3 subcriterios (A.1, A.2, A.3) se presenta en una tarjeta organizada donde debes seleccionar el nivel de apoyo requerido:</p>
+  <ul>
+    <li><strong>Ausente:</strong> Sin deficiencias notables.</li>
+    <li><strong>Leve:</strong> Requiere apoyo.</li>
+    <li><strong>Moderado:</strong> Requiere apoyo sustancial.</li>
+    <li><strong>Grave:</strong> Requiere apoyo muy sustancial.</li>
+  </ul>
+  <p>El sistema calculará <strong>automáticamente</strong> el puntaje total en base a tus selecciones al guardar la evaluación. Además, puedes utilizar el campo de texto opcional debajo de cada selección para añadir observaciones específicas (ej: "Dificultad para iniciar conversaciones").</p>
+
+  <!-- SECCIÓN 7: CHATBOT INTELIGENTE -->
+  <div class="page-break"></div>
+  <h2>SECCIÓN 7: CHATBOT INTELIGENTE</h2>
+  <p>El sistema cuenta con un Chatbot asistente (widget flotante en la esquina inferior derecha) diseñado para responder preguntas al instante.</p>
+  
+  <h3>¿Qué puede responder?</h3>
+  <ul>
+    <li>Dudas sobre qué es el TEA y sus síntomas.</li>
+    <li>Información sobre desarrollo infantil.</li>
+    <li>Orientación sobre cómo usar las diferentes funciones de este sistema.</li>
+  </ul>
+  
+  <h3>Ejemplos de preguntas</h3>
+  <p>Puedes escribirle cosas como:</p>
+  <div class="note-box">
+    "¿Qué es la ecolalia?"<br>
+    "¿Cómo registro un nuevo estudiante?"<br>
+    "¿Cuáles son los niveles de severidad en el autismo?"
+  </div>
+
+  <!-- SECCIÓN 8: CONFIGURACIÓN Y PREFERENCIAS -->
+  <h2>SECCIÓN 8: CONFIGURACIÓN Y PREFERENCIAS</h2>
+  <p>El sistema te permite personalizar la interfaz para mayor comodidad visual, especialmente útil durante jornadas largas de trabajo.</p>
+  
+  <h3>Modo Claro y Oscuro</h3>
+  <p>En la barra superior (navbar) encontrarás un botón con el ícono de un sol (🌞) o una luna (🌙). Al hacer clic, toda la interfaz cambiará entre el Modo Claro (fondos blancos, alta legibilidad) y el Modo Oscuro (fondos oscuros, reduce la fatiga visual). Esta preferencia se guarda automáticamente para tus futuras sesiones.</p>
+
+  <!-- SECCIÓN 9: PREGUNTAS FRECUENTES (FAQ) -->
+  <div class="page-break"></div>
+  <h2>SECCIÓN 9: PREGUNTAS FRECUENTES (FAQ)</h2>
+  
+  <p><strong>¿Cómo recupero mi contraseña?</strong><br>
+  Ve a la pantalla de login, selecciona "Olvidé mi contraseña", responde a tus 3 preguntas de seguridad y utiliza el código de 6 dígitos que se te generará.</p>
+  
+  <p><strong>¿Cómo edito mi perfil?</strong><br>
+  Haz clic en tu nombre en la barra superior o ve a tu perfil de instructor y selecciona "Editar Perfil". Allí podrás actualizar tus datos personales y tus preguntas de seguridad.</p>
+  
+  <p><strong>¿Qué significa cada color en la gráfica de evolución?</strong><br>
+  Verde indica mejoría, rojo indica que el puntaje bajó respecto a la vez anterior, y naranja indica que no hubo cambios (estable).</p>
+  
+  <p><strong>¿Cómo imprimir un reporte?</strong><br>
+  Tanto en la vista de Resultados de Inferencia como en la vista de Evolución, encontrarás botones que dicen "Imprimir Reporte (PDF)". Haz clic en ellos para descargar el documento.</p>
+
+  <!-- SECCIÓN 10: SOPORTE Y CONTACTO -->
+  <h2>SECCIÓN 10: SOPORTE Y CONTACTO</h2>
+  <p>Si experimentas problemas técnicos, errores en el sistema o tienes sugerencias de mejora, por favor contacta al equipo de soporte:</p>
+  
+  <div class="note-box" style="text-align: center; font-size: 14pt;">
+    <strong>Correo:</strong> soporte@sistemaexperto-tea.com<br><br>
+    <strong>Teléfono:</strong> +58 0412-1234567<br><br>
+    <strong>Horario:</strong> Lunes a Viernes, 8:00 AM - 5:00 PM
+  </div>
+
+</body>
+</html>

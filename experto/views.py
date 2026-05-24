@@ -98,6 +98,29 @@ def logout_view(request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @login_required(login_url='login')
+def descargar_manual_pdf(request):
+    template_path = 'experto/manual_usuario_pdf.html'
+    context = {
+        'fecha': timezone.now().strftime('%d/%m/%Y'),
+        'instructor': request.user.first_name or request.user.username
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Manual_Usuario_Sistema_TEA.pdf"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(
+        html, dest=response
+    )
+    
+    if pisa_status.err:
+        return HttpResponse('Tuvimos errores generando el PDF <pre>' + html + '</pre>')
+    return response
+
+
+@login_required(login_url='login')
 def dashboard(request):
     instructor   = _get_instructor(request)
     estudiantes_all = Estudiante.objects.filter(instructor=instructor)
