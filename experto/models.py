@@ -110,6 +110,12 @@ class Instructor(models.Model):
     reset_code_expires = models.DateTimeField(
         blank=True, null=True, verbose_name='Expiración del código'
     )
+    tema = models.CharField(
+        max_length=10, 
+        choices=[('light', 'Claro'), ('dark', 'Oscuro')], 
+        default='dark', 
+        verbose_name='Tema del sistema'
+    )
     fecha_registro = models.DateTimeField(
         auto_now_add=True, verbose_name='Fecha de registro'
     )
@@ -155,6 +161,9 @@ class Estudiante(models.Model):
         verbose_name='Edad',
         validators=[MinValueValidator(0), MaxValueValidator(120)],
     )
+    fecha_nacimiento = models.DateField(
+        blank=True, null=True, verbose_name='Fecha de nacimiento'
+    )
     foto_carnet = models.ImageField(
         upload_to='fotos_estudiantes/',
         blank=True,
@@ -180,6 +189,16 @@ class Estudiante(models.Model):
     @property
     def tiene_representante(self):
         return hasattr(self, 'representante')
+
+    @property
+    def edad_calculada(self):
+        """Retorna la edad calculada desde fecha_nacimiento o el campo edad manual."""
+        if self.fecha_nacimiento:
+            from django.utils import timezone
+            hoy = timezone.now().date()
+            delta = hoy - self.fecha_nacimiento
+            return delta.days // 365
+        return self.edad
 
     @property
     def ultima_evaluacion_dsm5(self):
@@ -272,27 +291,51 @@ class EvaluacionDSM5(models.Model):
     )
     fecha = models.DateTimeField(auto_now_add=True, verbose_name='Fecha')
 
+    NIVELES_APOYO = [
+        ('ausente', 'Ausente / No aplica'),
+        ('leve', 'Leve (requiere apoyo)'),
+        ('moderado', 'Moderado (requiere apoyo sustancial)'),
+        ('grave', 'Grave (requiere apoyo muy sustancial)'),
+    ]
+
     # ── CRITERIO A: Comunicación Social ──────────────────────────────────────
     nivel_comunicacion_social = models.CharField(
         max_length=30,
         choices=NIVEL_COMUNICACION_CHOICES,
-        verbose_name='Nivel de comunicación social (Criterio A)',
+        verbose_name='Nivel general de comunicación social (Criterio A)',
     )
+    
     # A.1 Reciprocidad socioemocional
-    obs_reciprocidad = models.TextField(
-        blank=True,
-        verbose_name='A.1 — Reciprocidad socioemocional (observaciones)',
+    a1_reciprocidad = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.1 — Deficiencias en la reciprocidad socioemocional'
     )
+    a1_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.1 — Observaciones'
+    )
+    
     # A.2 Comunicación no verbal
-    obs_comunicacion_no_verbal = models.TextField(
-        blank=True,
-        verbose_name='A.2 — Comunicación no verbal (observaciones)',
+    a2_comunicacion_no_verbal = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.2 — Deficiencias en conductas comunicativas no verbales'
     )
+    a2_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.2 — Observaciones'
+    )
+    
     # A.3 Desarrollo y comprensión de relaciones
-    obs_desarrollo_relaciones = models.TextField(
-        blank=True,
-        verbose_name='A.3 — Desarrollo y comprensión de relaciones (observaciones)',
+    a3_relaciones = models.CharField(
+        max_length=20, choices=NIVELES_APOYO, default='ausente',
+        verbose_name='A.3 — Deficiencias en desarrollo, mantenimiento y comprensión de relaciones'
     )
+    a3_observaciones = models.TextField(
+        blank=True,
+        verbose_name='A.3 — Observaciones'
+    )
+
+    puntaje_total_a = models.IntegerField(editable=False, default=0, verbose_name='Puntaje Total Criterio A')
 
     # ── CRITERIO B: Comportamientos Restringidos y Repetitivos ───────────────
     nivel_conductas_repetitivas = models.CharField(
@@ -356,7 +399,18 @@ class EvaluacionDSM5(models.Model):
         ordering            = ['-fecha']
 
     def __str__(self):
-        return f'DSM-5 de {self.estudiante} — {self.fecha}'
+        return f"DSM-5 de {self.estudiante} - {self.fecha.strftime('%d/%m/%Y')}"
+
+    def save(self, *args, **kwargs):
+        # Calcular puntaje: ausente=0, leve=1, moderado=2, grave=3
+        valores = {
+            'ausente': 0, 'leve': 1, 'moderado': 2, 'grave': 3
+        }
+        total = valores.get(self.a1_reciprocidad, 0) + \
+                valores.get(self.a2_comunicacion_no_verbal, 0) + \
+                valores.get(self.a3_relaciones, 0)
+        self.puntaje_total_a = total
+        super().save(*args, **kwargs)
 
     def cumple_criterio_b(self) -> bool:
         """
@@ -507,3 +561,67 @@ class Recomendacion(models.Model):
 
     def __str__(self):
         return f'Recomendación para {self.evaluacion_pedagogica.estudiante}'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. EVALUACIÓN DE EVOLUCIÓN
+# ─────────────────────────────────────────────────────────────────────────────
+
+TIPO_EVALUACION_CHOICES = [
+    ('TEA',       'TEA'),
+    ('TDAH',      'TDAH'),
+    ('LENGUAJE',  'Lenguaje'),
+    ('CONDUCTA',  'Conducta'),
+    ('SENSORIAL', 'Sensorial'),
+    ('OTRO',      'Otro'),
+]
+
+
+class Evaluacion(models.Model):
+    """
+    Evaluación periódica para rastrear la evolución del estudiante a lo largo
+    del tiempo. Permite visualizar el progreso mediante gráficas de líneas.
+    """
+    estudiante = models.ForeignKey(
+        Estudiante,
+        on_delete=models.CASCADE,
+        related_name='evaluaciones_evolucion',
+        verbose_name='Estudiante',
+    )
+    fecha = models.DateField(verbose_name='Fecha de la evaluación')
+    nombre = models.CharField(max_length=200, verbose_name='Nombre de la evaluación')
+    tipo = models.CharField(
+        max_length=20,
+        choices=TIPO_EVALUACION_CHOICES,
+        default='TEA',
+        verbose_name='Tipo de evaluación',
+    )
+    puntaje_obtenido = models.FloatField(
+        verbose_name='Puntaje obtenido',
+        validators=[MinValueValidator(0)],
+    )
+    puntaje_maximo = models.FloatField(
+        default=100.0,
+        verbose_name='Puntaje máximo',
+        validators=[MinValueValidator(1)],
+    )
+    porcentaje = models.FloatField(
+        editable=False,
+        default=0.0,
+        verbose_name='Porcentaje (%)',
+    )
+    observaciones = models.TextField(blank=True, verbose_name='Observaciones')
+
+    class Meta:
+        verbose_name        = 'Evaluación de Evolución'
+        verbose_name_plural = 'Evaluaciones de Evolución'
+        ordering            = ['fecha']
+
+    def save(self, *args, **kwargs):
+        """Calcula el porcentaje automáticamente antes de guardar."""
+        if self.puntaje_maximo and self.puntaje_maximo > 0:
+            self.porcentaje = round((self.puntaje_obtenido / self.puntaje_maximo) * 100, 2)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f'{self.nombre} — {self.estudiante} ({self.fecha})'

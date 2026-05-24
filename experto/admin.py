@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica, Regla, Recomendacion
+from .models import Instructor, Estudiante, Representante, EvaluacionDSM5, EvaluacionPedagogica, Regla, Recomendacion, Evaluacion
 
 
 @admin.register(Instructor)
@@ -47,3 +47,13 @@ class ReglaAdmin(admin.ModelAdmin):
 class RecomendacionAdmin(admin.ModelAdmin):
     list_display = ['evaluacion_pedagogica', 'regla', 'generada_en']
     readonly_fields = ['generada_en']
+
+
+@admin.register(Evaluacion)
+class EvaluacionAdmin(admin.ModelAdmin):
+    list_display  = ['estudiante', 'fecha', 'nombre', 'tipo', 'puntaje_obtenido', 'puntaje_maximo', 'porcentaje']
+    list_filter   = ['tipo', 'estudiante__instructor']
+    search_fields = ['nombre', 'estudiante__nombre_completo']
+    readonly_fields = ['porcentaje']
+    date_hierarchy = 'fecha'
+    ordering = ['estudiante', 'fecha']

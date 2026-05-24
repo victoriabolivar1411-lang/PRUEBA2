@@ -8,10 +8,29 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   {% load static %}
+  <script>
+    (function() {
+      var theme = localStorage.getItem('theme');
+      if (!theme) {
+        {% if user.is_authenticated and user.instructor.tema %}
+          theme = '{{ user.instructor.tema }}';
+        {% else %}
+          if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            theme = 'light';
+          } else {
+            theme = 'dark';
+          }
+        {% endif %}
+      }
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
   <style>
     /* ─── RESET & TOKENS ─────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
+    
+    /* Variables por defecto (Tema Oscuro) */
+    :root, :root[data-theme="dark"] {
       --c-bg:       #0f1117;
       --c-surface:  #1a1d27;
       --c-card:     #222639;
@@ -25,10 +44,42 @@
       --c-text:     #e2e8f0;
       --c-muted:    #94a3b8;
       --c-white:    #ffffff;
+      --c-heading:  #ffffff;
       --r:          12px;
       --r-lg:       18px;
       --shadow:     0 4px 24px rgba(0,0,0,.4);
+      --shadow-nav: 0 4px 20px rgba(0,0,0,.2);
+      --shadow-sm:  0 2px 10px rgba(0,0,0,.2);
     }
+
+    /* Tema Claro */
+    :root[data-theme="light"] {
+      --c-bg:       #f1f5f9;
+      --c-surface:  #ffffff;
+      --c-card:     #ffffff;
+      --c-border:   #cbd5e1;
+      --c-accent:   #4f46e5;
+      --c-accent2:  #7c3aed;
+      --c-teal:     #0891b2;
+      --c-green:    #16a34a;
+      --c-yellow:   #ca8a04;
+      --c-red:      #dc2626;
+      --c-text:     #334155;
+      --c-muted:    #64748b;
+      --c-white:    #0f172a;
+      --c-heading:  #0f172a;
+      --r:          12px;
+      --r-lg:       18px;
+      --shadow:     0 8px 24px rgba(0,0,0,.35);
+      --shadow-nav: 0 4px 15px rgba(0,0,0,.25);
+      --shadow-sm:  0 4px 12px rgba(0,0,0,.25);
+    }
+
+    /* Transiciones suaves */
+    body, .navbar, .sidebar, .card, .stat-card, .form-input, .form-textarea, select.form-input, .dropdown-menu, .btn, .dsm-section, .alert, .form-checkbox-row {
+      transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    }
+
     html { scroll-behavior: smooth; }
     body {
       font-family: 'Inter', sans-serif;
@@ -46,6 +97,7 @@
     .navbar {
       background: var(--c-surface);
       border-bottom: 1px solid var(--c-border);
+      box-shadow: var(--shadow-nav);
       padding: .9rem 2rem;
       display: flex;
       align-items: center;
@@ -61,7 +113,7 @@
       gap: .6rem;
       font-weight: 700;
       font-size: 1.15rem;
-      color: var(--c-white);
+      color: var(--c-heading);
       text-decoration: none;
     }
     .navbar-brand .brand-icon {
@@ -172,7 +224,7 @@
     .card-title {
       font-size: 1.1rem;
       font-weight: 600;
-      color: var(--c-white);
+      color: var(--c-heading);
     }
     .card-subtitle {
       font-size: .85rem;
@@ -187,6 +239,7 @@
       display: flex;
       align-items: center;
       gap: 1rem;
+      box-shadow: var(--shadow-sm);
     }
     .stat-icon {
       width: 48px; height: 48px;
@@ -262,6 +315,7 @@
       font-family: 'Inter', sans-serif;
       transition: border-color .2s, box-shadow .2s;
       appearance: auto;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
     }
     .form-input:focus, textarea.form-input:focus, select.form-input:focus {
       outline: none;
@@ -281,6 +335,7 @@
       min-height: 100px;
       resize: vertical;
       display: block;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
     }
     .form-textarea::placeholder { color: var(--c-muted); font-style: italic; }
     .form-textarea:focus {
@@ -403,7 +458,7 @@
     .page-title {
       font-size: 1.6rem;
       font-weight: 700;
-      color: var(--c-white);
+      color: var(--c-heading);
     }
     .page-subtitle { font-size: .9rem; color: var(--c-muted); margin-top: .2rem; }
     .breadcrumb {
@@ -457,6 +512,73 @@
       font-size: .8rem;
       font-weight: 700;
       color: var(--c-accent2);
+    }
+    
+    .subcriterios-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .subcriterio-card {
+      background: var(--c-bg);
+      border: 1px solid var(--c-border);
+      border-radius: 10px;
+      padding: 1.2rem;
+    }
+    .subcriterio-header {
+      font-size: .95rem;
+      font-weight: 600;
+      color: var(--c-heading);
+      margin-bottom: 1rem;
+      padding-bottom: .5rem;
+      border-bottom: 1px dashed var(--c-border);
+    }
+    .radio-options {
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+    .radio-group {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+    }
+    .radio-group li label {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: .9rem;
+      color: var(--c-text);
+      cursor: pointer;
+    }
+    .radio-group input[type="radio"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--c-muted);
+      border-radius: 4px; /* Cuadrado con bordes suaves */
+      cursor: pointer;
+      position: relative;
+      background-color: var(--c-surface);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .radio-group input[type="radio"]:checked {
+      background-color: var(--c-accent);
+      border-color: var(--c-accent);
+    }
+    .radio-group input[type="radio"]:checked::after {
+      content: '✔';
+      position: absolute;
+      color: white;
+      font-size: 12px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
     }
 
     /* ─── PRINT STYLES ───────────────────────────────────────── */
@@ -573,30 +695,38 @@
     <li><a href="{% url 'lista_estudiantes' %}">Estudiantes</a></li>
     <li><a href="{% url 'base_conocimientos' %}">Base de Conocimientos</a></li>
   </ul>
-  <div class="navbar-user">
-    <div class="user-dropdown">
-      <div class="user-trigger">
-        {% if user.instructor.foto_perfil %}
-        <img src="{{ user.instructor.foto_perfil.url }}" alt="Foto" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--c-border);">
-        {% else %}
-        <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
-        {% endif %}
-        <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
-        <span class="arrow">▼</span>
-      </div>
-      <div class="dropdown-menu">
-        <a href="{% url 'perfil_instructor' %}" class="dropdown-item">👤 Ver mi perfil</a>
-        <hr class="dropdown-divider">
-        <a href="{% url 'logout' %}" class="dropdown-item danger">🚪 Cerrar sesión</a>
+  {% endif %}
+
+  <div class="d-flex align-center gap-1">
+    <button id="theme-toggle" class="btn btn-ghost btn-sm" title="Cambiar tema">
+      <span id="theme-icon">🌞</span> <span id="theme-text" class="d-none d-sm-inline">Modo Claro</span>
+    </button>
+    {% if user.is_authenticated %}
+    <div class="navbar-user">
+      <div class="user-dropdown">
+        <div class="user-trigger">
+          {% if user.instructor.foto_perfil %}
+          <img src="{{ user.instructor.foto_perfil.url }}" alt="Foto" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid var(--c-border);">
+          {% else %}
+          <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+          {% endif %}
+          <span class="user-name">{{ user.get_full_name|default:user.username }}</span>
+          <span class="arrow">▼</span>
+        </div>
+        <div class="dropdown-menu">
+          <a href="{% url 'perfil_instructor' %}" class="dropdown-item">👤 Ver mi perfil</a>
+          <hr class="dropdown-divider">
+          <a href="{% url 'logout' %}" class="dropdown-item danger">🚪 Cerrar sesión</a>
+        </div>
       </div>
     </div>
+    {% else %}
+    <div class="d-flex gap-1">
+      <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">Iniciar sesión</a>
+      <a href="{% url 'registro_instructor' %}" class="btn btn-primary btn-sm">Registrarse</a>
+    </div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="d-flex gap-1">
-    <a href="{% url 'login' %}" class="btn btn-ghost btn-sm">Iniciar sesión</a>
-    <a href="{% url 'registro_instructor' %}" class="btn btn-primary btn-sm">Registrarse</a>
-  </div>
-  {% endif %}
 </nav>
 
 <!-- ── MESSAGES ─────────────────────────────────────────────────────────── -->
@@ -744,7 +874,7 @@
     box-shadow: 0 0 12px rgba(108,99,255,.5);
   }
   .chat-bot-info { flex: 1; }
-  .chat-bot-name { font-weight: 700; font-size: .95rem; color: var(--c-white); }
+  .chat-bot-name { font-weight: 700; font-size: .95rem; color: #ffffff; }
   .chat-bot-status {
     font-size: .75rem;
     color: var(--c-green);
@@ -1278,6 +1408,56 @@
 {# ── Variable de usuario para el avatar del chat ────────────────────── #}
 <script>
   window._chatUserInitial = "{% if user.is_authenticated %}{{ user.first_name|first|upper }}{% if user.last_name %}{{ user.last_name|first|upper }}{% endif %}{% else %}?{% endif %}";
+</script>
+
+{# ── Lógica del botón de Tema (Modo Claro / Oscuro) ────────────────── #}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnToggle = document.getElementById('theme-toggle');
+    const icon = document.getElementById('theme-icon');
+    const text = document.getElementById('theme-text');
+    const htmlEl = document.documentElement;
+
+    function updateButtonState() {
+      const currentTheme = htmlEl.getAttribute('data-theme') || 'dark';
+      if (currentTheme === 'light') {
+        icon.textContent = '🌙';
+        if (text) text.textContent = 'Modo Oscuro';
+      } else {
+        icon.textContent = '🌞';
+        if (text) text.textContent = 'Modo Claro';
+      }
+    }
+
+    // Inicializar estado del botón
+    updateButtonState();
+
+    btnToggle.addEventListener('click', () => {
+      let currentTheme = htmlEl.getAttribute('data-theme');
+      let newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      
+      htmlEl.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateButtonState();
+
+      // Guardar en el backend si está logueado
+      {% if user.is_authenticated %}
+      fetch('{% url "guardar_tema" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ tema: newTheme })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.status !== 'ok') console.error('Error guardando el tema:', data.message);
+      })
+      .catch(err => console.error('Error de red:', err));
+      {% endif %}
+    });
+  });
 </script>
 
 </body>

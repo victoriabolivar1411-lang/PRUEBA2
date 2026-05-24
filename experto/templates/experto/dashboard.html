@@ -6,7 +6,10 @@
     <h1 class="page-title">¡Hola, {{ instructor.usuario.first_name }}! 👋</h1>
     <p class="page-subtitle">Panel principal del Sistema Experto TEA</p>
   </div>
-  <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">➕ Nuevo estudiante</a>
+  <div class="d-flex align-center gap-1">
+    <a href="{% url 'descargar_manual_pdf' %}" class="btn btn-secondary" style="background:var(--c-surface);border:1px solid var(--c-border);color:var(--c-heading)">📘 Manual de Usuario PDF</a>
+    <a href="{% url 'registro_estudiante' %}" class="btn btn-primary">➕ Nuevo estudiante</a>
+  </div>
 </div>
 
 <!-- Estadísticas -->

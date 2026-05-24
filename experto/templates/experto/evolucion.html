@@ -1,0 +1,785 @@
+{% extends 'experto/base.html' %}
+{% block title %}Evolución de {{ estudiante.nombre_completo }} — Sistema Experto TEA{% endblock %}
+
+{% block content %}
+<style>
+  /* ─── METRIC CARDS ───────────────────────────────────────── */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  @media (min-width: 768px) {
+    .metrics-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem;
+    }
+  }
+  .metric-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+    min-width: 0;
+  }
+  .metric-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--c-accent);
+  }
+  .metric-label {
+    font-size: 0.78rem;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--c-white);
+  }
+  @media (min-width: 768px) {
+    .metric-value { font-size: 1.8rem; }
+  }
+  .metric-value.trend-positive { color: var(--c-green); }
+  .metric-value.trend-negative { color: var(--c-red); }
+  .metric-value.trend-stable { color: var(--c-yellow); }
+  
+  .metric-icon {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    font-size: 2rem;
+    opacity: 0.12;
+  }
+
+  /* ─── GRID LAYOUT ────────────────────────────────────────── */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  @media (min-width: 1024px) {
+    .dashboard-grid {
+      grid-template-columns: 2fr 1fr;
+    }
+  }
+
+  /* ─── CHART & TABLES ─────────────────────────────────────── */
+  .chart-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chart-container {
+    position: relative;
+    height: 280px;
+    min-width: 400px;
+    width: 100%;
+    margin-top: 1rem;
+  }
+  @media (min-width: 768px) {
+    .chart-container {
+      height: 320px;
+      min-width: 100%;
+    }
+  }
+  .chart-print-img {
+    display: none !important;
+  }
+  .table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--r);
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+  }
+  .evo-table {
+    width: 100%;
+    min-width: 700px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  .evo-table th {
+    background: var(--c-card);
+    color: var(--c-white);
+    font-weight: 600;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--c-border);
+    white-space: nowrap;
+  }
+  .evo-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--c-border);
+    color: var(--c-text);
+    vertical-align: middle;
+  }
+  .evo-table tr:last-child td {
+    border-bottom: none;
+  }
+  .evo-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  /* ─── SOURCE BADGES ────────────────────────────────────── */
+  .source-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--c-border);
+    color: var(--c-text);
+  }
+
+  /* ─── MODAL DIALOG ───────────────────────────────────────── */
+  .modal-backdrop {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(10, 11, 15, 0.8);
+    backdrop-filter: blur(6px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .modal-backdrop.show {
+    display: flex;
+    opacity: 1;
+  }
+  .modal-content {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+    width: 92%;
+    max-width: 540px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 2rem;
+    box-shadow: var(--shadow);
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .modal-backdrop.show .modal-content {
+    transform: scale(1) translateY(0);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--c-border);
+    padding-bottom: 0.75rem;
+  }
+  .modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--c-white);
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--c-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .modal-close:hover {
+    color: var(--c-white);
+  }
+
+  /* Form Elements */
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--c-muted);
+    margin-bottom: 0.5rem;
+  }
+  .form-control {
+    width: 100%;
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--c-text);
+    font-family: inherit;
+    font-size: 0.92rem;
+    transition: all 0.2s;
+    box-sizing: border-box;
+  }
+  .form-control:focus {
+    outline: none;
+    border-color: var(--c-accent);
+    box-shadow: 0 0 0 2px rgba(108, 99, 255, 0.25);
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 480px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ─── EMPTY STATE ──────────────────────────────────────── */
+  .empty-state-evo {
+    text-align: center;
+    padding: 3rem 1.5rem;
+  }
+  .empty-state-evo .icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+  }
+  .empty-state-evo h3 {
+    color: var(--c-white);
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+  }
+  .empty-state-evo p {
+    color: var(--c-muted);
+    max-width: 380px;
+    margin: 0 auto;
+    line-height: 1.5;
+    font-size: 0.9rem;
+  }
+
+  /* ─── RESPONSIVE HEADER BUTTONS ────────────────────────── */
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  @media (max-width: 640px) {
+    .header-actions .btn {
+      font-size: 0.8rem;
+      padding: 0.5rem 0.75rem;
+    }
+  }
+
+  /* ─── PRINT SYSTEM ────────────────────────────────────────── */
+  .print-only { display: none !important; }
+
+  @media print {
+    .no-print, .navbar, .page-header, .btn, .breadcrumb, .modal-backdrop, .sidebar,
+    .header-actions, .source-counts-row { 
+      display: none !important; 
+    }
+    
+    @page { 
+      size: letter; 
+      margin: 1.2cm; 
+    }
+    
+    .print-only { 
+      display: block !important; 
+    }
+    
+    * { 
+      -webkit-print-color-adjust: exact; 
+      print-color-adjust: exact; 
+    }
+    
+    body { 
+      background: white !important; 
+      color: #111111 !important; 
+    }
+    
+    .dashboard-grid {
+      display: block !important;
+    }
+    
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #cbd5e0 !important;
+      background: white !important;
+      color: #111111 !important;
+      margin-bottom: 1.5rem !important;
+      padding: 1.25rem !important;
+      page-break-inside: avoid;
+    }
+    
+    .card-header {
+      border-bottom: 1px solid #cbd5e0 !important;
+      margin-bottom: 1rem !important;
+      padding-bottom: 0.5rem !important;
+      background: transparent !important;
+    }
+    
+    .card-title {
+      color: #111111 !important;
+      font-size: 1.15rem !important;
+    }
+    
+    .table-scroll {
+      border: 1px solid #cbd5e0 !important;
+      background: white !important;
+      overflow: visible !important;
+    }
+
+    .evo-table {
+      min-width: unset !important;
+    }
+    
+    .evo-table th {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
+      border-bottom: 1px solid #cbd5e0 !important;
+    }
+    
+    .evo-table td {
+      color: #334155 !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    
+    .evo-table tr:hover td {
+      background: none !important;
+    }
+    
+    /* Hide the delete action column during printing */
+    .col-action {
+      display: none !important;
+    }
+    
+    .metrics-grid {
+      display: flex !important;
+      flex-direction: row !important;
+      gap: 1rem !important;
+      margin-bottom: 1.5rem !important;
+    }
+    
+    .metric-card {
+      flex: 1 !important;
+      background: #f8fafc !important;
+      border: 1px solid #cbd5e0 !important;
+      padding: 1rem !important;
+      box-shadow: none !important;
+      text-align: center !important;
+    }
+    
+    .metric-label {
+      color: #475569 !important;
+      font-size: 0.75rem !important;
+    }
+    
+    .metric-value {
+      color: #0f172a !important;
+      font-size: 1.4rem !important;
+    }
+    
+    .metric-icon {
+      display: none !important;
+    }
+    
+    .photo-placeholder {
+      background: #e2e8f0 !important;
+      color: #475569 !important;
+      border: 1px solid #cbd5e0 !important;
+    }
+    
+    .text-muted, p, td, li, ul, span {
+      color: #334155 !important;
+    }
+    
+    h3, h2, h1 {
+      color: #0f172a !important;
+    }
+
+    /* Ocultar canvas de gráfica y mostrar imagen capturada en impresión */
+    #evolucionChart {
+      display: none !important;
+    }
+    .chart-print-img {
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      max-height: 280px !important;
+      border: none !important;
+    }
+
+  }
+</style>
+
+<!-- ── Cabecera visible SOLO al imprimir ── -->
+<div class="print-only" style="margin-bottom: 25px; font-family: 'Inter', sans-serif;">
+  <table style="width: 100%; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 20px; border-collapse: collapse;">
+    <tr>
+      <td style="vertical-align: middle; width: 70px; padding-bottom: 12px;">
+        {% if estudiante.tiene_foto %}
+          <img src="{{ estudiante.foto_carnet.url }}" alt="Foto" style="width: 60px; height: 60px; border-radius: 10px; object-fit: cover; border: 2px solid #cbd5e0;">
+        {% else %}
+          <div style="width: 60px; height: 60px; border-radius: 10px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; border: 2px solid #cbd5e0; color: #475569;">
+            {{ estudiante.nombre_completo|first|upper }}
+          </div>
+        {% endif %}
+      </td>
+      <td style="vertical-align: middle; padding-left: 15px; padding-bottom: 12px;">
+        <h2 style="margin: 0 0 4px; font-size: 1.35rem; font-weight: 700; color: #0f172a;">📈 Reporte de Evolución Pedagógica</h2>
+        <p style="margin: 0; font-size: 0.85rem; color: #475569;">
+          <strong>Estudiante:</strong> {{ estudiante.nombre_completo }} &nbsp;|&nbsp; 
+          <strong>Edad:</strong> {{ estudiante.edad_calculada }} años &nbsp;|&nbsp; 
+          <strong>Sexo:</strong> {{ estudiante.get_sexo_display }}
+        </p>
+      </td>
+      <td style="vertical-align: bottom; text-align: right; padding-bottom: 12px; font-size: 0.8rem; color: #64748b;">
+        <p style="margin: 0;"><strong>Fecha:</strong> {% now "d/m/Y H:i" %}</p>
+        <p style="margin: 2px 0 0;"><strong>Instructor:</strong> {{ instructor.nombre_completo }}</p>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- ─── BREADCRUMB & HEADER ─────────────────────────────────── -->
+<div class="page-header no-print">
+  <div>
+    <div class="breadcrumb">
+      <a href="{% url 'lista_estudiantes' %}">Estudiantes</a> › 
+      <a href="{% url 'perfil_estudiante' estudiante.pk %}">{{ estudiante.nombre_completo }}</a> › 
+      Evolución
+    </div>
+    <h1 class="page-title">📈 Reporte de Evolución</h1>
+  </div>
+  <div class="header-actions">
+    <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">← Volver</a>
+    <button onclick="window.print()" class="btn btn-ghost">🖨️ Imprimir</button>
+  </div>
+</div>
+
+<!-- ─── SOURCE COUNTS ────────────────────────────────────────── -->
+{% if total_evals > 0 %}
+<div class="source-counts-row no-print" style="margin-bottom: 1.5rem; color: var(--c-muted); font-size: 0.9rem;">
+  Mostrando <strong style="color: var(--c-white);">{{ total_evals }}</strong> evaluación{{ total_evals|pluralize:"es" }} registrada{{ total_evals|pluralize:"s" }} en la base de datos.
+</div>
+{% endif %}
+
+<!-- ─── METRIC CARDS ────────────────────────────────────────── -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-label">Evaluaciones</div>
+    <div class="metric-value">{{ total_evals }}</div>
+    <div class="metric-icon">📝</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Promedio</div>
+    <div class="metric-value">{{ promedio|floatformat:1 }}%</div>
+    <div class="metric-icon">📊</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Mejor Puntaje</div>
+    <div class="metric-value">{{ mejor_pct|floatformat:1 }}%</div>
+    <div class="metric-icon">🏆</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Tendencia</div>
+    <div class="metric-value {% if tendencia_general == 'Positiva' %}trend-positive{% elif tendencia_general == 'Negativa' %}trend-negative{% elif tendencia_general == 'Estable' %}trend-stable{% endif %}">
+      {{ tendencia_general }}
+      {% if tendencia_general == 'Positiva' %}📈
+      {% elif tendencia_general == 'Negativa' %}📉
+      {% elif tendencia_general == 'Estable' %}➡️
+      {% endif %}
+    </div>
+    <div class="metric-icon">🎯</div>
+  </div>
+</div>
+
+{% if total_evals > 0 %}
+<div class="dashboard-grid">
+  <!-- ─── PANEL IZQUIERDO: TABLA + GRÁFICA ────────────────────── -->
+  <div class="d-flex flex-column gap-1-5">
+
+    <!-- Gráfica de Líneas -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📈 Curva de Evolución (Todas las Evaluaciones)</div>
+      </div>
+      <div class="chart-wrapper">
+        <div class="chart-container">
+          <canvas id="evolucionChart"></canvas>
+          <img id="chartPrintImg" class="chart-print-img" alt="Curva de Evolución">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabla Detallada -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 Historial Completo de Evaluaciones</div>
+      </div>
+      <div class="table-scroll">
+        <table class="evo-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Nombre</th>
+              <th>Tipo</th>
+              <th>Puntaje %</th>
+              <th>Progreso</th>
+              <th>Detalle</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in timeline %}
+              <tr>
+                <td style="font-weight: 500; color: var(--c-white); white-space: nowrap;">{{ item.fecha|date:"d/m/Y" }}</td>
+                <td style="max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.nombre }}">{{ item.nombre }}</td>
+                <td>
+                  <span class="badge {{ item.tipo_badge }}">{{ item.tipo }}</span>
+                </td>
+                <td style="font-weight: 600;">{{ item.porcentaje|floatformat:1 }}%</td>
+                <td>
+                  {% if item.tendencia == "Inicial" %}
+                    <span class="badge badge-purple">Inicial</span>
+                  {% elif item.tendencia == "Estable" %}
+                    <span class="badge badge-yellow">Estable</span>
+                  {% elif item.diff >= 3 %}
+                    <span class="badge badge-green">▲ {{ item.tendencia }}</span>
+                  {% else %}
+                    <span class="badge badge-red">▼ {{ item.tendencia }}</span>
+                  {% endif %}
+                </td>
+                <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ item.observaciones }}">
+                  {{ item.observaciones|default:"—" }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── PANEL DERECHO: DETALLES DEL ESTUDIANTE ──────────────── -->
+  <div class="d-flex flex-column gap-1-5 no-print">
+    
+    <!-- Ficha Estudiante -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👨‍🎓 Estudiante</div>
+      </div>
+      <div class="d-flex gap-1 align-center mb-2">
+        {% if estudiante.tiene_foto %}
+          <img src="{{ estudiante.foto_carnet.url }}" alt="Foto" class="photo-thumb-lg" style="width: 70px; height: 70px;">
+        {% else %}
+          <div class="photo-placeholder" style="width: 70px; height: 70px; font-size: 1.5rem; border-radius: 10px;">
+            {{ estudiante.nombre_completo|first|upper }}
+          </div>
+        {% endif %}
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--c-white); margin-bottom: 0.2rem;">
+            {{ estudiante.nombre_completo }}
+          </h3>
+          <p class="text-muted" style="font-size: 0.85rem;">
+            {{ estudiante.get_sexo_display }} · {{ estudiante.edad_calculada }} años
+          </p>
+        </div>
+      </div>
+      
+      <table style="font-size: 0.85rem; width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="color: var(--c-muted); padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">Fecha Nacimiento</td>
+          <td style="text-align: right; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            {{ estudiante.fecha_nacimiento|date:"d/m/Y"|default:"No registrada" }}
+          </td>
+        </tr>
+        <tr>
+          <td style="color: var(--c-muted); padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">Fecha Registro</td>
+          <td style="text-align: right; padding: 0.4rem 0; border-bottom: 1px solid rgba(255,255,255,0.05);">
+            {{ estudiante.fecha_creacion|date:"d/m/Y" }}
+          </td>
+        </tr>
+        {% if representante %}
+        <tr>
+          <td style="color: var(--c-muted); padding: 0.4rem 0; border-bottom: none;">Representante</td>
+          <td style="text-align: right; padding: 0.4rem 0; border-bottom: none; font-weight: 500;">
+            {{ representante.nombre_completo }} <span style="font-size:0.75rem; color:var(--c-muted);">({{ representante.get_parentesco_display }})</span>
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <!-- Consejos Pedagógicos de Evolución -->
+    <div class="card" style="border-left: 4px solid var(--c-teal);">
+      <div class="card-header">
+        <div class="card-title" style="color: var(--c-teal);">💡 ¿Cómo leer este reporte?</div>
+      </div>
+      <div style="font-size: 0.85rem; line-height: 1.5; color: var(--c-text);">
+        <p style="margin-bottom: 0.6rem;">
+          Este reporte muestra el progreso del estudiante basándose en las evaluaciones periódicas registradas en el sistema.
+        </p>
+        <p style="margin-bottom: 0.6rem; font-weight: 600;">Interpretación de tendencias de avance:</p>
+        <ul style="padding-left: 1.2rem; margin-bottom: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <li><strong style="color: var(--c-green);">Positiva (▲ ≥ 3%):</strong> Progreso consistente.</li>
+          <li><strong style="color: var(--c-yellow);">Estable (± 3%):</strong> Consolidación de aprendizajes.</li>
+          <li><strong style="color: var(--c-red);">Negativa (▼ ≤ -3%):</strong> Posible retroceso, revisar estrategia.</li>
+        </ul>
+        <p style="font-size: 0.8rem; color: var(--c-muted);">
+          * Los puntajes se calculan porcentualmente a partir de la relación entre el puntaje obtenido y el puntaje máximo registrado en cada evaluación.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% else %}
+<!-- ─── ESTADO VACÍO ───────────────────────────────────────── -->
+<div class="card">
+  <div class="empty-state-evo">
+    <div class="icon">📭</div>
+    <h3>Este estudiante aún no tiene evaluaciones registradas.</h3>
+  </div>
+</div>
+{% endif %}
+
+<!-- Scripts de Gráficas e Interactividad -->
+{% if total_evals > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    fetch("{% url 'evolucion_data' estudiante.pk %}")
+      .then(response => response.json())
+      .then(data => {
+        const ctx = document.getElementById('evolucionChart').getContext('2d');
+        
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(108, 99, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(108, 99, 255, 0.0)');
+
+        window.myChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.fechas,
+            datasets: [{
+              label: 'Avance Global (%)',
+              data: data.puntajes,
+              borderColor: '#6c63ff',
+              borderWidth: 3,
+              backgroundColor: gradient,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: data.colores,
+              pointBorderColor: '#1a1d27',
+              pointBorderWidth: 2,
+              pointRadius: 6,
+              pointHoverRadius: 8,
+              pointHoverBackgroundColor: data.colores,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: {
+              onComplete: function() {
+                const canvas = document.getElementById('evolucionChart');
+                const printImg = document.getElementById('chartPrintImg');
+                if (canvas && printImg) {
+                  const tempCanvas = document.createElement('canvas');
+                  tempCanvas.width = canvas.width;
+                  tempCanvas.height = canvas.height;
+                  const tempCtx = tempCanvas.getContext('2d');
+                  tempCtx.fillStyle = '#ffffff';
+                  tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+                  tempCtx.drawImage(canvas, 0, 0);
+                  printImg.src = tempCanvas.toDataURL('image/png');
+                }
+              }
+            },
+            plugins: {
+              legend: {
+                display: false
+              },
+              tooltip: {
+                backgroundColor: '#222639',
+                titleColor: '#ffffff',
+                bodyColor: '#e2e8f0',
+                borderColor: '#2e3250',
+                borderWidth: 1,
+                padding: 10,
+                cornerRadius: 8,
+                callbacks: {
+                  title: function(context) {
+                    const idx = context[0].dataIndex;
+                    return `${data.nombres[idx]} (${data.fechas[idx]})`;
+                  },
+                  label: function(context) {
+                    const idx = context.dataIndex;
+                    const tipo = data.tipos ? data.tipos[idx] : '';
+                    return ` ${tipo} — ${context.raw}% [${data.tendencias[idx]}]`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                min: 0,
+                max: 100,
+                grid: {
+                  color: 'rgba(255, 255, 255, 0.05)',
+                  drawBorder: false
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  callback: function(value) { return value + '%'; }
+                }
+              },
+              x: {
+                grid: {
+                  display: false
+                },
+                ticks: {
+                  color: '#94a3b8',
+                  maxRotation: 30,
+                  minRotation: 30,
+                  font: {
+                    size: 10
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        // Respaldo para captura antes de imprimir
+        window.addEventListener('beforeprint', function() {
+          const canvas = document.getElementById('evolucionChart');
+          const printImg = document.getElementById('chartPrintImg');
+          if (canvas && printImg) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.fillStyle = '#ffffff';
+            tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+            tempCtx.drawImage(canvas, 0, 0);
+            printImg.src = tempCanvas.toDataURL('image/png');
+          }
+        });
+
+      });
+  });
+</script>
+{% endif %}
+{% endblock %}

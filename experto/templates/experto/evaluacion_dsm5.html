@@ -41,27 +41,53 @@
     <span class="badge badge-red" style="margin-left:auto">Obligatorio — 3 de 3</span>
   </div>
 
-  <div class="form-group">
-    <label class="form-label">Nivel de afectación en Comunicación Social *</label>
+  <div class="form-group" style="margin-bottom:1.5rem">
+    <label class="form-label">Nivel general de afectación en Comunicación Social *</label>
     {{ form.nivel_comunicacion_social }}
     {% if form.nivel_comunicacion_social.errors %}<ul class="errorlist">{% for e in form.nivel_comunicacion_social.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
-    <div class="form-group">
-      <label class="form-label">A.1 — Reciprocidad socioemocional</label>
-      {{ form.obs_reciprocidad }}
-      <span class="form-help">Ej: dificultad para iniciar conversaciones, responder a emociones de otros</span>
+  <div class="subcriterios-container">
+    <!-- Subcriterio A.1 -->
+    <div class="subcriterio-card">
+      <div class="subcriterio-header">A.1 — Deficiencias en la reciprocidad socioemocional</div>
+      <div class="subcriterio-body">
+        <div class="radio-options">
+          {{ form.a1_reciprocidad }}
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: dificultad para iniciar interacciones</label>
+          {{ form.a1_observaciones }}
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">A.2 — Comunicación no verbal</label>
-      {{ form.obs_comunicacion_no_verbal }}
-      <span class="form-help">Ej: contacto ocular, expresiones faciales, gestos</span>
+
+    <!-- Subcriterio A.2 -->
+    <div class="subcriterio-card">
+      <div class="subcriterio-header">A.2 — Deficiencias en conductas comunicativas no verbales</div>
+      <div class="subcriterio-body">
+        <div class="radio-options">
+          {{ form.a2_comunicacion_no_verbal }}
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: falta de contacto visual o gestos</label>
+          {{ form.a2_observaciones }}
+        </div>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">A.3 — Desarrollo de relaciones</label>
-      {{ form.obs_desarrollo_relaciones }}
-      <span class="form-help">Ej: ajuste del comportamiento según contexto social</span>
+
+    <!-- Subcriterio A.3 -->
+    <div class="subcriterio-card">
+      <div class="subcriterio-header">A.3 — Deficiencias en desarrollo y comprensión de relaciones</div>
+      <div class="subcriterio-body">
+        <div class="radio-options">
+          {{ form.a3_relaciones }}
+        </div>
+        <div class="form-group" style="margin-top:1rem">
+          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: dificultad para ajustar el comportamiento</label>
+          {{ form.a3_observaciones }}
+        </div>
+      </div>
     </div>
   </div>
 </div>

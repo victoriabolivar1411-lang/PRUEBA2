@@ -20,6 +20,7 @@ urlpatterns = [
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('manual-usuario/pdf/', views.descargar_manual_pdf, name='descargar_manual_pdf'),
 
     # ── Estudiantes ───────────────────────────────────────────────────────────
     path('estudiantes/',                  views.lista_estudiantes,   name='lista_estudiantes'),
@@ -50,4 +51,12 @@ urlpatterns = [
 
     # ── Chatbot NLP ────────────────────────────────────────────────────────────
     path('chatbot/', views.chatbot_api, name='chatbot_api'),
+
+    # ── Tema Claro / Oscuro ────────────────────────────────────────────────────
+    path('guardar-tema/', views.guardar_tema, name='guardar_tema'),
+
+    # ── Evolución del Estudiante ───────────────────────────────────────────────
+    path('estudiante/<int:pk>/evolucion/',      views.evolucion_estudiante, name='evolucion_estudiante'),
+    path('estudiante/<int:pk>/evolucion/data/', views.evolucion_data,       name='evolucion_data'),
+    path('estudiante/<int:pk>/evolucion/pdf/',  views.evolucion_pdf,        name='evolucion_pdf'),
 ]

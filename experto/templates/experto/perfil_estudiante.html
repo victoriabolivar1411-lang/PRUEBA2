@@ -132,6 +132,7 @@
   </div>
   <div class="d-flex gap-1 flex-wrap">
     <button onclick="window.print()" class="btn btn-ghost">🖨️ Imprimir Ficha</button>
+    <a href="{% url 'evolucion_estudiante' estudiante.pk %}" class="btn btn-teal">📈 Ver Evolución</a>
     <a href="{% url 'evaluacion_dsm5' estudiante.pk %}" class="btn btn-primary">🏥 Evaluar</a>
     <a href="{% url 'borrar_estudiante' estudiante.pk %}" class="btn btn-danger" id="btn-borrar-estudiante">🗑️ Eliminar</a>
   </div>
@@ -163,7 +164,10 @@
       <tr><td style="color:var(--c-muted);border:none;padding:.4rem 0">Edad</td><td style="border:none;padding:.4rem 0">{{ estudiante.edad }} años</td></tr>
       <tr><td style="color:var(--c-muted);border:none;padding:.4rem 0">Instructor</td><td style="border:none;padding:.4rem 0">{{ instructor.nombre_completo }}</td></tr>
     </table>
-    <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2 no-print">✏️ Editar Estudiante</a>
+    <div class="d-flex gap-1 no-print">
+      <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2">✏️ Editar Estudiante</a>
+      <a href="{% url 'evolucion_estudiante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2">📈 Ver Evolución</a>
+    </div>
   </div>
 
   <!-- DATOS DEL REPRESENTANTE -->

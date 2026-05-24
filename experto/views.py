@@ -11,16 +11,20 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm
 from django.contrib import messages
-from django.db.models import Count, Q
-from django.http import JsonResponse
+from django.db.models import Count, Q, Avg
+from django.http import JsonResponse, HttpResponse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 import json
+from io import BytesIO
+from django.template.loader import get_template
+from xhtml2pdf import pisa
 from .chatbot_engine import detectar_intencion, mensaje_bienvenida, generar_respuesta
 
 from .models import (
     Instructor, Estudiante, Representante,
-    EvaluacionDSM5, EvaluacionPedagogica, Recomendacion, Regla
+    EvaluacionDSM5, EvaluacionPedagogica, Recomendacion, Regla, Evaluacion
 )
 from .forms import (
     RegistroInstructorForm, EstudianteForm, RepresentanteForm,
@@ -92,6 +96,29 @@ def logout_view(request):
 # ─────────────────────────────────────────────────────────────────────────────
 # DASHBOARD
 # ─────────────────────────────────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def descargar_manual_pdf(request):
+    template_path = 'experto/manual_usuario_pdf.html'
+    context = {
+        'fecha': timezone.now().strftime('%d/%m/%Y'),
+        'instructor': request.user.first_name or request.user.username
+    }
+    
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="Manual_Usuario_Sistema_TEA.pdf"'
+    
+    template = get_template(template_path)
+    html = template.render(context)
+    
+    pisa_status = pisa.CreatePDF(
+        html, dest=response
+    )
+    
+    if pisa_status.err:
+        return HttpResponse('Tuvimos errores generando el PDF <pre>' + html + '</pre>')
+    return response
+
 
 @login_required(login_url='login')
 def dashboard(request):
@@ -340,6 +367,23 @@ def evaluacion_pedagogica(request, pk, dsm5_pk):
             ev_ped.estudiante = est
             ev_ped.evaluacion_dsm5 = ev_dsm5
             ev_ped.save()
+            
+            # Generar evaluación de evolución automática para reflejar en el timeline
+            pct_com = _nivel_a_puntaje(ev_ped.nivel_comunicacion_social)
+            pct_con = _nivel_a_puntaje(ev_ped.nivel_conductas_repetitivas)
+            
+            Evaluacion.objects.create(
+                estudiante=est,
+                fecha=timezone.now().date(),
+                nombre="Evaluación Pedagógica",
+                tipo='TEA',
+                puntaje_obtenido=float(pct_com + pct_con),
+                puntaje_maximo=150.0,
+                observaciones=f"Generada automáticamente a partir de la Evaluación Pedagógica #{ev_ped.pk}.\n"
+                              f"Comunicación Social: {ev_ped.get_nivel_comunicacion_social_display()}.\n"
+                              f"Conductas Repetitivas: {ev_ped.get_nivel_conductas_repetitivas_display()}."
+            )
+            
             reglas = generar_recomendaciones(ev_ped)
             messages.success(
                 request,
@@ -745,3 +789,215 @@ def chatbot_api(request):
     request.session.modified = True
 
     return JsonResponse(respuesta)
+
+
+def _nivel_a_puntaje(nivel_str):
+    """Convierte un nivel DSM-5 a un puntaje numérico inverso (mayor = mejor)."""
+    mapa = {
+        'necesita_apoyo':     75,   # Nivel 1 — leve
+        'apoyo_sustancial':   50,   # Nivel 2 — moderado
+        'apoyo_constante':    25,   # Nivel 3 — severo
+        'necesita_ayuda':     75,
+        'ayuda_notable':      50,
+        'ayuda_muy_notable':  25,
+    }
+    return mapa.get(nivel_str, 50)
+
+
+def _construir_timeline(estudiante):
+    """
+    Combina las evaluaciones de evolución del estudiante en un timeline unificado.
+    Fuente única: Evaluacion (evolución).
+    Retorna una lista de dicts ordenados por fecha.
+    """
+    timeline = []
+
+    # ── 1. Evaluaciones de Evolución ───────────────────────────
+    for ev in estudiante.evaluaciones_evolucion.all().order_by('fecha'):
+        timeline.append({
+            'fecha': ev.fecha,
+            'nombre': ev.nombre,
+            'tipo': ev.get_tipo_display(),
+            'tipo_badge': 'badge-blue',
+            'porcentaje': ev.porcentaje,
+            'detalle': f'{ev.puntaje_obtenido}/{ev.puntaje_maximo}',
+            'observaciones': ev.observaciones[:120] if ev.observaciones else '—',
+            'pk': ev.pk,
+            'modelo': 'evolucion',
+        })
+
+    # Ordenar cronológicamente
+    timeline.sort(key=lambda x: x['fecha'])
+
+    # Calcular tendencias
+    prev_pct = None
+    for item in timeline:
+        if prev_pct is None:
+            item['tendencia'] = 'Inicial'
+            item['diff'] = 0.0
+            item['color'] = '#3b82f6'
+        else:
+            diff = item['porcentaje'] - prev_pct
+            item['diff'] = diff
+            if diff >= 3:
+                item['tendencia'] = f'+{diff:.1f}%'
+                item['color'] = '#10b981'
+            elif diff <= -3:
+                item['tendencia'] = f'{diff:.1f}%'
+                item['color'] = '#ef4444'
+            else:
+                item['tendencia'] = 'Estable'
+                item['color'] = '#f59e0b'
+        prev_pct = item['porcentaje']
+
+    return timeline
+
+
+@login_required(login_url='login')
+def evolucion_estudiante(request, pk):
+    """Vista principal: dashboard de evolución con gráfica Chart.js (sólo lectura)."""
+    instructor  = _get_instructor(request)
+    estudiante  = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    representante = getattr(estudiante, 'representante', None)
+
+    # Construir timeline unificado
+    timeline = _construir_timeline(estudiante)
+    total_evals = len(timeline)
+
+    # Métricas de resumen
+    if total_evals > 0:
+        puntajes = [item['porcentaje'] for item in timeline]
+        promedio = round(sum(puntajes) / len(puntajes), 1)
+        mejor_pct = max(puntajes)
+        peor_pct = min(puntajes)
+    else:
+        promedio = 0
+        mejor_pct = 0
+        peor_pct = 0
+
+    tendencia_general = "Sin datos"
+    if total_evals >= 2:
+        diff_total = timeline[-1]['porcentaje'] - timeline[0]['porcentaje']
+        if diff_total >= 5:
+            tendencia_general = "Positiva"
+        elif diff_total <= -5:
+            tendencia_general = "Negativa"
+        else:
+            tendencia_general = "Estable"
+    elif total_evals == 1:
+        tendencia_general = "Inicial"
+
+    # Conteo por fuente
+    n_dsm5 = 0
+    n_ped  = 0
+    n_evo  = total_evals
+
+    return render(request, 'experto/evolucion.html', {
+        'instructor':       instructor,
+        'estudiante':       estudiante,
+        'representante':    representante,
+        'timeline':         timeline,
+        'total_evals':      total_evals,
+        'promedio':         promedio,
+        'mejor_pct':        mejor_pct,
+        'peor_pct':         peor_pct,
+        'tendencia_general': tendencia_general,
+        'n_dsm5':           n_dsm5,
+        'n_ped':            n_ped,
+        'n_evo':            n_evo,
+    })
+
+
+@login_required(login_url='login')
+def evolucion_data(request, pk):
+    """API JSON: devuelve los datos para pintar la gráfica Chart.js."""
+    instructor = _get_instructor(request)
+    estudiante = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    timeline   = _construir_timeline(estudiante)
+
+    data = {
+        'fechas':     [item['fecha'].strftime('%d/%m') for item in timeline],
+        'nombres':    [item['nombre']                      for item in timeline],
+        'puntajes':   [item['porcentaje']                  for item in timeline],
+        'colores':    [item['color']                       for item in timeline],
+        'tendencias': [item['tendencia']                   for item in timeline],
+        'tipos':      [item['tipo']                        for item in timeline],
+        'promedio':   round(sum(i['porcentaje'] for i in timeline) / max(len(timeline), 1), 2),
+    }
+    return JsonResponse(data)
+
+
+@login_required(login_url='login')
+def evolucion_pdf(request, pk):
+    """Genera y descarga el PDF del reporte de evolución."""
+    instructor  = _get_instructor(request)
+    estudiante  = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    representante = getattr(estudiante, 'representante', None)
+
+    chart_image = request.POST.get('chart_image', '')
+
+    timeline     = _construir_timeline(estudiante)
+    total_evals  = len(timeline)
+
+    if total_evals > 0:
+        puntajes = [item['porcentaje'] for item in timeline]
+        promedio = round(sum(puntajes) / len(puntajes), 1)
+        mejor_pct = max(puntajes)
+        peor_pct = min(puntajes)
+    else:
+        promedio = 0
+        mejor_pct = 0
+        peor_pct = 0
+
+    tendencia_general = "Sin datos"
+    if total_evals >= 2:
+        diff_total = timeline[-1]['porcentaje'] - timeline[0]['porcentaje']
+        tendencia_general = "Positiva" if diff_total >= 5 else ("Negativa" if diff_total <= -5 else "Estable")
+    elif total_evals == 1:
+        tendencia_general = "Inicial"
+
+    context = {
+        'instructor':        instructor,
+        'estudiante':        estudiante,
+        'representante':     representante,
+        'timeline':          timeline,
+        'total_evals':       total_evals,
+        'promedio':          promedio,
+        'mejor_pct':         mejor_pct,
+        'peor_pct':          peor_pct,
+        'tendencia_general': tendencia_general,
+        'chart_image':       chart_image,
+        'fecha_reporte':     timezone.now().strftime('%d/%m/%Y %H:%M'),
+    }
+
+    template     = get_template('experto/evolucion_pdf.html')
+    html_content = template.render(context)
+    pdf_buffer   = BytesIO()
+    pisa_status  = pisa.CreatePDF(html_content, dest=pdf_buffer)
+
+    if pisa_status.err:
+        return HttpResponse('Error al generar el PDF', status=500)
+
+    pdf_buffer.seek(0)
+    nombre_archivo = f"Evolucion_{estudiante.nombre_completo.replace(' ', '_')}.pdf"
+    response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="{nombre_archivo}"'
+    return response
+
+
+
+@login_required
+@require_POST
+def guardar_tema(request):
+    try:
+        data = json.loads(request.body)
+        tema = data.get('tema')
+        if tema in ['light', 'dark']:
+            instructor = _get_instructor(request)
+            instructor.tema = tema
+            instructor.save()
+            return JsonResponse({'status': 'ok', 'tema': tema})
+        return JsonResponse({'status': 'error', 'message': 'Tema invalido'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+

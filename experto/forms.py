@@ -199,16 +199,22 @@ class EvaluacionDSM5Form(forms.ModelForm):
         model  = EvaluacionDSM5
         exclude = ['estudiante', 'fecha']
         widgets = {
-            'obs_reciprocidad':          forms.Textarea(attrs={'rows': 3}),
-            'obs_comunicacion_no_verbal': forms.Textarea(attrs={'rows': 3}),
-            'obs_desarrollo_relaciones':  forms.Textarea(attrs={'rows': 3}),
+            'a1_reciprocidad':            forms.RadioSelect(attrs={'class': 'radio-group'}),
+            'a1_observaciones':           forms.Textarea(attrs={'rows': 2}),
+            'a2_comunicacion_no_verbal':  forms.RadioSelect(attrs={'class': 'radio-group'}),
+            'a2_observaciones':           forms.Textarea(attrs={'rows': 2}),
+            'a3_relaciones':              forms.RadioSelect(attrs={'class': 'radio-group'}),
+            'a3_observaciones':           forms.Textarea(attrs={'rows': 2}),
             'condicion_medica_asociada':  forms.TextInput(),
         }
         labels = {
-            'nivel_comunicacion_social':   'Nivel de afectación — Comunicación Social',
-            'obs_reciprocidad':            'A.1 Reciprocidad socioemocional (observaciones)',
-            'obs_comunicacion_no_verbal':  'A.2 Comunicación no verbal (observaciones)',
-            'obs_desarrollo_relaciones':   'A.3 Desarrollo, mantenimiento y comprensión de relaciones',
+            'nivel_comunicacion_social':   'Nivel general de afectación — Comunicación Social',
+            'a1_reciprocidad':             'A.1 — Deficiencias en la reciprocidad socioemocional',
+            'a1_observaciones':            'A.1 Observaciones (Opcional)',
+            'a2_comunicacion_no_verbal':   'A.2 — Deficiencias en conductas comunicativas no verbales',
+            'a2_observaciones':            'A.2 Observaciones (Opcional)',
+            'a3_relaciones':               'A.3 — Deficiencias en desarrollo, mantenimiento y comprensión de relaciones',
+            'a3_observaciones':            'A.3 Observaciones (Opcional)',
             'nivel_conductas_repetitivas': 'Nivel de afectación — Conductas repetitivas',
             'movimientos_repetitivos':     'B.1 Movimientos, uso de objetos o habla estereotipada',
             'inflexibilidad_rutinas':      'B.2 Insistencia en la monotonía / inflexibilidad de rutinas',
