@@ -961,3 +961,20 @@ def evolucion_pdf(request, pk):
     response['Content-Disposition'] = f'inline; filename="{nombre_archivo}"'
     return response
 
+
+
+@login_required
+@require_POST
+def guardar_tema(request):
+    try:
+        data = json.loads(request.body)
+        tema = data.get('tema')
+        if tema in ['light', 'dark']:
+            instructor = _get_instructor(request)
+            instructor.tema = tema
+            instructor.save()
+            return JsonResponse({'status': 'ok', 'tema': tema})
+        return JsonResponse({'status': 'error', 'message': 'Tema invalido'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+

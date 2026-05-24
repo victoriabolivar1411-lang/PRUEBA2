@@ -110,6 +110,12 @@ class Instructor(models.Model):
     reset_code_expires = models.DateTimeField(
         blank=True, null=True, verbose_name='Expiración del código'
     )
+    tema = models.CharField(
+        max_length=10, 
+        choices=[('light', 'Claro'), ('dark', 'Oscuro')], 
+        default='dark', 
+        verbose_name='Tema del sistema'
+    )
     fecha_registro = models.DateTimeField(
         auto_now_add=True, verbose_name='Fecha de registro'
     )
