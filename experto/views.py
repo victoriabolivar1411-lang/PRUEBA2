@@ -54,6 +54,10 @@ def inicio(request):
     return render(request, 'experto/inicio.html')
 
 
+def jugar_evaluar(request):
+    return render(request, 'experto/jugar_evaluar.html')
+
+
 def registro_instructor(request):
     if request.user.is_authenticated:
         return redirect('dashboard')
