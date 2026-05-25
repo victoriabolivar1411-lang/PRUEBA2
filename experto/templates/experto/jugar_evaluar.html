@@ -1,0 +1,1033 @@
+{% extends 'experto/base.html' %}
+{% load static %}
+{% block title %}Jugar y Evaluar — Sistema Experto TEA{% endblock %}
+{% block content %}
+<style>
+  :root {
+    --game-bg: var(--c-bg);
+    --panel-bg: rgba(255,255,255,.92);
+    --button-primary: #4A90E2;
+    --button-success: #50C878;
+    --button-warning: #FFB347;
+    --button-text: #ffffff;
+    --text-dark: var(--c-text);
+    --border-soft: rgba(74,144,226,.25);
+    --shadow-soft: 0 18px 40px rgba(28,67,146,.08);
+  }
+  .tea-game-shell {
+    background: var(--game-bg);
+    min-height: calc(100vh - 62px);
+    padding: 2rem 1rem 3rem;
+    color: var(--c-white);
+  }
+  .game-card {
+    background: var(--c-surface);
+    border: 1px solid var(--border-soft);
+    border-radius: 24px;
+    padding: 2rem;
+    max-width: 980px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-soft);
+    animation: fadeInUp .45s ease;
+  }
+  #student-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  #student-card .game-header,
+  #student-card .game-action-row {
+    background: transparent;
+    box-shadow: none;
+  }
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.75rem;
+  }
+  .game-heading {
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -.03em;
+  }
+  .game-subtitle {
+    font-size: 1rem;
+    color: rgba(226,232,240,.8);
+    max-width: 620px;
+    line-height: 1.6;
+  }
+  .progress-bar-wrap {
+    width: 100%;
+    height: 18px;
+    background: rgba(255,255,255,.7);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(74,144,226,.25);
+    margin-top: .75rem;
+  }
+  .progress-bar {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #4A90E2, #50C878);
+    border-radius: 999px;
+    transition: width .4s ease;
+  }
+  .game-row {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .game-intro-card,
+  .game-content,
+  .results-card,
+  .strategy-grid {
+    margin-top: 1rem;
+  }
+  .large-button,
+  .emoji-choice,
+  .choice-card,
+  .order-card {
+    width: 100%;
+    min-height: 60px;
+    border-radius: 18px;
+    border: 1px solid rgba(34,68,113,.14);
+    background: white;
+    color: #0f172a;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+    box-shadow: 0 9px 22px rgba(55,83,150,.06);
+    user-select: none;
+  }
+  .large-button.primary {
+    color: #0f172a;
+  }
+  .large-button:hover,
+  .emoji-choice:hover,
+  .choice-card:hover,
+  .order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px rgba(55,83,150,.1);
+  }
+  .emoji-choice {
+    flex-direction: column;
+    min-height: 140px;
+    padding: 1.6rem 1rem;
+    gap: 1rem;
+    text-align: center;
+    font-size: 1rem;
+    justify-content: center;
+    border-radius: 22px;
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+  }
+  .emoji-choice .choice-emoji {
+    font-size: 4rem;
+    line-height: 1;
+  }
+  .emoji-choice .choice-text {
+    font-size: 1.1rem;
+    color: #0f172a;
+  }
+  .game-prompt {
+    margin-top: .6rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .game-tip {
+    margin-top: .55rem;
+    color: #475569;
+    font-size: .95rem;
+  }
+  .game-illustration {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 110px;
+    border-radius: 28px;
+    background: rgba(74,144,226,.14);
+    margin-bottom: 1rem;
+    font-size: 4.2rem;
+  }
+  .emoji-choice.correct { border-color: #50C878; background: rgba(80,200,120,.12); }
+  .emoji-choice.wrong { border-color: #F59E0B; background: rgba(251,191,36,.16); }
+  .emoji-choice.animate-correct { animation: popCorrect .35s ease; }
+  .emoji-choice.animate-wrong { animation: shakeWrong .35s ease; }
+  .choice-card.selected,
+  .order-card.selected { border-color: rgba(74,144,226,.45); background: rgba(74,144,226,.12); }
+  .hidden { display: none; }
+  @keyframes popCorrect {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+    100% { transform: scale(1); }
+  }
+  @keyframes shakeWrong {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+  }
+  .feedback-box {
+    min-height: 56px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
+    padding: 1rem 1.2rem;
+    font-weight: 700;
+    color: rgba(226,232,240,.95);
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    margin-top: 1rem;
+  }
+  .feedback-correct { color: #15803d; }
+  .feedback-wrong { color: #b91c1c; }
+  .game-emoji {
+    font-size: 4rem;
+    line-height: 1;
+    display: block;
+    margin-bottom: .85rem;
+  }
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .45rem .85rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,.08);
+    color: rgba(226,232,240,.95);
+    font-size: .95rem;
+    font-weight: 700;
+  }
+  .game-count {
+    font-size: 1rem;
+    color: #475569;
+    margin-top: .5rem;
+  }
+  .game-action-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  .game-footer {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+  .results-card {
+    background: linear-gradient(135deg, rgba(74,144,226,.12), rgba(80,200,120,.12));
+    border: 1px solid rgba(74,144,226,.2);
+    padding: 1.75rem;
+  }
+  .study-report {
+    margin-top: 1.25rem;
+    padding: 1.2rem 1.25rem;
+    border-radius: 18px;
+    background: rgba(255,255,255,.9);
+    border: 1px solid rgba(108,99,255,.15);
+    color: #334155;
+    line-height: 1.7;
+  }
+  .study-report h3 {
+    margin-bottom: .75rem;
+    font-size: 1.1rem;
+    color: #0f172a;
+  }
+  .print-button {
+    background: linear-gradient(135deg, #4A90E2, #50C878);
+    color: white;
+  }
+  .print-only {
+    display: none;
+  }
+  .print-result-header {
+    gap: 1rem;
+    border-radius: 22px;
+    background: #f8fafc;
+    padding: 1rem;
+    border: 1px solid rgba(15,23,42,.1);
+  }
+  .print-membrete {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .print-membrete .pm-logo img {
+    width: 140px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 16px;
+    background: white;
+    padding: 0.5rem;
+  }
+  .print-student-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .print-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(15,23,42,.12);
+  }
+  .print-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .print-student-name {
+    min-width: 220px;
+  }
+  .no-print {
+    display: inline-flex !important;
+  }
+  @media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .results-card { border: none; box-shadow: none; }
+  }
+  .results-title {
+    font-size: clamp(1.7rem, 3vw, 2.3rem);
+    font-weight: 800;
+  }
+  .result-level {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    padding: .75rem 1rem;
+    border-radius: 18px;
+    margin-top: 1rem;
+  }
+  .level-1 { background: rgba(34,197,94,.12); color: #166534; }
+  .level-2 { background: rgba(251,191,36,.14); color: #92400e; }
+  .level-3 { background: rgba(239,68,68,.12); color: #991b1b; }
+  .strategy-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+  .strategy-card {
+    background: white;
+    border: 1px solid rgba(34,68,113,.12);
+    border-radius: 20px;
+    padding: 1.25rem;
+    min-height: 220px;
+    box-shadow: 0 15px 35px rgba(55,83,150,.08);
+  }
+  .strategy-card h3 {
+    font-size: 1.05rem;
+    margin-bottom: .75rem;
+  }
+  .strategy-card p { line-height: 1.6; color: #475569; }
+  .strategy-tag {
+    display: inline-flex;
+    margin-top: .8rem;
+    font-size: .82rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: .35rem .75rem;
+  }
+  .tag-1 { background: rgba(34,197,94,.12); color: #166534; }
+  .tag-2 { background: rgba(251,191,36,.12); color: #92400e; }
+  .tag-3 { background: rgba(239,68,68,.12); color: #991b1b; }
+  .student-entry-card {
+    display: grid;
+    gap: 1rem;
+    background: rgba(255,255,255,.88);
+    border: 1px solid rgba(15,23,42,.08);
+    border-radius: 24px;
+    padding: 1.4rem;
+    margin-top: 1rem;
+  }
+  .student-entry-card .form-group {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .student-entry-card label {
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .student-entry-card input[type="text"],
+  .student-entry-card input[type="file"] {
+    width: 100%;
+    border: 1px solid rgba(15,23,42,.12);
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+    font-size: 1rem;
+    background: #f8fafc;
+  }
+  .error-text {
+    color: #b91c1c;
+    font-size: 0.95rem;
+    min-height: 1.2rem;
+  }
+  .student-photo-preview {
+    border: 1px solid rgba(15,23,42,.12);
+    border-radius: 18px;
+    padding: 0.7rem;
+    background: #ffffff;
+    max-width: 240px;
+  }
+  .student-photo-preview img {
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    display: block;
+  }
+  .result-header {
+    display: grid;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border-radius: 22px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid rgba(15,23,42,.08);
+  }
+  .membrete-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .membrete-logo {
+    width: 144px;
+    max-width: 100%;
+    border-radius: 16px;
+    object-fit: contain;
+    background: white;
+    padding: 0.5rem;
+  }
+  .student-info-block {
+    min-width: 0;
+  }
+  .student-label {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    color: #475569;
+  }
+  .student-photo-frame {
+    width: 140px;
+    height: 140px;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(15,23,42,.12);
+  }
+  .student-photo-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .pause-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(14,82,102,.22);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    pointer-events: auto;
+  }
+  .pause-panel {
+    background: white;
+    border-radius: 24px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: var(--shadow-soft);
+    max-width: 420px;
+    width: 100%;
+    pointer-events: auto;
+  }
+  .pause-panel h2 { margin-bottom: 1rem; font-size: 1.6rem; }
+  .pause-panel p { color: #475569; line-height: 1.7; margin-bottom: 1.5rem; }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @media (max-width: 860px) {
+    .strategy-grid { grid-template-columns: 1fr; }
+  }
+</style>
+<div class="tea-game-shell">
+  <div class="game-card" id="student-card">
+    <div class="game-header">
+      <div>
+        <div class="status-pill">🎓 Datos del estudiante</div>
+        <h1 class="game-heading">Identifica al estudiante</h1>
+        <p class="game-subtitle">Ingresa el nombre completo y una foto antes de continuar con los juegos.</p>
+      </div>
+    </div>
+    <div class="student-entry-card">
+      <div class="form-group">
+        <label for="student-name-input">Nombre completo del estudiante</label>
+        <input id="student-name-input" type="text" placeholder="Ej. Juan Pérez" autocomplete="off" />
+        <div id="student-name-error" class="error-text" aria-live="polite"></div>
+      </div>
+      <div class="form-group">
+        <label for="student-photo-input">Sube una imagen del estudiante</label>
+        <input id="student-photo-input" type="file" accept="image/*" />
+        <div id="student-photo-error" class="error-text" aria-live="polite"></div>
+        <div id="student-photo-preview" class="student-photo-preview" style="display:none;">
+          <img id="student-photo-preview-image" alt="Vista previa foto estudiante" />
+        </div>
+      </div>
+    </div>
+    <div class="game-action-row">
+      <button id="continue-button" class="large-button primary">➡️ Continuar</button>
+    </div>
+  </div>
+
+  <div class="game-card hidden" id="start-card">
+    <div class="game-header">
+      <div>
+        <div class="status-pill">🎮 Actividad lúdica para TEA</div>
+        <h1 class="game-heading">Jugar y Evaluar</h1>
+        <p class="game-subtitle">Tres juegos cortos diseñados para apoyar la atención, el reconocimiento emocional y el orden en el día de los niños.</p>
+      </div>
+    </div>
+    <div class="game-action-row" style="justify-content:center; gap:1rem; margin-bottom:1rem;">
+      <button id="back-to-student-button" class="large-button warning">↩️ Volver a datos</button>
+      <button id="start-button" class="large-button primary">🎉 Comenzar juegos</button>
+    </div>
+    <div class="game-intro-card">
+      <div class="feedback-box">
+        <span>✨</span>
+        Confirma los datos del estudiante y presiona el botón para comenzar los juegos. Luego podrás avanzar con tranquilidad usando las tarjetas grandes.
+      </div>
+    </div>
+  </div>
+
+  <div class="game-card hidden" id="game-card">
+    <div class="game-header">
+      <div>
+        <div class="status-pill">Juego <span id="stage-label">1</span> de 3</div>
+        <h2 class="game-heading" id="game-title">🎭 ¿Cómo se siente?</h2>
+        <p class="game-subtitle" id="game-description">Responde con la emoción correcta según la situación.</p>
+      </div>
+      <div style="width:100%; max-width:360px;">
+        <div class="progress-bar-wrap" aria-hidden="true">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        <div class="game-count" id="progress-text">0 de 3 juegos completados</div>
+      </div>
+    </div>
+
+    <div class="game-content" id="game-content"></div>
+
+    <div class="feedback-box hidden" id="game-feedback" aria-live="polite"></div>
+
+    <div class="game-footer">
+      <button id="pause-button" class="large-button warning">⏸️ Pausa</button>
+      <button id="next-button" class="large-button primary">Siguiente</button>
+    </div>
+  </div>
+
+  <div class="game-card hidden" id="results-card">
+    <div class="results-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+        <div>
+          <h1 class="results-title">🎯 Tu resultado</h1>
+          <p class="game-subtitle">Al final verás un nivel y estrategias pedagógicas pensadas para cada apoyo.</p>
+        </div>
+        <button id="print-button" type="button" class="btn btn-ghost btn-sm no-print">🖨️ Imprimir resultado</button>
+      </div>
+      <div class="print-only print-result-header">
+        <div class="print-membrete">
+          <div class="pm-logo">
+            <img src="{% static 'experto/images/INFOCENTRO.jpg' %}" alt="Infocentro" />
+          </div>
+          <div class="pm-text">
+            <div class="pm-title">Informe de resultado TEA</div>
+            <div class="pm-subtitle">Sistema Experto TEA</div>
+          </div>
+        </div>
+        <div class="print-student-info">
+          <div class="print-photo">
+            <img id="print-student-photo" alt="Foto estudiante" />
+          </div>
+          <div class="print-student-name">
+            <strong>Estudiante:</strong>
+            <div id="print-student-name">Nombre completo del estudiante</div>
+          </div>
+        </div>
+      </div>
+      <div class="result-level" id="result-level"></div>
+      <p class="game-count">Puntaje total: <strong id="final-score">0</strong> / 9</p>
+      <div class="study-report" id="study-report"></div>
+    </div>
+
+    <div class="strategy-grid">
+      <div class="strategy-card">
+        <h3>🟢 Nivel 1 — Leve</h3>
+        <p>Se observa un buen manejo con apoyos suaves. Mantén rutinas claras y usa apoyos visuales.</p>
+        <p><strong>Ejemplo:</strong> etiqueta los pasos con dibujos y celebra cada logro con un emoji favorito.</p>
+        <span class="strategy-tag tag-1">¡Vamos bien! Pequeños apoyos</span>
+      </div>
+      <div class="strategy-card">
+        <h3>🟡 Nivel 2 — Moderado</h3>
+        <p>El niño necesita apoyo constante para mantener orden y manejar emociones.</p>
+        <p><strong>Ejemplo:</strong> usa temporizadores suaves, tarjetas de emociones y descansos breves entre actividades.</p>
+        <span class="strategy-tag tag-2">Apoyo importante</span>
+      </div>
+      <div class="strategy-card">
+        <h3>🔴 Nivel 3 — Severo</h3>
+        <p>Requiere supervisión cercana y estrategias especializadas para evitar sobrecarga sensorial.</p>
+        <p><strong>Ejemplo:</strong> adapta el ambiente con luces suaves, instrucciones cortas y pausas frecuentes.</p>
+        <span class="strategy-tag tag-3">Mucho apoyo especializado</span>
+      </div>
+    </div>
+
+    <div class="game-action-row no-print" style="margin-top:2rem; justify-content:center;">
+      <button id="restart-button" class="large-button success">🔄 Volver a jugar</button>
+      <a href="{% url 'inicio' %}" class="large-button warning" style="text-decoration:none; color: inherit; display:inline-flex; justify-content:center;">🏠 Volver al inicio</a>
+    </div>
+  </div>
+
+  <div class="pause-overlay hidden" id="pause-overlay" role="dialog" aria-modal="true" style="display:none;">
+    <div class="pause-panel">
+      <h2>Descanso</h2>
+      <p>Respira tranquilo. Cuando estés listo, presiona continuar para seguir con el siguiente juego.</p>
+      <button id="resume-button" type="button" class="large-button primary" onclick="resumeGame();">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const games = [
+    {
+      id: 1,
+      title: '🎭 ¿Cómo se siente?',
+      description: 'Selecciona la emoción correcta según la situación.',
+      type: 'emotions',
+      items: [
+        { emoji: '🎁', text: 'Le regalaron un juguete', answer: '😊 FELIZ' },
+        { emoji: '🍦', text: 'Se le cayó su helado', answer: '😢 TRISTE' },
+        { emoji: '🚫', text: 'No lo dejaron jugar', answer: '😠 ENOJADO' },
+        { emoji: '🎵', text: 'Está escuchando su canción favorita', answer: '😌 CALMADO' },
+        { emoji: '🌙', text: 'Está solo en la oscuridad', answer: '😨 ASUSTADO' }
+      ]
+    },
+    {
+      id: 2,
+      title: '📅 Ordena el día',
+      description: 'Coloca las actividades en el orden correcto.',
+      type: 'sequence',
+      items: [
+        { emoji: '🛌', text: 'Despertarse', order: 1 },
+        { emoji: '🚿', text: 'Bañarse', order: 2 },
+        { emoji: '🍳', text: 'Desayunar', order: 3 },
+        { emoji: '😴', text: 'Dormir', order: 4 }
+      ]
+    },
+    {
+      id: 3,
+      title: '🔍 ¿Qué sigue?',
+      description: 'Elige la figura que completa el patrón.',
+      type: 'pattern',
+      items: [
+        { pattern: '🔴🔵🔴🔵', correct: '🔴', options: ['🔴', '🔵'] },
+        { pattern: '🟢🟡🟢🟡', correct: '🟢', options: ['🟢', '🟡'] },
+        { pattern: '🟠🟣🟠🟣', correct: '🟠', options: ['🟠', '🟣'] }
+      ]
+    }
+  ];
+
+  let currentGameIndex = 0;
+  let game1Index = 0;
+  let score = 0;
+  let stageScore = 0;
+  let selectedOrder = [];
+
+  const studentCard = document.getElementById('student-card');
+  const startCard = document.getElementById('start-card');
+  const gameCard = document.getElementById('game-card');
+  const resultsCard = document.getElementById('results-card');
+  const continueButton = document.getElementById('continue-button');
+  const backToStudentButton = document.getElementById('back-to-student-button');
+  const startButton = document.getElementById('start-button');
+  const nextButton = document.getElementById('next-button');
+  const pauseButton = document.getElementById('pause-button');
+  const resumeButton = document.getElementById('resume-button');
+  const restartButton = document.getElementById('restart-button');
+  const gameContent = document.getElementById('game-content');
+  const gameTitle = document.getElementById('game-title');
+  const gameDescription = document.getElementById('game-description');
+  const gameFeedback = document.getElementById('game-feedback');
+  const stageLabel = document.getElementById('stage-label');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const resultLevel = document.getElementById('result-level');
+  const finalScore = document.getElementById('final-score');
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const studentNameInput = document.getElementById('student-name-input');
+  const studentPhotoInput = document.getElementById('student-photo-input');
+  const studentNameError = document.getElementById('student-name-error');
+  const studentPhotoPreview = document.getElementById('student-photo-preview');
+  const studentPhotoPreviewImage = document.getElementById('student-photo-preview-image');
+  const printStudentPhoto = document.getElementById('print-student-photo');
+  const printStudentName = document.getElementById('print-student-name');
+  let studentName = '';
+  let studentImageSrc = '';
+
+  function updateProgress() {
+    const progressValue = Math.round(((currentGameIndex) / games.length) * 100);
+    progressBar.style.width = progressValue + '%';
+    progressText.textContent = `${currentGameIndex} de ${games.length} juegos completados`;
+  }
+
+  function showSection(section) {
+    studentCard.classList.add('hidden');
+    startCard.classList.add('hidden');
+    gameCard.classList.add('hidden');
+    resultsCard.classList.add('hidden');
+    if (section === 'student') studentCard.classList.remove('hidden');
+    if (section === 'start') startCard.classList.remove('hidden');
+    if (section === 'game') gameCard.classList.remove('hidden');
+    if (section === 'results') resultsCard.classList.remove('hidden');
+  }
+
+  function pauseGame() {
+    if (!pauseOverlay) return;
+    pauseOverlay.classList.remove('hidden');
+    pauseOverlay.style.display = 'flex';
+  }
+
+  function resumeGame() {
+    if (!pauseOverlay) return;
+    pauseOverlay.classList.add('hidden');
+    pauseOverlay.style.display = 'none';
+  }
+
+  function renderGame() {
+    const game = games[currentGameIndex];
+    stageLabel.textContent = currentGameIndex + 1;
+    gameTitle.textContent = game.title;
+    gameDescription.textContent = game.description;
+    gameFeedback.classList.add('hidden');
+    gameFeedback.textContent = '';
+
+    if (game.type === 'emotions') {
+      const item = game.items[game1Index];
+      const options = ['😊 FELIZ', '😢 TRISTE', '😠 ENOJADO', '😌 CALMADO', '😨 ASUSTADO'];
+      const buttons = options.map(text => {
+        const [emoji, label] = text.split(' ');
+        return `<button type="button" class="emoji-choice" data-value="${text}"><span class="choice-emoji">${emoji}</span><span class="choice-text">${label}</span></button>`;
+      }).join('');
+      gameContent.innerHTML = `
+        <div class="game-row" style="gap:1rem;">
+          <div style="padding:1.8rem; border-radius:24px; background:rgba(255,255,255,.96); border:1px solid rgba(74,144,226,.18);">
+            <div class="game-illustration">${item.emoji}</div>
+            <p class="game-prompt">Elige la carita que mejor dice cómo se siente.</p>
+            <p class="game-tip">Toca una opción grande para jugar.</p>
+            <p style="font-size:1rem; color:#475569; line-height:1.7; margin-top:1rem;">${item.text}</p>
+            <p class="game-count" style="margin-top:1rem; font-weight:700;">Pregunta ${game1Index + 1} de ${game.items.length}</p>
+          </div>
+          <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));">
+            ${buttons}
+          </div>
+        </div>
+        <div class="game-count">⭐ Aciertos: ${score} de ${game.items.length}</div>
+      `;
+      document.querySelectorAll('.emoji-choice').forEach(button => {
+        button.addEventListener('click', () => handleEmotionClick(item, button));
+      });
+      nextButton.textContent = game1Index + 1 < game.items.length ? 'Siguiente pregunta' : 'Terminar juego';
+      nextButton.disabled = true;
+    }
+
+    if (game.type === 'sequence') {
+      selectedOrder = [];
+      const shuffled = [...game.items].sort(() => Math.random() - 0.5);
+      const cards = shuffled.map((item, index) => {
+        return `<button class="order-card" data-order="${item.order}"> <span style="font-size:1.6rem; margin-right:.5rem;">${item.emoji}</span> ${item.text}</button>`;
+      }).join('');
+      gameContent.innerHTML = `
+        <div style="margin-bottom:1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+          <div class="status-pill">Arrastra o toca en el orden correcto</div>
+          <span style="color:rgba(226,232,240,.9);">Selecciona los cuatro pasos en secuencia.</span>
+        </div>
+        <div class="game-row" id="sequence-area">${cards}</div>
+        <div class="feedback-box hidden" id="sequence-selected" style="margin-top:1rem;">Orden seleccionado: <strong id="sequence-list"></strong></div>
+      `;
+      document.querySelectorAll('.order-card').forEach(card => {
+        card.addEventListener('click', () => handleOrderClick(card));
+      });
+      nextButton.textContent = 'Enviar orden';
+      nextButton.disabled = false;
+    }
+
+    if (game.type === 'pattern') {
+      const item = game.items[0];
+      const options = item.options.map(option => `<button class="choice-card" data-value="${option}">${option}</button>`).join('');
+      gameContent.innerHTML = `
+        <div style="text-align:center; padding:1.5rem; background:rgba(255,255,255,.9); border-radius:22px; border:1px solid rgba(255,191,71,.25);">
+          <div class="game-emoji">${item.pattern}</div>
+          <p style="font-size:1.05rem; font-weight:700; color:#1e293b;">¿Qué sigue?</p>
+        </div>
+        <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-top:1rem;">
+          ${options}
+        </div>
+      `;
+      document.querySelectorAll('.choice-card').forEach(button => {
+        button.addEventListener('click', () => handlePatternClick(item, button));
+      });
+      nextButton.textContent = 'Finalizar';
+      nextButton.disabled = true;
+    }
+  }
+
+  function handleEmotionClick(item, button) {
+    const answer = button.dataset.value;
+    const correct = answer === item.answer;
+    const allButtons = document.querySelectorAll('.emoji-choice');
+    allButtons.forEach(btn => {
+      btn.classList.remove('correct', 'wrong', 'animate-correct', 'animate-wrong');
+      btn.classList.remove('selected');
+      btn.removeAttribute('aria-pressed');
+    });
+    button.classList.add(correct ? 'correct' : 'wrong');
+    button.classList.add(correct ? 'animate-correct' : 'animate-wrong');
+    button.classList.add('selected');
+    button.setAttribute('aria-pressed', 'true');
+    stageScore = correct ? 1 : 0;
+    gameFeedback.className = 'feedback-box feedback-correct';
+    gameFeedback.textContent = correct
+      ? `✅ ¡Muy bien! Esta carita muestra cómo te sientes.`
+      : '✨ Gracias por elegir. Si quieres, puedes probar otra carita o pasar a la siguiente pregunta.';
+    gameFeedback.classList.remove('hidden');
+    nextButton.disabled = false;
+  }
+
+  function handleOrderClick(card) {
+    if (selectedOrder.length >= 4) return;
+    const value = Number(card.dataset.order);
+    if (selectedOrder.includes(value)) return;
+    selectedOrder.push(value);
+    card.classList.add('selected');
+    document.getElementById('sequence-selected').classList.remove('hidden');
+    document.getElementById('sequence-list').textContent = selectedOrder.join(' → ');
+  }
+
+  function handlePatternClick(item, button) {
+    document.querySelectorAll('.choice-card').forEach(btn => btn.classList.remove('selected'));
+    button.classList.add('selected');
+    stageScore = button.dataset.value === item.correct ? 2 : 0;
+    const correct = button.dataset.value === item.correct;
+    gameFeedback.className = correct ? 'feedback-box feedback-correct' : 'feedback-box feedback-wrong';
+    gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '❌ Intenta de nuevo.';
+    gameFeedback.classList.remove('hidden');
+    nextButton.disabled = false;
+  }
+
+  function evaluateStage() {
+    const game = games[currentGameIndex];
+    if (game.type === 'emotions') {
+      score += stageScore;
+      game1Index += 1;
+      if (game1Index < game.items.length) {
+        renderGame();
+        return;
+      }
+      score = Math.max(score, 0);
+      currentGameIndex += 1;
+      game1Index = 0;
+      showNextGame();
+      return;
+    }
+    if (game.type === 'sequence') {
+      const correctSequence = game.items.map(item => item.order).join(',');
+      const selectedSequence = selectedOrder.join(',');
+      const correct = selectedSequence === correctSequence;
+      stageScore = correct ? 2 : 0;
+      score += stageScore;
+      gameFeedback.className = correct ? 'feedback-box feedback-correct' : 'feedback-box feedback-wrong';
+      gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '🔄 Intenta de nuevo';
+      gameFeedback.classList.remove('hidden');
+      if (!correct) {
+        document.querySelectorAll('.order-card').forEach(card => card.classList.remove('selected'));
+        selectedOrder = [];
+        document.getElementById('sequence-list').textContent = '';
+      }
+      currentGameIndex += 1;
+      setTimeout(showNextGame, 1000);
+      return;
+    }
+    if (game.type === 'pattern') {
+      score += stageScore;
+      currentGameIndex += 1;
+      showResults();
+      return;
+    }
+  }
+
+  function showNextGame() {
+    if (currentGameIndex >= games.length) {
+      showResults();
+      return;
+    }
+    updateProgress();
+    renderGame();
+  }
+
+  function showResults() {
+    updateProgress();
+    showSection('results');
+    finalScore.textContent = score;
+    printStudentName.textContent = studentName || 'Nombre completo del estudiante';
+    if (studentImageSrc) {
+      printStudentPhoto.src = studentImageSrc;
+      printStudentPhoto.parentElement.style.display = 'block';
+    } else {
+      printStudentPhoto.parentElement.style.display = 'none';
+    }
+    let level = 'Nivel 1 — Leve';
+    let levelClass = 'level-1';
+    if (score >= 8) {
+      level = '🟢 Nivel 1 (Leve) — ¡Vamos bien! Pequeños apoyos';
+      levelClass = 'level-1';
+    } else if (score >= 5) {
+      level = '🟡 Nivel 2 (Moderado) — Apoyo importante';
+      levelClass = 'level-2';
+    } else {
+      level = '🔴 Nivel 3 (Severo) — Mucho apoyo especializado';
+      levelClass = 'level-3';
+    }
+    resultLevel.textContent = level;
+    resultLevel.className = `result-level ${levelClass}`;
+    const studyText = getStudyText(levelClass);
+    const report = document.getElementById('study-report');
+    report.innerHTML = `
+      <h3>📘 Estudio psicológico breve</h3>
+      <p>${studyText}</p>
+    `;
+  }
+
+  function getStudyText(levelClass) {
+    if (levelClass === 'level-1') {
+      return 'Los resultados indican un patrón de respuesta positivo con apoyo leve. El niño se beneficia de rutinas claras, refuerzos positivos y avisos visuales suaves. Se recomienda mantener el mismo ritmo de actividades, ofrecer mensajes cortos y celebrar cada logro para reforzar la confianza.';
+    }
+    if (levelClass === 'level-2') {
+      return 'Esta evaluación muestra un perfil con necesidad de apoyo moderado para organizarse y gestionar emociones. El niño responde bien cuando recibe instrucciones breves, señalización visual y pausas estructuradas. Se sugiere usar calendarios visuales, pasos concretos y recordatorios amables en cada actividad.';
+    }
+    return 'Los resultados reflejan un nivel de apoyo especializado con carga sensorial y emocional más intensa. Se aconseja acompañamiento cercano, instrucciones muy cortas y descansos frecuentes. Además, es importante coordinar estrategias con profesionales educativos y psicopedagógicos para ajustar el entorno y evitar sobrecarga.';
+  }
+
+  function previewStudentPhoto() {
+    const file = studentPhotoInput.files[0];
+    if (!file) {
+      studentPhotoPreview.style.display = 'none';
+      studentImageSrc = '';
+      studentInfoImage.src = '';
+      studentPhotoFrame.style.display = 'none';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      studentImageSrc = event.target.result;
+      studentPhotoPreviewImage.src = studentImageSrc;
+      studentPhotoPreview.style.display = 'block';
+      studentInfoImage.src = studentImageSrc;
+      studentPhotoFrame.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function validateStudentInfo() {
+    studentName = studentNameInput.value.trim();
+    const photoFile = studentPhotoInput.files[0];
+
+    let valid = true;
+    if (!studentName) {
+      studentNameError.textContent = 'Por favor ingresa el nombre completo del estudiante.';
+      valid = false;
+    } else {
+      studentNameError.textContent = '';
+    }
+
+    if (!photoFile) {
+      document.getElementById('student-photo-error').textContent = 'Por favor selecciona una imagen del estudiante.';
+      valid = false;
+    } else {
+      document.getElementById('student-photo-error').textContent = '';
+    }
+
+    return valid;
+  }
+
+  continueButton.addEventListener('click', () => {
+    if (!validateStudentInfo()) {
+      return;
+    }
+    if (studentPhotoInput.files[0] && !studentImageSrc) {
+      previewStudentPhoto();
+    }
+    showSection('start');
+  });
+
+  startButton.addEventListener('click', () => {
+    showSection('game');
+    currentGameIndex = 0;
+    score = 0;
+    game1Index = 0;
+    stageScore = 0;
+    renderGame();
+    updateProgress();
+  });
+
+  studentPhotoInput.addEventListener('change', previewStudentPhoto);
+
+  backToStudentButton.addEventListener('click', () => {
+    showSection('student');
+  });
+
+  nextButton.addEventListener('click', () => {
+    if (currentGameIndex >= games.length) return;
+    evaluateStage();
+  });
+
+  if (pauseButton) {
+    pauseButton.addEventListener('click', pauseGame);
+  }
+  if (resumeButton) {
+    resumeButton.addEventListener('click', resumeGame);
+    resumeButton.onclick = resumeGame;
+  }
+  restartButton.addEventListener('click', () => {
+    showSection('game');
+    currentGameIndex = 0;
+    score = 0;
+    game1Index = 0;
+    stageScore = 0;
+    renderGame();
+    updateProgress();
+  });
+
+  const printButton = document.getElementById('print-button');
+  if (printButton) {
+    printButton.addEventListener('click', () => {
+      window.print();
+    });
+  }
+
+</script>
+{% endblock %}

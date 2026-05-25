@@ -12,6 +12,7 @@ from . import views
 urlpatterns = [
     # ── Inicio ────────────────────────────────────────────────────────────────
     path('', views.inicio, name='inicio'),
+    path('jugar-evaluar/', views.jugar_evaluar, name='jugar_evaluar'),
 
     # ── Autenticación ─────────────────────────────────────────────────────────
     path('registro/', views.registro_instructor, name='registro_instructor'),
