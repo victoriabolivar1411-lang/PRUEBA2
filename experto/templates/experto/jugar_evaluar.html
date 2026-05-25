@@ -4,26 +4,24 @@
 {% block content %}
 <style>
   :root {
-    --game-bg: #E8F4F8;
+    --game-bg: var(--c-bg);
     --panel-bg: rgba(255,255,255,.92);
     --button-primary: #4A90E2;
     --button-success: #50C878;
     --button-warning: #FFB347;
     --button-text: #ffffff;
-    --text-dark: #333333;
+    --text-dark: var(--c-text);
     --border-soft: rgba(74,144,226,.25);
     --shadow-soft: 0 18px 40px rgba(28,67,146,.08);
   }
   .tea-game-shell {
-    background: radial-gradient(circle at top left, rgba(80,200,120,.14), transparent 34%),
-                radial-gradient(circle at bottom right, rgba(74,144,226,.14), transparent 30%),
-                var(--game-bg);
+    background: var(--game-bg);
     min-height: calc(100vh - 62px);
     padding: 2rem 1rem 3rem;
-    color: var(--text-dark);
+    color: var(--c-white);
   }
   .game-card {
-    background: var(--panel-bg);
+    background: var(--c-surface);
     border: 1px solid var(--border-soft);
     border-radius: 24px;
     padding: 2rem;
@@ -31,6 +29,17 @@
     margin: 0 auto;
     box-shadow: var(--shadow-soft);
     animation: fadeInUp .45s ease;
+  }
+  #student-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
+  #student-card .game-header,
+  #student-card .game-action-row {
+    background: transparent;
+    box-shadow: none;
   }
   .game-header {
     display: flex;
@@ -47,7 +56,7 @@
   }
   .game-subtitle {
     font-size: 1rem;
-    color: #475569;
+    color: rgba(226,232,240,.8);
     max-width: 620px;
     line-height: 1.6;
   }
@@ -86,7 +95,7 @@
     border-radius: 18px;
     border: 1px solid rgba(34,68,113,.14);
     background: white;
-    color: var(--text-dark);
+    color: #0f172a;
     font-size: 1.1rem;
     font-weight: 700;
     display: inline-flex;
@@ -97,6 +106,9 @@
     transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
     box-shadow: 0 9px 22px rgba(55,83,150,.06);
     user-select: none;
+  }
+  .large-button.primary {
+    color: #0f172a;
   }
   .large-button:hover,
   .emoji-choice:hover,
@@ -122,7 +134,7 @@
   }
   .emoji-choice .choice-text {
     font-size: 1.1rem;
-    color: #1f2937;
+    color: #0f172a;
   }
   .game-prompt {
     margin-top: .6rem;
@@ -166,11 +178,11 @@
   .feedback-box {
     min-height: 56px;
     border-radius: 18px;
-    background: rgba(255,255,255,.9);
-    border: 1px solid rgba(34,68,113,.12);
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.12);
     padding: 1rem 1.2rem;
     font-weight: 700;
-    color: #334155;
+    color: rgba(226,232,240,.95);
     display: flex;
     align-items: center;
     gap: .7rem;
@@ -190,8 +202,8 @@
     gap: .35rem;
     padding: .45rem .85rem;
     border-radius: 999px;
-    background: rgba(74,144,226,.12);
-    color: #1e293b;
+    background: rgba(255,255,255,.08);
+    color: rgba(226,232,240,.95);
     font-size: .95rem;
     font-weight: 700;
   }
@@ -238,11 +250,59 @@
     background: linear-gradient(135deg, #4A90E2, #50C878);
     color: white;
   }
+  .print-only {
+    display: none;
+  }
+  .print-result-header {
+    gap: 1rem;
+    border-radius: 22px;
+    background: #f8fafc;
+    padding: 1rem;
+    border: 1px solid rgba(15,23,42,.1);
+  }
+  .print-membrete {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .print-membrete .pm-logo img {
+    width: 140px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 16px;
+    background: white;
+    padding: 0.5rem;
+  }
+  .print-student-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .print-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(15,23,42,.12);
+  }
+  .print-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .print-student-name {
+    min-width: 220px;
+  }
   .no-print {
     display: inline-flex !important;
   }
   @media print {
     .no-print { display: none !important; }
+    .print-only { display: block !important; }
     .results-card { border: none; box-shadow: none; }
   }
   .results-title {
@@ -409,35 +469,50 @@
   }
 </style>
 <div class="tea-game-shell">
-  <div class="game-card" id="start-card">
+  <div class="game-card" id="student-card">
+    <div class="game-header">
+      <div>
+        <div class="status-pill">🎓 Datos del estudiante</div>
+        <h1 class="game-heading">Identifica al estudiante</h1>
+        <p class="game-subtitle">Ingresa el nombre completo y una foto antes de continuar con los juegos.</p>
+      </div>
+    </div>
+    <div class="student-entry-card">
+      <div class="form-group">
+        <label for="student-name-input">Nombre completo del estudiante</label>
+        <input id="student-name-input" type="text" placeholder="Ej. Juan Pérez" autocomplete="off" />
+        <div id="student-name-error" class="error-text" aria-live="polite"></div>
+      </div>
+      <div class="form-group">
+        <label for="student-photo-input">Sube una imagen del estudiante</label>
+        <input id="student-photo-input" type="file" accept="image/*" />
+        <div id="student-photo-error" class="error-text" aria-live="polite"></div>
+        <div id="student-photo-preview" class="student-photo-preview" style="display:none;">
+          <img id="student-photo-preview-image" alt="Vista previa foto estudiante" />
+        </div>
+      </div>
+    </div>
+    <div class="game-action-row">
+      <button id="continue-button" class="large-button primary">➡️ Continuar</button>
+    </div>
+  </div>
+
+  <div class="game-card hidden" id="start-card">
     <div class="game-header">
       <div>
         <div class="status-pill">🎮 Actividad lúdica para TEA</div>
         <h1 class="game-heading">Jugar y Evaluar</h1>
         <p class="game-subtitle">Tres juegos cortos diseñados para apoyar la atención, el reconocimiento emocional y el orden en el día de los niños.</p>
       </div>
-      <div class="student-entry-card">
-        <div class="form-group">
-          <label for="student-name-input">Nombre completo del estudiante</label>
-          <input id="student-name-input" type="text" placeholder="Ej. Juan Pérez" autocomplete="off" />
-          <div id="student-name-error" class="error-text" aria-live="polite"></div>
-        </div>
-        <div class="form-group">
-          <label for="student-photo-input">Sube una imagen del estudiante</label>
-          <input id="student-photo-input" type="file" accept="image/*" />
-          <div id="student-photo-preview" class="student-photo-preview" style="display:none;">
-            <img id="student-photo-preview-image" alt="Vista previa foto estudiante" />
-          </div>
-        </div>
-      </div>
-      <div class="game-action-row">
-        <button id="start-button" class="large-button primary">🎉 Comenzar juegos</button>
-      </div>
+    </div>
+    <div class="game-action-row" style="justify-content:center; gap:1rem; margin-bottom:1rem;">
+      <button id="back-to-student-button" class="large-button warning">↩️ Volver a datos</button>
+      <button id="start-button" class="large-button primary">🎉 Comenzar juegos</button>
     </div>
     <div class="game-intro-card">
       <div class="feedback-box">
         <span>✨</span>
-        Ingresa el nombre completo del estudiante y una imagen antes de comenzar. Después usa las tarjetas grandes y los íconos para avanzar con tranquilidad.
+        Confirma los datos del estudiante y presiona el botón para comenzar los juegos. Luego podrás avanzar con tranquilidad usando las tarjetas grandes.
       </div>
     </div>
   </div>
@@ -474,18 +549,26 @@
           <h1 class="results-title">🎯 Tu resultado</h1>
           <p class="game-subtitle">Al final verás un nivel y estrategias pedagógicas pensadas para cada apoyo.</p>
         </div>
-        <button id="print-button" type="button" class="large-button primary print-button no-print">🖨️ Imprimir resultado</button>
+        <button id="print-button" type="button" class="btn btn-ghost btn-sm no-print">🖨️ Imprimir resultado</button>
       </div>
-      <div class="result-header">
-        <div class="membrete-row">
-          <img src="{% static 'experto/images/INFOCENTRO.jpg' %}" alt="Infocentro" class="membrete-logo" />
-          <div class="student-info-block">
-            <p class="student-label">Estudiante</p>
-            <h2 id="student-info-name">Nombre del estudiante</h2>
+      <div class="print-only print-result-header">
+        <div class="print-membrete">
+          <div class="pm-logo">
+            <img src="{% static 'experto/images/INFOCENTRO.jpg' %}" alt="Infocentro" />
+          </div>
+          <div class="pm-text">
+            <div class="pm-title">Informe de resultado TEA</div>
+            <div class="pm-subtitle">Sistema Experto TEA</div>
           </div>
         </div>
-        <div class="student-photo-frame" id="student-photo-frame" style="display:none;">
-          <img id="student-info-image" alt="Foto del estudiante" />
+        <div class="print-student-info">
+          <div class="print-photo">
+            <img id="print-student-photo" alt="Foto estudiante" />
+          </div>
+          <div class="print-student-name">
+            <strong>Estudiante:</strong>
+            <div id="print-student-name">Nombre completo del estudiante</div>
+          </div>
         </div>
       </div>
       <div class="result-level" id="result-level"></div>
@@ -575,9 +658,12 @@
   let stageScore = 0;
   let selectedOrder = [];
 
+  const studentCard = document.getElementById('student-card');
   const startCard = document.getElementById('start-card');
   const gameCard = document.getElementById('game-card');
   const resultsCard = document.getElementById('results-card');
+  const continueButton = document.getElementById('continue-button');
+  const backToStudentButton = document.getElementById('back-to-student-button');
   const startButton = document.getElementById('start-button');
   const nextButton = document.getElementById('next-button');
   const pauseButton = document.getElementById('pause-button');
@@ -598,9 +684,8 @@
   const studentNameError = document.getElementById('student-name-error');
   const studentPhotoPreview = document.getElementById('student-photo-preview');
   const studentPhotoPreviewImage = document.getElementById('student-photo-preview-image');
-  const studentInfoName = document.getElementById('student-info-name');
-  const studentInfoImage = document.getElementById('student-info-image');
-  const studentPhotoFrame = document.getElementById('student-photo-frame');
+  const printStudentPhoto = document.getElementById('print-student-photo');
+  const printStudentName = document.getElementById('print-student-name');
   let studentName = '';
   let studentImageSrc = '';
 
@@ -611,12 +696,14 @@
   }
 
   function showSection(section) {
+    studentCard.classList.add('hidden');
     startCard.classList.add('hidden');
     gameCard.classList.add('hidden');
     resultsCard.classList.add('hidden');
+    if (section === 'student') studentCard.classList.remove('hidden');
+    if (section === 'start') startCard.classList.remove('hidden');
     if (section === 'game') gameCard.classList.remove('hidden');
     if (section === 'results') resultsCard.classList.remove('hidden');
-    if (section === 'start') startCard.classList.remove('hidden');
   }
 
   function pauseGame() {
@@ -677,7 +764,7 @@
       gameContent.innerHTML = `
         <div style="margin-bottom:1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
           <div class="status-pill">Arrastra o toca en el orden correcto</div>
-          <span style="color:#475569;">Selecciona los cuatro pasos en secuencia.</span>
+          <span style="color:rgba(226,232,240,.9);">Selecciona los cuatro pasos en secuencia.</span>
         </div>
         <div class="game-row" id="sequence-area">${cards}</div>
         <div class="feedback-box hidden" id="sequence-selected" style="margin-top:1rem;">Orden seleccionado: <strong id="sequence-list"></strong></div>
@@ -804,17 +891,14 @@
 
   function showResults() {
     updateProgress();
-    if (!studentImageSrc && studentPhotoInput.files.length) {
-      previewStudentPhoto();
-    }
     showSection('results');
     finalScore.textContent = score;
-    studentInfoName.textContent = studentName || 'Nombre del estudiante';
+    printStudentName.textContent = studentName || 'Nombre completo del estudiante';
     if (studentImageSrc) {
-      studentInfoImage.src = studentImageSrc;
-      studentPhotoFrame.style.display = 'block';
+      printStudentPhoto.src = studentImageSrc;
+      printStudentPhoto.parentElement.style.display = 'block';
     } else {
-      studentPhotoFrame.style.display = 'none';
+      printStudentPhoto.parentElement.style.display = 'none';
     }
     let level = 'Nivel 1 — Leve';
     let levelClass = 'level-1';
@@ -840,12 +924,12 @@
 
   function getStudyText(levelClass) {
     if (levelClass === 'level-1') {
-      return 'El niño presenta una respuesta emocional y cognitiva adecuada con apoyo suave. Se recomienda continuar con rutinas visuales estables, refuerzos positivos y tiempos de descanso breves.';
+      return 'Los resultados indican un patrón de respuesta positivo con apoyo leve. El niño se beneficia de rutinas claras, refuerzos positivos y avisos visuales suaves. Se recomienda mantener el mismo ritmo de actividades, ofrecer mensajes cortos y celebrar cada logro para reforzar la confianza.';
     }
     if (levelClass === 'level-2') {
-      return 'Se observa necesidad de apoyo constante para organizarse y regular emociones. Se recomienda uso de apoyos visuales claros, instrucciones cortas, refuerzo social y pausas estructuradas.';
+      return 'Esta evaluación muestra un perfil con necesidad de apoyo moderado para organizarse y gestionar emociones. El niño responde bien cuando recibe instrucciones breves, señalización visual y pausas estructuradas. Se sugiere usar calendarios visuales, pasos concretos y recordatorios amables en cada actividad.';
     }
-    return 'Se evidencia necesidad de apoyo especializado y acompañamiento cercano. Se sugiere adaptar el ambiente sensorial, usar estrategias de autorregulación y coordinar con profesionales educativos y psicopedagógicos.';
+    return 'Los resultados reflejan un nivel de apoyo especializado con carga sensorial y emocional más intensa. Se aconseja acompañamiento cercano, instrucciones muy cortas y descansos frecuentes. Además, es importante coordinar estrategias con profesionales educativos y psicopedagógicos para ajustar el entorno y evitar sobrecarga.';
   }
 
   function previewStudentPhoto() {
@@ -870,18 +954,37 @@
 
   function validateStudentInfo() {
     studentName = studentNameInput.value.trim();
+    const photoFile = studentPhotoInput.files[0];
+
+    let valid = true;
     if (!studentName) {
       studentNameError.textContent = 'Por favor ingresa el nombre completo del estudiante.';
-      return false;
+      valid = false;
+    } else {
+      studentNameError.textContent = '';
     }
-    studentNameError.textContent = '';
-    return true;
+
+    if (!photoFile) {
+      document.getElementById('student-photo-error').textContent = 'Por favor selecciona una imagen del estudiante.';
+      valid = false;
+    } else {
+      document.getElementById('student-photo-error').textContent = '';
+    }
+
+    return valid;
   }
 
-  startButton.addEventListener('click', () => {
+  continueButton.addEventListener('click', () => {
     if (!validateStudentInfo()) {
       return;
     }
+    if (studentPhotoInput.files[0] && !studentImageSrc) {
+      previewStudentPhoto();
+    }
+    showSection('start');
+  });
+
+  startButton.addEventListener('click', () => {
     showSection('game');
     currentGameIndex = 0;
     score = 0;
@@ -892,6 +995,10 @@
   });
 
   studentPhotoInput.addEventListener('change', previewStudentPhoto);
+
+  backToStudentButton.addEventListener('click', () => {
+    showSection('student');
+  });
 
   nextButton.addEventListener('click', () => {
     if (currentGameIndex >= games.length) return;
