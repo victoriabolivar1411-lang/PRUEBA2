@@ -8,13 +8,131 @@ Descripción: Funciones auxiliares para el envío de correos electrónicos:
 =============================================================================
 """
 
+import base64
 import logging
+import mimetypes
+from pathlib import Path
+
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+
+def buscar_logo_infocentro():
+    """Busca INFOCENTRO.jpg en las ubicaciones definidas y retorna su ruta."""
+    home = Path.home()
+    proyecto = Path.cwd()
+    rutas = [
+        home / 'Downloads' / 'INFOCENTRO.jpg',
+        home / 'Descargas' / 'INFOCENTRO.jpg',
+        proyecto / 'INFOCENTRO.jpg',
+        home / 'Escritorio' / 'INFOCENTRO.jpg',
+    ]
+    for ruta in rutas:
+        if ruta.is_file():
+            return ruta
+    return None
+
+
+def generar_data_uri_imagen(ruta_imagen):
+    """Convierte una imagen local a un data URI para incrustarla en HTML."""
+    tipo_mime, _ = mimetypes.guess_type(str(ruta_imagen))
+    if not tipo_mime:
+        tipo_mime = 'image/jpeg'
+    with open(ruta_imagen, 'rb') as imagen:
+        contenido = imagen.read()
+    datos_base64 = base64.b64encode(contenido).decode('ascii')
+    return f'data:{tipo_mime};base64,{datos_base64}'
+
+
+def _normalizar_contenido_para_html(contenido):
+    """Convierte texto plano a HTML preservando saltos de línea."""
+    if contenido is None:
+        return ''
+    contenido = str(contenido)
+    if '<' in contenido and '>' in contenido:
+        return contenido
+    return contenido.replace('\r\n', '\n').replace('\r', '\n').replace('\n', '<br>\n')
+
+
+def render_reporte_con_membrete(contenido, titulo):
+    """Devuelve un documento HTML completo con membrete y contenido."""
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_src = generar_data_uri_imagen(ruta_logo)
+        imagen_html = f'<img src="{logo_src}" alt="INFOCENTRO" class="logo">'
+    else:
+        imagen_html = (
+            '<div class="logo logo-alternativo">'
+            'FUNDACION INFOCENTRO - COMUNIDADES TIC'
+            '</div>'
+        )
+
+    contenido_html = _normalizar_contenido_para_html(contenido)
+    titulo_html = str(titulo)
+
+    return f'''<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{titulo_html}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 24px; color: #1a1a1a; }}
+        .membrete {{ display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 12px; }}
+        .logo {{ max-width: 180px; max-height: 120px; object-fit: contain; }}
+        .logo-alternativo {{ font-size: 1rem; font-weight: 700; color: #0b3d91; padding: 14px 16px; border: 2px solid #0b3d91; border-radius: 8px; background: #f2f6ff; max-width: 280px; }}
+        .texto {{ flex: 1; min-width: 240px; }}
+        .titulo-principal {{ font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }}
+        .subtitulo {{ font-size: 1rem; color: #333333; }}
+        .separador {{ border: none; border-top: 2px solid #0b3d91; margin: 12px 0 24px; }}
+        .contenido {{ line-height: 1.6; }}
+        .contenido h1 {{ margin-top: 0; color: #0b3d91; }}
+    </style>
+</head>
+<body>
+    <div class="membrete">
+        {imagen_html}
+        <div class="texto">
+            <div class="titulo-principal">FUNDACION INFOCENTRO - COMUNIDADES TIC</div>
+            <div class="subtitulo">Sistema Experto de Apoyo para Instructores de Niños con TEA</div>
+        </div>
+    </div>
+    <hr class="separador">
+    <main class="contenido">
+        <h1>{titulo_html}</h1>
+        <div>{contenido_html}</div>
+    </main>
+</body>
+</html>'''
+
+
+def generar_reporte_con_membrete(contenido, titulo, nombre_archivo='reporte.html'):
+    """Genera el HTML del reporte con membrete y opcionalmente escribe un archivo."""
+    html = render_reporte_con_membrete(contenido, titulo)
+    ruta_salida = Path.cwd() / nombre_archivo
+    with open(ruta_salida, 'w', encoding='utf-8') as archivo:
+        archivo.write(html)
+    return ruta_salida
+
+
+if __name__ == '__main__':
+    ejemplo_titulo = 'Reporte de Seguimiento de Intervención'
+    ejemplo_contenido = (
+        'Estudiante: Ana Pérez\n'
+        'Fecha: 24/05/2026\n\n'
+        'Observaciones:\n'
+        '- Progreso positivo en la comunicación no verbal.\n'
+        '- Responde mejor a estructuras visuales.\n\n'
+        'Recomendaciones:\n'
+        '1. Mantener actividades breves y estructuradas.\n'
+        '2. Usar apoyos visuales durante la sesión.\n'
+    )
+    resultado = generar_reporte_con_membrete(ejemplo_contenido, ejemplo_titulo)
+    print(f'Reporte generado en: {resultado}')
 
 
 def enviar_bienvenida(user):

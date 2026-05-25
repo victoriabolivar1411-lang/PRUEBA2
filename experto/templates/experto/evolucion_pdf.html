@@ -50,6 +50,25 @@
       color: #1e40af;
       margin-left: 15px;
     }
+    .header-logo-img {
+      max-width: 150px;
+      max-height: 90px;
+      object-fit: contain;
+      vertical-align: middle;
+    }
+    .header-logo-fallback {
+      display: inline-block;
+      padding: 8px 10px;
+      background-color: #eef2ff;
+      border: 2px solid #4f46e5;
+      border-radius: 8px;
+      color: #1e40af;
+      font-size: 8pt;
+      font-weight: 700;
+      line-height: 1.2;
+      max-width: 220px;
+      text-align: center;
+    }
 
     /* ─── TITLE & REPORT DATE ────────────────────────────────── */
     .report-title {
@@ -183,12 +202,18 @@
 <body>
 
   <!-- HEADER -->
-  <div id="page-header">
-    <span class="header-logo-container">
-      <img src="/static/images/logo_infocentro.jpeg" alt="Fundación Infocentro" height="60">
-    </span>
-    <span class="empresa-nombre">FUNDACIÓN INFOCENTRO</span>
-  </div>
+  <table class="header-table">
+    <tr>
+      <td>
+        {% if logo_data_uri %}
+          <img class="header-logo-img" src="{{ logo_data_uri }}" alt="INFOCENTRO logo">
+        {% else %}
+          <div class="header-logo-fallback">FUNDACION INFOCENTRO - COMUNIDADES TIC</div>
+        {% endif %}
+      </td>
+      <td class="header-subtitle">Reporte Formal de Evolución Pedagógica</td>
+    </tr>
+  </table>
 
   <!-- TITULO Y METADATOS -->
   <div class="report-title">INFORME DE EVOLUCIÓN PEDAGÓGICA Y CLÍNICA</div>

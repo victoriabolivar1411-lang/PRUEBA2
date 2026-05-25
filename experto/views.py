@@ -36,7 +36,7 @@ from .forms import (
     EditarPerfilInstructorForm,
 )
 from .expert_system import generar_recomendaciones
-from .utils import enviar_bienvenida
+from .utils import buscar_logo_infocentro, generar_data_uri_imagen, enviar_bienvenida, render_reporte_con_membrete
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -223,6 +223,11 @@ def lista_estudiantes(request):
             if ano:
                 reportes = reportes.filter(fecha__year=ano)
 
+    logo_data_uri = None
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_data_uri = generar_data_uri_imagen(ruta_logo)
+
     return render(request, 'experto/lista_estudiantes.html', {
         'instructor':  instructor,
         'estudiantes': estudiantes,
@@ -234,6 +239,7 @@ def lista_estudiantes(request):
         'get_ano':     request.GET.get('ano', ''),
         'get_estudiante': request.GET.get('estudiante', ''),
         'get_ver_instructores': request.GET.get('ver_instructores', ''),
+        'logo_data_uri': logo_data_uri,
     })
 
 
@@ -296,6 +302,11 @@ def perfil_estudiante(request, pk):
     recomendaciones = []
     if eval_ped:
         recomendaciones = eval_ped.recomendaciones.select_related('regla').all()
+    logo_data_uri = None
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_data_uri = generar_data_uri_imagen(ruta_logo)
+
     return render(request, 'experto/perfil_estudiante.html', {
         'instructor':       instructor,
         'estudiante':       est,
@@ -303,6 +314,7 @@ def perfil_estudiante(request, pk):
         'eval_dsm5':        eval_dsm5,
         'eval_ped':         eval_ped,
         'recomendaciones':  recomendaciones,
+        'logo_data_uri':    logo_data_uri,
     })
 
 
@@ -415,6 +427,11 @@ def resultados(request, ped_pk):
     recomendaciones = ev_ped.recomendaciones.select_related('regla').all()
     ev_dsm5 = ev_ped.evaluacion_dsm5
 
+    logo_data_uri = None
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_data_uri = generar_data_uri_imagen(ruta_logo)
+
     return render(request, 'experto/resultados.html', {
         'instructor':      instructor,
         'estudiante':      ev_ped.estudiante,
@@ -422,7 +439,46 @@ def resultados(request, ped_pk):
         'eval_dsm5':       ev_dsm5,
         'recomendaciones': recomendaciones,
         'total':           recomendaciones.count(),
+        'logo_data_uri':   logo_data_uri,
     })
+
+
+@login_required(login_url='login')
+def reporte_pedagogico_html(request, ped_pk):
+    """Genera una vista HTML imprimible con membrete para una evaluación pedagógica."""
+    instructor = _get_instructor(request)
+    ev_ped = get_object_or_404(
+        EvaluacionPedagogica, pk=ped_pk, estudiante__instructor=instructor
+    )
+    recomendaciones = ev_ped.recomendaciones.select_related('regla').all()
+
+    lineas = [
+        f'Estudiante: {ev_ped.estudiante.nombre_completo}',
+        f'Instructor: {instructor}',
+        f'Fecha de evaluación: {ev_ped.fecha.strftime("%d/%m/%Y")}',
+        '',
+        'Datos de la evaluación pedagógica:',
+        f'- Comunicación social: {ev_ped.get_nivel_comunicacion_social_display()}',
+        f'- Observaciones comunicación: {ev_ped.observaciones_comunicacion or "Sin observaciones"}',
+        f'- Conductas repetitivas: {ev_ped.get_nivel_conductas_repetitivas_display()}',
+        f'- Observaciones conductas: {ev_ped.observaciones_conductas or "Sin observaciones"}',
+        '',
+        'Recomendaciones generadas:',
+    ]
+
+    if recomendaciones.exists():
+        for rec in recomendaciones:
+            regla_nombre = rec.regla.nombre if rec.regla else 'Recomendación'
+            lineas.append(f'- {regla_nombre}: {rec.texto}')
+    else:
+        lineas.append('- No se encontraron recomendaciones generadas para esta evaluación.')
+
+    contenido = '\n'.join(lineas)
+    html = render_reporte_con_membrete(
+        contenido,
+        f'Reporte pedagógico — {ev_ped.estudiante.nombre_completo}'
+    )
+    return HttpResponse(html)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -936,6 +992,11 @@ def evolucion_estudiante(request, pk):
     n_ped  = 0
     n_evo  = total_evals
 
+    logo_data_uri = None
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_data_uri = generar_data_uri_imagen(ruta_logo)
+
     return render(request, 'experto/evolucion.html', {
         'instructor':       instructor,
         'estudiante':       estudiante,
@@ -943,12 +1004,13 @@ def evolucion_estudiante(request, pk):
         'timeline':         timeline,
         'total_evals':      total_evals,
         'promedio':         promedio,
-        'mejor_pct':        mejor_pct,
+        'mejor_pct':         mejor_pct,
         'peor_pct':         peor_pct,
         'tendencia_general': tendencia_general,
         'n_dsm5':           n_dsm5,
         'n_ped':            n_ped,
         'n_evo':            n_evo,
+        'logo_data_uri':    logo_data_uri,
     })
 
 
@@ -1000,7 +1062,11 @@ def evolucion_pdf(request, pk):
     elif total_evals == 1:
         tendencia_general = "Inicial"
 
-    logo_b64 = get_logo_b64()
+    logo_data_uri = None
+    ruta_logo = buscar_logo_infocentro()
+    if ruta_logo:
+        logo_data_uri = generar_data_uri_imagen(ruta_logo)
+
     context = {
         'instructor':        instructor,
         'estudiante':        estudiante,
@@ -1013,7 +1079,7 @@ def evolucion_pdf(request, pk):
         'tendencia_general': tendencia_general,
         'chart_image':       chart_image,
         'fecha_reporte':     timezone.now().strftime('%d/%m/%Y %H:%M'),
-        'logo_b64':          logo_b64,
+        'logo_data_uri':     logo_data_uri,
     }
 
     template     = get_template('experto/evolucion_pdf.html')

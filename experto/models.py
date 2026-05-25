@@ -306,8 +306,8 @@ class EvaluacionDSM5(models.Model):
     )
     
     # A.1 Reciprocidad socioemocional
-    a1_reciprocidad = models.CharField(
-        max_length=20, choices=NIVELES_APOYO, default='ausente',
+    a1_reciprocidad = models.BooleanField(
+        default=False,
         verbose_name='A.1 — Deficiencias en la reciprocidad socioemocional'
     )
     a1_observaciones = models.TextField(
@@ -316,8 +316,8 @@ class EvaluacionDSM5(models.Model):
     )
     
     # A.2 Comunicación no verbal
-    a2_comunicacion_no_verbal = models.CharField(
-        max_length=20, choices=NIVELES_APOYO, default='ausente',
+    a2_comunicacion_no_verbal = models.BooleanField(
+        default=False,
         verbose_name='A.2 — Deficiencias en conductas comunicativas no verbales'
     )
     a2_observaciones = models.TextField(
@@ -326,8 +326,8 @@ class EvaluacionDSM5(models.Model):
     )
     
     # A.3 Desarrollo y comprensión de relaciones
-    a3_relaciones = models.CharField(
-        max_length=20, choices=NIVELES_APOYO, default='ausente',
+    a3_relaciones = models.BooleanField(
+        default=False,
         verbose_name='A.3 — Deficiencias en desarrollo, mantenimiento y comprensión de relaciones'
     )
     a3_observaciones = models.TextField(
@@ -387,6 +387,18 @@ class EvaluacionDSM5(models.Model):
         default=False,
         verbose_name='Con deterioro del lenguaje acompañante',
     )
+    asociado_trastorno_neurodesarrollo = models.BooleanField(
+        default=False,
+        verbose_name='Asociado a otro trastorno del neurodesarrollo, mental o del comportamiento',
+    )
+    con_catatonia = models.BooleanField(
+        default=False,
+        verbose_name='Con catatonía',
+    )
+    perdida_habilidades = models.BooleanField(
+        default=False,
+        verbose_name='Pérdida de habilidades previamente adquiridas',
+    )
     condicion_medica_asociada = models.CharField(
         max_length=200,
         blank=True,
@@ -402,14 +414,12 @@ class EvaluacionDSM5(models.Model):
         return f"DSM-5 de {self.estudiante} - {self.fecha.strftime('%d/%m/%Y')}"
 
     def save(self, *args, **kwargs):
-        # Calcular puntaje: ausente=0, leve=1, moderado=2, grave=3
-        valores = {
-            'ausente': 0, 'leve': 1, 'moderado': 2, 'grave': 3
-        }
-        total = valores.get(self.a1_reciprocidad, 0) + \
-                valores.get(self.a2_comunicacion_no_verbal, 0) + \
-                valores.get(self.a3_relaciones, 0)
-        self.puntaje_total_a = total
+        # Calcular puntaje: cada subcriterio marcado suma 1
+        self.puntaje_total_a = sum([
+            self.a1_reciprocidad,
+            self.a2_comunicacion_no_verbal,
+            self.a3_relaciones,
+        ])
         super().save(*args, **kwargs)
 
     def cumple_criterio_b(self) -> bool:

@@ -47,49 +47,27 @@
     {% if form.nivel_comunicacion_social.errors %}<ul class="errorlist">{% for e in form.nivel_comunicacion_social.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   </div>
 
-  <div class="subcriterios-container">
-    <!-- Subcriterio A.1 -->
-    <div class="subcriterio-card">
-      <div class="subcriterio-header">A.1 — Deficiencias en la reciprocidad socioemocional</div>
-      <div class="subcriterio-body">
-        <div class="radio-options">
-          {{ form.a1_reciprocidad }}
-        </div>
-        <div class="form-group" style="margin-top:1rem">
-          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: dificultad para iniciar interacciones</label>
-          {{ form.a1_observaciones }}
-        </div>
-      </div>
+  <label class="form-checkbox-row">
+    {{ form.a1_reciprocidad }}
+    <div>
+      <div style="font-weight:500">A.1 — Deficiencias en la reciprocidad socioemocional</div>
+      <div class="text-muted" style="font-size:.82rem">Acercamiento social anormal, fracaso en la conversación bidireccional, disminución en compartir intereses, emociones o afectos</div>
     </div>
-
-    <!-- Subcriterio A.2 -->
-    <div class="subcriterio-card">
-      <div class="subcriterio-header">A.2 — Deficiencias en conductas comunicativas no verbales</div>
-      <div class="subcriterio-body">
-        <div class="radio-options">
-          {{ form.a2_comunicacion_no_verbal }}
-        </div>
-        <div class="form-group" style="margin-top:1rem">
-          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: falta de contacto visual o gestos</label>
-          {{ form.a2_observaciones }}
-        </div>
-      </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.a2_comunicacion_no_verbal }}
+    <div>
+      <div style="font-weight:500">A.2 — Deficiencias en conductas comunicativas no verbales</div>
+      <div class="text-muted" style="font-size:.82rem">Comunicación verbal y no verbal poco integrada, anomalías del contacto visual y del lenguaje corporal, falta de expresión facial y gestos</div>
     </div>
-
-    <!-- Subcriterio A.3 -->
-    <div class="subcriterio-card">
-      <div class="subcriterio-header">A.3 — Deficiencias en desarrollo y comprensión de relaciones</div>
-      <div class="subcriterio-body">
-        <div class="radio-options">
-          {{ form.a3_relaciones }}
-        </div>
-        <div class="form-group" style="margin-top:1rem">
-          <label class="form-label" style="font-size:0.8rem;color:var(--c-muted)">Observaciones (Opcional) - Ej: dificultad para ajustar el comportamiento</label>
-          {{ form.a3_observaciones }}
-        </div>
-      </div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.a3_relaciones }}
+    <div>
+      <div style="font-weight:500">A.3 — Deficiencias en desarrollo, mantenimiento y comprensión de relaciones</div>
+      <div class="text-muted" style="font-size:.82rem">Dificultad para ajustar el comportamiento en diversos contextos, compartir juegos imaginativos, hacer amigos o ausencia de interés por otras personas</div>
     </div>
-  </div>
+  </label>
 </div>
 
 <!-- ─── CRITERIO B ─────────────────────────────────────────────────────── -->
@@ -179,6 +157,18 @@
   <label class="form-checkbox-row">
     {{ form.deterioro_lenguaje }}
     <div><div style="font-weight:500">Con deterioro del lenguaje acompañante</div></div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.asociado_trastorno_neurodesarrollo }}
+    <div><div style="font-weight:500">Asociado a otro trastorno del neurodesarrollo, mental o del comportamiento</div></div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.con_catatonia }}
+    <div><div style="font-weight:500">Con catatonía</div></div>
+  </label>
+  <label class="form-checkbox-row">
+    {{ form.perdida_habilidades }}
+    <div><div style="font-weight:500">Pérdida de habilidades previamente adquiridas</div></div>
   </label>
 
   <div class="form-group mt-2">
