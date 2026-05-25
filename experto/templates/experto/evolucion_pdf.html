@@ -7,7 +7,15 @@
     @page {
       size: letter;
       margin: 1.5cm;
+      margin-top: 3cm;
       margin-bottom: 2.2cm;
+      @frame header_frame {
+        -pdf-frame-content: page-header;
+        top: 1cm;
+        left: 1.5cm;
+        right: 1.5cm;
+        height: 2cm;
+      }
       @frame footer_frame {
         -pdf-frame-content: page-footer;
         bottom: 1cm;
@@ -26,22 +34,21 @@
     }
 
     /* ─── HEADER ────────────────────────────────────────────── */
-    .header-table {
-      width: 100%;
-      border-bottom: 2px solid #4f46e5;
-      padding-bottom: 12px;
-      margin-bottom: 25px;
+    #page-header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 5px;
     }
-    .header-logo {
-      font-size: 22pt;
+    .header-logo-container {
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .empresa-nombre {
+      display: inline-block;
+      vertical-align: middle;
+      font-size: 14pt;
       font-weight: bold;
-      color: #4f46e5;
-    }
-    .header-subtitle {
-      font-size: 9pt;
-      color: #718096;
-      text-align: right;
-      vertical-align: bottom;
+      color: #1e40af;
+      margin-left: 15px;
     }
 
     /* ─── TITLE & REPORT DATE ────────────────────────────────── */
@@ -176,12 +183,12 @@
 <body>
 
   <!-- HEADER -->
-  <table class="header-table">
-    <tr>
-      <td class="header-logo">📈 Sistema Experto TEA</td>
-      <td class="header-subtitle">Reporte Formal de Evolución Pedagógica</td>
-    </tr>
-  </table>
+  <div id="page-header">
+    <span class="header-logo-container">
+      <img src="/static/images/logo_infocentro.jpeg" alt="Fundación Infocentro" height="60">
+    </span>
+    <span class="empresa-nombre">FUNDACIÓN INFOCENTRO</span>
+  </div>
 
   <!-- TITULO Y METADATOS -->
   <div class="report-title">INFORME DE EVOLUCIÓN PEDAGÓGICA Y CLÍNICA</div>

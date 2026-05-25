@@ -7,6 +7,14 @@
     @page {
       size: letter;
       margin: 1.5cm;
+      margin-top: 3cm;
+      @frame header {
+        -pdf-frame-content: headerContent;
+        top: 1cm;
+        margin-left: 1.5cm;
+        margin-right: 1.5cm;
+        height: 2cm;
+      }
       @frame footer {
         -pdf-frame-content: footerContent;
         bottom: 1cm;
@@ -126,9 +134,34 @@
       font-size: 9pt;
       color: #6b7280;
     }
+    
+    #headerContent {
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 5px;
+    }
+    .header-logo {
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .empresa-nombre {
+      display: inline-block;
+      vertical-align: middle;
+      font-size: 14pt;
+      font-weight: bold;
+      color: #1e40af;
+      margin-left: 15px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Encabezado -->
+  <div id="headerContent">
+    <span class="header-logo-container">
+      <img src="/static/images/logo_infocentro.jpeg" alt="Fundación Infocentro" height="60">
+    </span>
+    <span class="empresa-nombre">FUNDACIÓN INFOCENTRO</span>
+  </div>
 
   <!-- Paginación -->
   <div id="footerContent">

@@ -17,6 +17,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 import json
+import os
+import base64
+from django.conf import settings
 from io import BytesIO
 from django.template.loader import get_template
 from xhtml2pdf import pisa
@@ -99,10 +102,12 @@ def logout_view(request):
 
 @login_required(login_url='login')
 def descargar_manual_pdf(request):
+    logo_b64 = get_logo_b64()
     template_path = 'experto/manual_usuario_pdf.html'
     context = {
         'fecha': timezone.now().strftime('%d/%m/%Y'),
-        'instructor': request.user.first_name or request.user.username
+        'instructor': request.user.first_name or request.user.username,
+        'logo_b64': logo_b64
     }
     
     response = HttpResponse(content_type='application/pdf')
@@ -112,7 +117,7 @@ def descargar_manual_pdf(request):
     html = template.render(context)
     
     pisa_status = pisa.CreatePDF(
-        html, dest=response
+        html, dest=response, link_callback=link_callback
     )
     
     if pisa_status.err:
@@ -434,6 +439,45 @@ def base_conocimientos(request):
         'total':      reglas.count(),
     })
 
+
+from django.contrib.staticfiles import finders
+
+def link_callback(uri, rel):
+    """
+    Convierte URIs de HTML a rutas absolutas del sistema para que xhtml2pdf
+    pueda acceder a los recursos estáticos.
+    """
+    result = finders.find(uri)
+    if result:
+        if not isinstance(result, (list, tuple)):
+            result = [result]
+        result = list(result)[0]
+    else:
+        sUrl = settings.STATIC_URL
+        sRoot = settings.STATIC_ROOT
+        mUrl = settings.MEDIA_URL
+        mRoot = settings.MEDIA_ROOT
+
+        if uri.startswith(mUrl):
+            path = os.path.join(mRoot, uri.replace(mUrl, ""))
+        elif uri.startswith(sUrl):
+            path = os.path.join(sRoot, uri.replace(sUrl, ""))
+        else:
+            return uri
+        result = path
+
+    if not os.path.isfile(result):
+        raise Exception(f'media URI must start with {sUrl} or {mUrl}')
+    return result
+
+def get_logo_b64():
+    logo_path = os.path.join(settings.BASE_DIR, 'experto', 'static', 'images', 'logo_infocentro.jpeg')
+    try:
+        with open(logo_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+            return f"data:image/jpeg;base64,{encoded_string}"
+    except Exception:
+        return ""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PERFIL DEL INSTRUCTOR
@@ -956,6 +1000,7 @@ def evolucion_pdf(request, pk):
     elif total_evals == 1:
         tendencia_general = "Inicial"
 
+    logo_b64 = get_logo_b64()
     context = {
         'instructor':        instructor,
         'estudiante':        estudiante,
@@ -968,12 +1013,13 @@ def evolucion_pdf(request, pk):
         'tendencia_general': tendencia_general,
         'chart_image':       chart_image,
         'fecha_reporte':     timezone.now().strftime('%d/%m/%Y %H:%M'),
+        'logo_b64':          logo_b64,
     }
 
     template     = get_template('experto/evolucion_pdf.html')
     html_content = template.render(context)
     pdf_buffer   = BytesIO()
-    pisa_status  = pisa.CreatePDF(html_content, dest=pdf_buffer)
+    pisa_status  = pisa.CreatePDF(html_content, dest=pdf_buffer, link_callback=link_callback)
 
     if pisa_status.err:
         return HttpResponse('Error al generar el PDF', status=500)
