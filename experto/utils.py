@@ -22,13 +22,20 @@ logger = logging.getLogger(__name__)
 
 
 def buscar_logo_infocentro():
-    """Busca INFOCENTRO.jpg en las ubicaciones definidas y retorna su ruta."""
+    """Busca el logo INFOCENTRO en las ubicaciones definidas y retorna su ruta."""
+    try:
+        base_dir = Path(settings.BASE_DIR)
+    except Exception:
+        base_dir = Path.cwd()
     home = Path.home()
-    proyecto = Path.cwd()
     rutas = [
+        base_dir / 'experto' / 'static' / 'images' / 'logo_infocentro.jpeg',
+        base_dir / 'experto' / 'static' / 'images' / 'logo_infocentro.jpg',
+        base_dir / 'experto' / 'static' / 'images' / 'INFOCENTRO.jpeg',
+        base_dir / 'experto' / 'static' / 'images' / 'INFOCENTRO.jpg',
         home / 'Downloads' / 'INFOCENTRO.jpg',
         home / 'Descargas' / 'INFOCENTRO.jpg',
-        proyecto / 'INFOCENTRO.jpg',
+        base_dir / 'INFOCENTRO.jpg',
         home / 'Escritorio' / 'INFOCENTRO.jpg',
     ]
     for ruta in rutas:

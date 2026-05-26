@@ -5,24 +5,45 @@
 <style>
   :root {
     --game-bg: var(--c-bg);
-    --panel-bg: rgba(255,255,255,.92);
-    --button-primary: #4A90E2;
-    --button-success: #50C878;
-    --button-warning: #FFB347;
+    --panel-bg: var(--c-card);
+    --panel-bg-soft: rgba(255,255,255,.08);
+    --button-primary: var(--c-accent);
+    --button-success: var(--c-teal);
+    --button-warning: var(--c-yellow);
     --button-text: #ffffff;
     --text-dark: var(--c-text);
-    --border-soft: rgba(74,144,226,.25);
-    --shadow-soft: 0 18px 40px rgba(28,67,146,.08);
+    --text-strong: var(--c-heading);
+    --text-muted: rgba(226,232,240,.82);
+    --border-soft: var(--c-border);
+    --surface-border: var(--c-border);
+    --pill-bg: rgba(255,255,255,.08);
+    --shadow-soft: 0 18px 40px rgba(0,0,0,.18);
+  }
+  html[data-theme="light"] {
+    --game-bg: var(--c-bg);
+    --panel-bg: var(--c-surface);
+    --panel-bg-soft: rgba(255,255,255,.98);
+    --button-primary: var(--c-accent);
+    --button-success: var(--c-green);
+    --button-warning: var(--c-yellow);
+    --button-text: #ffffff;
+    --text-dark: #000000;
+    --text-strong: #000000;
+    --text-muted: rgba(0,0,0,.65);
+    --border-soft: #000000;
+    --surface-border: #000000;
+    --pill-bg: rgba(0,0,0,.04);
+    --shadow-soft: 0 16px 28px rgba(15,23,42,.08);
   }
   .tea-game-shell {
     background: var(--game-bg);
     min-height: calc(100vh - 62px);
     padding: 2rem 1rem 3rem;
-    color: var(--c-white);
+    color: var(--text-dark);
   }
   .game-card {
-    background: var(--c-surface);
-    border: 1px solid var(--border-soft);
+    background: var(--panel-bg);
+    border: 1px solid var(--surface-border);
     border-radius: 24px;
     padding: 2rem;
     max-width: 980px;
@@ -56,17 +77,17 @@
   }
   .game-subtitle {
     font-size: 1rem;
-    color: rgba(226,232,240,.8);
+    color: var(--text-muted);
     max-width: 620px;
     line-height: 1.6;
   }
   .progress-bar-wrap {
     width: 100%;
     height: 18px;
-    background: rgba(255,255,255,.7);
+    background: var(--panel-bg-soft);
     border-radius: 999px;
     overflow: hidden;
-    border: 1px solid rgba(74,144,226,.25);
+    border: 1px solid var(--surface-border);
     margin-top: .75rem;
   }
   .progress-bar {
@@ -93,9 +114,9 @@
     width: 100%;
     min-height: 60px;
     border-radius: 18px;
-    border: 1px solid rgba(34,68,113,.14);
-    background: white;
-    color: #0f172a;
+    border: 1px solid var(--border-soft);
+    background: var(--panel-bg);
+    color: var(--text-dark);
     font-size: 1.1rem;
     font-weight: 700;
     display: inline-flex;
@@ -103,12 +124,19 @@
     justify-content: center;
     padding: 1rem 1.25rem;
     cursor: pointer;
-    transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
-    box-shadow: 0 9px 22px rgba(55,83,150,.06);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease;
+    box-shadow: 0 9px 22px rgba(0,0,0,.08);
     user-select: none;
   }
   .large-button.primary {
-    color: #0f172a;
+    background: linear-gradient(135deg, var(--button-primary), var(--button-success));
+    color: var(--button-text);
+    border-color: transparent;
+  }
+  .large-button.warning {
+    background: linear-gradient(135deg, var(--button-warning), #fbbf24);
+    color: #000;
+    border-color: transparent;
   }
   .large-button:hover,
   .emoji-choice:hover,
@@ -134,17 +162,17 @@
   }
   .emoji-choice .choice-text {
     font-size: 1.1rem;
-    color: #0f172a;
+    color: var(--text-dark);
   }
   .game-prompt {
     margin-top: .6rem;
     font-size: 1.05rem;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-dark);
   }
   .game-tip {
     margin-top: .55rem;
-    color: #475569;
+    color: var(--text-muted);
     font-size: .95rem;
   }
   .game-illustration {
@@ -157,6 +185,33 @@
     background: rgba(74,144,226,.14);
     margin-bottom: 1rem;
     font-size: 4.2rem;
+  }
+  .game-panel {
+    padding: 1.8rem;
+    border-radius: 24px;
+    background: var(--panel-bg-soft);
+    border: 1px solid var(--surface-border);
+  }
+  .game-text {
+    font-size: 1rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-top: 1rem;
+  }
+  .pattern-panel {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 22px;
+  }
+  .pattern-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-dark);
+  }
+  .sequence-note {
+    color: var(--text-muted);
   }
   .emoji-choice.correct { border-color: #50C878; background: rgba(80,200,120,.12); }
   .emoji-choice.wrong { border-color: #F59E0B; background: rgba(251,191,36,.16); }
@@ -178,11 +233,11 @@
   .feedback-box {
     min-height: 56px;
     border-radius: 18px;
-    background: rgba(255,255,255,.08);
-    border: 1px solid rgba(255,255,255,.12);
+    background: var(--panel-bg-soft);
+    border: 1px solid var(--surface-border);
     padding: 1rem 1.2rem;
     font-weight: 700;
-    color: rgba(226,232,240,.95);
+    color: var(--text-dark);
     display: flex;
     align-items: center;
     gap: .7rem;
@@ -202,14 +257,14 @@
     gap: .35rem;
     padding: .45rem .85rem;
     border-radius: 999px;
-    background: rgba(255,255,255,.08);
-    color: rgba(226,232,240,.95);
+    background: var(--pill-bg);
+    color: var(--text-dark);
     font-size: .95rem;
     font-weight: 700;
   }
   .game-count {
     font-size: 1rem;
-    color: #475569;
+    color: var(--text-muted);
     margin-top: .5rem;
   }
   .game-action-row {
@@ -236,9 +291,9 @@
     margin-top: 1.25rem;
     padding: 1.2rem 1.25rem;
     border-radius: 18px;
-    background: rgba(255,255,255,.9);
-    border: 1px solid rgba(108,99,255,.15);
-    color: #334155;
+    background: var(--panel-bg);
+    border: 1px solid var(--surface-border);
+    color: var(--text-dark);
     line-height: 1.7;
   }
   .study-report h3 {
@@ -329,18 +384,18 @@
     margin-top: 1.5rem;
   }
   .strategy-card {
-    background: white;
-    border: 1px solid rgba(34,68,113,.12);
+    background: var(--panel-bg);
+    border: 1px solid var(--surface-border);
     border-radius: 20px;
     padding: 1.25rem;
     min-height: 220px;
-    box-shadow: 0 15px 35px rgba(55,83,150,.08);
+    box-shadow: 0 15px 35px rgba(0,0,0,.08);
   }
   .strategy-card h3 {
     font-size: 1.05rem;
     margin-bottom: .75rem;
   }
-  .strategy-card p { line-height: 1.6; color: #475569; }
+  .strategy-card p { line-height: 1.6; color: var(--text-dark); }
   .strategy-tag {
     display: inline-flex;
     margin-top: .8rem;
@@ -355,8 +410,8 @@
   .student-entry-card {
     display: grid;
     gap: 1rem;
-    background: rgba(255,255,255,.88);
-    border: 1px solid rgba(15,23,42,.08);
+    background: var(--panel-bg-soft);
+    border: 1px solid var(--surface-border);
     border-radius: 24px;
     padding: 1.4rem;
     margin-top: 1rem;
@@ -367,16 +422,17 @@
   }
   .student-entry-card label {
     font-weight: 700;
-    color: #0f172a;
+    color: var(--text-dark);
   }
   .student-entry-card input[type="text"],
   .student-entry-card input[type="file"] {
     width: 100%;
-    border: 1px solid rgba(15,23,42,.12);
+    border: 1px solid var(--surface-border);
     border-radius: 14px;
     padding: 0.9rem 1rem;
     font-size: 1rem;
-    background: #f8fafc;
+    background: var(--panel-bg);
+    color: var(--text-dark);
   }
   .error-text {
     color: #b91c1c;
@@ -384,10 +440,10 @@
     min-height: 1.2rem;
   }
   .student-photo-preview {
-    border: 1px solid rgba(15,23,42,.12);
+    border: 1px solid var(--surface-border);
     border-radius: 18px;
     padding: 0.7rem;
-    background: #ffffff;
+    background: var(--panel-bg);
     max-width: 240px;
   }
   .student-photo-preview img {
@@ -402,8 +458,8 @@
     margin: 1.5rem 0;
     padding: 1rem;
     border-radius: 22px;
-    background: rgba(255,255,255,.96);
-    border: 1px solid rgba(15,23,42,.08);
+    background: var(--panel-bg-soft);
+    border: 1px solid var(--surface-border);
   }
   .membrete-row {
     display: flex;
@@ -416,7 +472,7 @@
     max-width: 100%;
     border-radius: 16px;
     object-fit: contain;
-    background: white;
+    background: var(--panel-bg);
     padding: 0.5rem;
   }
   .student-info-block {
@@ -425,14 +481,14 @@
   .student-label {
     margin: 0 0 0.25rem;
     font-size: 0.95rem;
-    color: #475569;
+    color: var(--text-muted);
   }
   .student-photo-frame {
     width: 140px;
     height: 140px;
     border-radius: 20px;
     overflow: hidden;
-    border: 1px solid rgba(15,23,42,.12);
+    border: 1px solid var(--surface-border);
   }
   .student-photo-frame img {
     width: 100%;
@@ -452,7 +508,8 @@
     pointer-events: auto;
   }
   .pause-panel {
-    background: white;
+    background: var(--panel-bg);
+    border: 1px solid var(--surface-border);
     border-radius: 24px;
     padding: 2rem;
     text-align: center;
@@ -461,8 +518,8 @@
     width: 100%;
     pointer-events: auto;
   }
-  .pause-panel h2 { margin-bottom: 1rem; font-size: 1.6rem; }
-  .pause-panel p { color: #475569; line-height: 1.7; margin-bottom: 1.5rem; }
+  .pause-panel h2 { margin-bottom: 1rem; font-size: 1.6rem; color: var(--text-dark); }
+  .pause-panel p { color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
   @media (max-width: 860px) {
     .strategy-grid { grid-template-columns: 1fr; }
@@ -734,12 +791,12 @@
         return `<button type="button" class="emoji-choice" data-value="${text}"><span class="choice-emoji">${emoji}</span><span class="choice-text">${label}</span></button>`;
       }).join('');
       gameContent.innerHTML = `
-        <div class="game-row" style="gap:1rem;">
-          <div style="padding:1.8rem; border-radius:24px; background:rgba(255,255,255,.96); border:1px solid rgba(74,144,226,.18);">
+        <div class="game-row">
+          <div class="game-panel">
             <div class="game-illustration">${item.emoji}</div>
             <p class="game-prompt">Elige la carita que mejor dice cómo se siente.</p>
             <p class="game-tip">Toca una opción grande para jugar.</p>
-            <p style="font-size:1rem; color:#475569; line-height:1.7; margin-top:1rem;">${item.text}</p>
+            <p class="game-text">${item.text}</p>
             <p class="game-count" style="margin-top:1rem; font-weight:700;">Pregunta ${game1Index + 1} de ${game.items.length}</p>
           </div>
           <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(150px,1fr));">
@@ -764,7 +821,7 @@
       gameContent.innerHTML = `
         <div style="margin-bottom:1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
           <div class="status-pill">Arrastra o toca en el orden correcto</div>
-          <span style="color:rgba(226,232,240,.9);">Selecciona los cuatro pasos en secuencia.</span>
+          <span class="sequence-note">Selecciona los cuatro pasos en secuencia.</span>
         </div>
         <div class="game-row" id="sequence-area">${cards}</div>
         <div class="feedback-box hidden" id="sequence-selected" style="margin-top:1rem;">Orden seleccionado: <strong id="sequence-list"></strong></div>
@@ -780,9 +837,9 @@
       const item = game.items[0];
       const options = item.options.map(option => `<button class="choice-card" data-value="${option}">${option}</button>`).join('');
       gameContent.innerHTML = `
-        <div style="text-align:center; padding:1.5rem; background:rgba(255,255,255,.9); border-radius:22px; border:1px solid rgba(255,191,71,.25);">
+        <div class="pattern-panel">
           <div class="game-emoji">${item.pattern}</div>
-          <p style="font-size:1.05rem; font-weight:700; color:#1e293b;">¿Qué sigue?</p>
+          <p class="pattern-title">¿Qué sigue?</p>
         </div>
         <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-top:1rem;">
           ${options}
