@@ -352,14 +352,56 @@
   .print-student-name {
     min-width: 220px;
   }
-  .no-print {
-    display: inline-flex !important;
-  }
+  /* Compact print layout */
   @media print {
-    .no-print { display: none !important; }
     .print-only { display: block !important; }
-    .results-card { border: none; box-shadow: none; }
+    /* Hide the large on-screen title to save space */
+    .results-title { display: none !important; }
+    .print-result-header {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.6rem !important;
+      border-radius: 10px !important;
+    }
+    .print-membrete {
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 0.6rem;
+      margin-right: 0.75rem;
+    }
+    .print-membrete .pm-logo img {
+      width: 90px !important;
+      padding: 0.25rem !important;
+      border-radius: 8px !important;
+    }
+    .print-membrete .pm-text { font-size: 0.95rem !important; }
+    .print-student-info {
+      flex: 1 1 auto;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      margin-top: 0 !important;
+      flex-wrap: nowrap;
+    }
+    .print-photo { width: 72px !important; height: 72px !important; }
+    .print-student-name { font-size: 0.95rem !important; }
+    .print-student-name strong { display:block; font-size:0.85rem; margin-bottom:0.15rem; }
+    /* Reduce paddings and font sizes globally in print area to avoid page break */
+    .results-card, .study-report, .strategy-card { padding: 0.6rem !important; }
+    .study-report { margin-top: 0.5rem !important; }
+    .strategy-grid { gap: 0.6rem !important; grid-template-columns: repeat(2, 1fr) !important; }
+    .strategy-grid > .strategy-card:last-child { grid-column: span 2 !important; }
+    .strategy-card p { line-height:1.25; font-size:0.86rem; max-height:3.2em; overflow:hidden; }
+    .strategy-card p + p { display:none !important; }
+    .print-only, .results-card, .strategy-card, .study-report { page-break-inside: avoid !important; }
+    /* Hide UI controls that don't make sense on paper */
+    .no-print, #print-button { display: none !important; }
   }
+  @media screen {
+    .no-print { display: inline-flex !important; }
+  }
+  
   .results-title {
     font-size: clamp(1.7rem, 3vw, 2.3rem);
     font-weight: 800;
@@ -407,6 +449,18 @@
   .tag-1 { background: rgba(34,197,94,.12); color: #166534; }
   .tag-2 { background: rgba(251,191,36,.12); color: #92400e; }
   .tag-3 { background: rgba(239,68,68,.12); color: #991b1b; }
+  /* Compact print label styles */
+  .result-level-print {
+    display: inline-block;
+    font-weight: 700;
+    background: #eef2ff;
+    color: #0b3d91;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    margin-bottom: 0.15rem;
+  }
+  .print-score { font-size: 0.85rem; color: #222; }
   .student-entry-card {
     display: grid;
     gap: 1rem;
@@ -618,13 +672,19 @@
             <div class="pm-subtitle">Sistema Experto TEA</div>
           </div>
         </div>
-        <div class="print-student-info">
-          <div class="print-photo">
-            <img id="print-student-photo" alt="Foto estudiante" />
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-left:1rem;">
+          <div class="print-student-info">
+            <div class="print-photo">
+              <img id="print-student-photo" alt="Foto estudiante" />
+            </div>
+            <div class="print-student-name">
+              <strong>Estudiante:</strong>
+              <div id="print-student-name">Nombre completo del estudiante</div>
+            </div>
           </div>
-          <div class="print-student-name">
-            <strong>Estudiante:</strong>
-            <div id="print-student-name">Nombre completo del estudiante</div>
+          <div class="print-header-summary" style="margin-left:auto; text-align:right; min-width:120px;">
+            <div id="print-result-level" class="result-level-print"></div>
+            <div class="print-score">Puntaje: <strong id="print-final-score">0</strong>/9</div>
           </div>
         </div>
       </div>
@@ -971,6 +1031,10 @@
     }
     resultLevel.textContent = level;
     resultLevel.className = `result-level ${levelClass}`;
+    const printLevelEl = document.getElementById('print-result-level');
+    if (printLevelEl) { printLevelEl.textContent = level; printLevelEl.className = levelClass; }
+    const printFinalScoreEl = document.getElementById('print-final-score');
+    if (printFinalScoreEl) { printFinalScoreEl.textContent = score; }
     const studyText = getStudyText(levelClass);
     const report = document.getElementById('study-report');
     report.innerHTML = `
@@ -994,8 +1058,6 @@
     if (!file) {
       studentPhotoPreview.style.display = 'none';
       studentImageSrc = '';
-      studentInfoImage.src = '';
-      studentPhotoFrame.style.display = 'none';
       return;
     }
     const reader = new FileReader();
@@ -1003,8 +1065,11 @@
       studentImageSrc = event.target.result;
       studentPhotoPreviewImage.src = studentImageSrc;
       studentPhotoPreview.style.display = 'block';
-      studentInfoImage.src = studentImageSrc;
-      studentPhotoFrame.style.display = 'block';
+      // also update the printable image if present
+      if (printStudentPhoto) {
+        printStudentPhoto.src = studentImageSrc;
+        printStudentPhoto.parentElement.style.display = 'block';
+      }
     };
     reader.readAsDataURL(file);
   }
