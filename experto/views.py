@@ -697,271 +697,214 @@ from django.core.mail import send_mail
 from django.conf import settings as django_settings
 
 
-def _enviar_codigo_por_correo(instructor, codigo):
+def restablecer_contrasena(request):
     """
-    Envía el código de recuperación al correo electrónico asociado al usuario.
-    Si el usuario no tiene correo registrado, lanza una excepción.
+    Vista para manejar el flujo de restablecimiento de contraseña con código de 6 dígitos.
     """
-    email_destino = instructor.usuario.email
-    if not email_destino:
-        raise ValueError('El usuario no tiene un correo electrónico registrado.')
-
-    nombre = instructor.usuario.first_name or instructor.usuario.username
-
-    asunto = 'Código de recuperación de contraseña — Sistema TEA'
-    mensaje_texto = (
-        f'Hola {nombre},\n\n'
-        f'Tu código de recuperación de contraseña es: {codigo}\n\n'
-        f'Este código expira en 5 minutos.\n\n'
-        f'Si no solicitaste este código, puedes ignorar este mensaje.\n\n'
-        f'— Sistema Experto TEA'
-    )
-    mensaje_html = (
-        f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;'
-        f'background:#0f172a;border-radius:16px;padding:2rem;color:#e2e8f0;">'
-        f'<div style="text-align:center;margin-bottom:1.5rem;">'
-        f'<div style="font-size:2rem;">🔑</div>'
-        f'<h2 style="color:#fff;margin:.5rem 0;">Recuperación de Contraseña</h2>'
-        f'<p style="color:#94a3b8;font-size:.9rem;">Hola <strong>{nombre}</strong>, '
-        f'usa el siguiente código para restablecer tu contraseña.</p>'
-        f'</div>'
-        f'<div style="background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(20,184,166,.15));'
-        f'border:2px dashed rgba(34,197,94,.4);border-radius:12px;padding:1.5rem;text-align:center;'
-        f'margin-bottom:1.5rem;">'
-        f'<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;'
-        f'color:#94a3b8;margin-bottom:.5rem;">Tu código de recuperación</div>'
-        f'<div style="font-size:2.2rem;font-weight:800;letter-spacing:.3em;color:#4ade80;'
-        f'font-family:monospace;">{codigo}</div>'
-        f'</div>'
-        f'<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);'
-        f'border-radius:8px;padding:.75rem 1rem;text-align:center;font-size:.82rem;'
-        f'color:#fbbf24;margin-bottom:1rem;">'
-        f'⏱️ Este código expira en <strong>5 minutos</strong>.'
-        f'</div>'
-        f'<p style="font-size:.8rem;color:#64748b;text-align:center;">'
-        f'Si no solicitaste este código, puedes ignorar este mensaje.</p>'
-        f'</div>'
-    )
-
-    from django.core.mail import send_mail
-    send_mail(
-        asunto,
-        mensaje_texto,
-        django_settings.DEFAULT_FROM_EMAIL,
-        [email_destino],
-        html_message=mensaje_html,
-        fail_silently=False,
-    )
-
-
-def recuperar_contrasena(request):
-    """
-    Recuperación de contraseña en 2 pasos por Preguntas de Seguridad.
-    Paso 1: Identificar al usuario con su Nombre de usuario o Cédula.
-    Paso 2: Responder 3 preguntas de seguridad.
-    """
-    from django.contrib.auth.models import User
-    from .models import Instructor
-
-    step = request.session.get('recovery_step', 'identify')
-    user_id = request.session.get('recovery_user_id')
-    
-    # Si por alguna razón estamos en paso de preguntas pero no hay id de usuario en sesión
-    if step == 'questions' and not user_id:
-        step = 'identify'
-        request.session['recovery_step'] = 'identify'
-
-    form_identify = None
-    instructor = None
-
-    if step == 'identify':
-        form_identify = RecuperarContrasenaForm(request.POST or None)
-        if request.method == 'POST' and form_identify.is_valid():
-            usuario_o_cedula = form_identify.cleaned_data['usuario_o_cedula'].strip()
-            user = None
-            
-            # Buscar por username
+    if request.method == 'POST':
+        # --- PASO 1: El usuario solicita enviar el código a su correo ---
+        if 'solicitar_codigo' in request.POST:
+            email = request.POST.get('email')
             try:
-                user = User.objects.get(username=usuario_o_cedula)
-            except User.DoesNotExist:
-                # Intentar buscar por cédula
-                try:
-                    instructor_obj = Instructor.objects.get(cedula=usuario_o_cedula)
-                    user = instructor_obj.usuario
-                except Instructor.DoesNotExist:
-                    pass
-            
-            if user and hasattr(user, 'instructor'):
-                request.session['recovery_user_id'] = user.pk
-                request.session['recovery_step'] = 'questions'
-                messages.success(request, 'Usuario identificado. Responde las siguientes preguntas de seguridad.')
-                return redirect('recuperar_contrasena')
-            else:
-                form_identify.add_error('usuario_o_cedula', 'El usuario o cédula ingresado no está registrado en el sistema.')
-
-    elif step == 'questions':
-        try:
-            user = User.objects.get(pk=user_id)
-            instructor = user.instructor
-        except Exception:
-            messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
-            request.session['recovery_step'] = 'identify'
-            return redirect('recuperar_contrasena')
-
-        if request.method == 'POST':
-            r1 = request.POST.get('respuesta_1', '').strip()
-            r2 = request.POST.get('respuesta_2', '').strip()
-            r3 = request.POST.get('respuesta_3', '').strip()
-            
-            # Helper to normalize strings for comparison (lowercase, spaces, accents)
-            import unicodedata
-            def normalizar(text):
-                if not text:
-                    return ""
-                # Normalize NFD to remove accents, lower case, strip
-                text_norm = "".join(
-                    c for c in unicodedata.normalize('NFD', text.lower())
-                    if unicodedata.category(c) != 'Mn'
-                )
-                return text_norm.replace(" ", "")
-
-            ans1_db = normalizar(instructor.respuesta_1)
-            ans2_db = normalizar(instructor.respuesta_2)
-            ans3_db = normalizar(instructor.respuesta_3)
-
-            ans1_input = normalizar(r1)
-            ans2_input = normalizar(r2)
-            ans3_input = normalizar(r3)
-
-            # Verificar si el instructor no tiene configuradas las respuestas
-            if not ans1_db or not ans2_db or not ans3_db:
-                messages.error(request, 'Tu cuenta no tiene configuradas las preguntas de seguridad. Por favor, contacta al soporte técnico o administrador del sistema.')
-                return redirect('recuperar_contrasena')
-
-            if ans1_db == ans1_input and ans2_db == ans2_input and ans3_db == ans3_input:
-                # Verificar que el usuario tenga correo electrónico registrado
-                if not user.email:
-                    messages.error(request, 'Tu cuenta no tiene un correo electrónico registrado. Por favor, contacta al administrador del sistema.')
-                    return redirect('recuperar_contrasena')
-
+                from django.contrib.auth.models import User
+                usuario = User.objects.get(email=email)
+                
                 # Generar código de 6 dígitos
-                codigo = str(random.randint(100000, 999999))
-                instructor.reset_code = codigo
-                instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
-                instructor.save()
+                codigo_verificacion = str(random.randint(100000, 999999))
+                
+                # Guardar el código y el email en la sesión (temporal)
+                request.session['reset_codigo'] = codigo_verificacion
+                request.session['reset_email'] = email
+                
+                # Configurar y enviar el correo
+                from .utils import buscar_logo_infocentro
+                from django.core.mail import EmailMultiAlternatives
+                from email.mime.image import MIMEImage
+                import os
 
-                # Enviar código por correo electrónico
-                try:
-                    _enviar_codigo_por_correo(instructor, codigo)
-                except Exception as e:
-                    messages.error(request, f'No se pudo enviar el correo electrónico. Error: {e}')
-                    return redirect('recuperar_contrasena')
+                ruta_logo = buscar_logo_infocentro()
+                
+                nombre = usuario.first_name or usuario.username
+                # Asunto único por envío y cálculo de hora usando la hora real del sistema
+                from datetime import datetime
+                ahora = datetime.now()
+                hora_actual = ahora.strftime("%H:%M:%S")
+                hora_expiracion = (ahora + timedelta(minutes=5)).strftime("%I:%M %p")
+                asunto = f'Tu código de verificación - Sistema TEA ({hora_actual})'
+                
+                mensaje_texto = f'Hola {nombre},\n\nTu código de verificación para restablecer la contraseña es: {codigo_verificacion}\n\nEste código expira a las {hora_expiracion}.\n\nSi no solicitaste este cambio, ignora este correo.'
+                
+                # Generar las celdas individuales para cada dígito del código
+                digitos_html = ''
+                for digito in codigo_verificacion:
+                    digitos_html += f'''<td align="center" style="width:40px;height:48px;background-color:#0c1628;border:1.5px solid #1e3a5f;border-radius:8px;font-size:22px;font-weight:700;color:#ffffff;font-family:'Courier New',Courier,monospace;letter-spacing:0;">{digito}</td>
+                    <td width="6"></td>'''
+                # Quitar el último separador
+                digitos_html = digitos_html.rsplit('<td width="6"></td>', 1)[0]
+                
+                # HTML idéntico al diseño de referencia
+                mensaje_html = f'''
+                <div style="margin:0;padding:0;background-color:#070d1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#070d1a;">
+                        <tr>
+                            <td align="center" style="padding:30px 10px;">
+                                
+                                <table width="380" border="0" cellspacing="0" cellpadding="0" style="background-color:#0b1120;border-radius:16px;overflow:hidden;">
+                                    
+                                    <!-- LOGO INFOCENTRO con fondo oscuro -->
+                                    <tr>
+                                        <td align="center" style="background-color:#0b1120;padding:30px 30px 10px;border-radius:16px 16px 0 0;">
+                                            <img src="cid:logo_infocentro" alt="INFOCENTRO" style="max-height:50px;display:block;border:0;background-color:transparent;border-radius:8px;" />
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- TÍTULO -->
+                                    <tr>
+                                        <td align="center" style="padding:28px 30px 20px;">
+                                            <h1 style="color:#ffffff;font-size:20px;font-weight:700;margin:0;letter-spacing:-0.3px;">Tu código de verificación</h1>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- CONTENIDO PRINCIPAL -->
+                                    <tr>
+                                        <td align="center" style="padding:0 30px;">
+                                            
+                                            <!-- Ícono candado -->
+                                            <table border="0" cellspacing="0" cellpadding="0">
+                                                <tr>
+                                                    <td align="center" style="width:52px;height:52px;background-color:#1e6cb5;border-radius:50%;text-align:center;vertical-align:middle;">
+                                                        <span style="font-size:22px;line-height:52px;">&#128274;</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            
+                                            <!-- Saludo -->
+                                            <p style="font-size:15px;color:#e2e8f0;margin:18px 0 6px;">Hola <strong>{nombre}</strong>,</p>
+                                            
+                                            <!-- Descripción -->
+                                            <p style="font-size:13px;color:#7a8ba5;margin:0 0 28px;line-height:1.6;">
+                                                Recibimos una solicitud para restablecer<br>
+                                                tu contraseña.<br>
+                                                Ingresa el siguiente código en la pantalla<br>
+                                                de verificación:
+                                            </p>
+                                            
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- CÓDIGO EN CAJAS INDIVIDUALES -->
+                                    <tr>
+                                        <td align="center" style="padding:0 25px 22px;">
+                                            <table border="0" cellspacing="0" cellpadding="0" style="border:1.5px solid #1a2d4a;border-radius:10px;padding:12px 14px;background-color:#0a0f1e;">
+                                                <tr>
+                                                    {digitos_html}
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- BADGE DE EXPIRACIÓN -->
+                                    <tr>
+                                        <td align="center" style="padding:0 30px 30px;">
+                                            <table border="0" cellspacing="0" cellpadding="0">
+                                                <tr>
+                                                    <td style="background-color:#0d1a2e;border:1px solid #1a2d4a;border-radius:20px;padding:8px 18px;">
+                                                        <span style="font-size:12px;color:#4da6e8;font-weight:600;">&#9201; Este código expira a las {hora_expiracion}</span>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- SEPARADOR Y PIE -->
+                                    <tr>
+                                        <td style="padding:0 30px;">
+                                            <div style="border-top:1px solid #1a2640;margin:0 0 18px;"></div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" style="padding:0 30px 28px;">
+                                            <p style="font-size:12px;color:#506070;margin:0;line-height:1.5;">
+                                                ¿No solicitaste este cambio? No te preocupes,<br>
+                                                puedes ignorar este correo de forma segura.
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    
+                                </table>
+                                
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                '''
 
-                # Limpiar datos de identificación de la sesión y guardar reset_user_id
-                request.session['reset_user_id'] = user.pk
-                if 'recovery_user_id' in request.session:
-                    del request.session['recovery_user_id']
-                if 'recovery_step' in request.session:
-                    del request.session['recovery_step']
+                remitente = django_settings.EMAIL_HOST_USER
+                destinatario = [email]
+                
+                # Usar EmailMultiAlternatives para incrustar la imagen del logo
+                msg = EmailMultiAlternatives(asunto, mensaje_texto, remitente, destinatario)
+                msg.attach_alternative(mensaje_html, "text/html")
+                
+                # Adjuntar la imagen con Content-ID para que Gmail la muestre inline
+                if ruta_logo and os.path.isfile(ruta_logo):
+                    with open(ruta_logo, 'rb') as f:
+                        img_data = f.read()
+                    img = MIMEImage(img_data)
+                    img.add_header('Content-ID', '<logo_infocentro>')
+                    img.add_header('Content-Disposition', 'inline', filename='logo_infocentro.jpeg')
+                    msg.attach(img)
+                
+                msg.send(fail_silently=False)
+                
+                messages.success(request, 'Código enviado a tu correo. Por favor, revisa tu bandeja de entrada o spam.')
+                return render(request, 'experto/restablecer.html', {'paso': 'verificar'})
 
-                # Ofuscar el correo para mostrarlo parcialmente en la UI
-                email_parts = user.email.split('@')
-                email_ofuscado = email_parts[0][:2] + '***@' + email_parts[1] if len(email_parts) == 2 else '***'
-                request.session['recovery_email_hint'] = email_ofuscado
+            except User.DoesNotExist:
+                messages.error(request, 'No existe ningún usuario registrado con ese correo electrónico.')
+                return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
 
-                messages.success(request, f'¡Preguntas respondidas correctamente! El código de recuperación fue enviado a tu correo electrónico ({email_ofuscado}).')
-                return redirect('verificar_codigo')
-            else:
-                messages.error(request, 'Una o más respuestas son incorrectas. Inténtalo de nuevo.')
+        # --- PASO 2: El usuario ingresa el código y la nueva contraseña ---
+        elif 'cambiar_contrasena' in request.POST:
+            codigo_ingresado = request.POST.get('codigo')
+            nueva_contrasena = request.POST.get('nueva_contrasena')
+            confirmar_contrasena = request.POST.get('confirmar_contrasena')
+            
+            codigo_guardado = request.session.get('reset_codigo')
+            email_guardado = request.session.get('reset_email')
+            
+            if not codigo_guardado or not email_guardado:
+                messages.error(request, 'La sesión ha expirado o es inválida. Solicita un nuevo código.')
+                return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
+                
+            if codigo_ingresado != codigo_guardado:
+                messages.error(request, 'El código ingresado es incorrecto.')
+                return render(request, 'experto/restablecer.html', {'paso': 'verificar'})
+                
+            if nueva_contrasena != confirmar_contrasena:
+                messages.error(request, 'Las contraseñas no coinciden.')
+                return render(request, 'experto/restablecer.html', {'paso': 'verificar'})
+                
+            # Todo correcto: Actualizar la contraseña
+            try:
+                from django.contrib.auth.models import User
+                from django.contrib.auth.hashers import make_password
+                usuario = User.objects.get(email=email_guardado)
+                usuario.password = make_password(nueva_contrasena)
+                usuario.save()
+                
+                # Limpiar la sesión por seguridad
+                del request.session['reset_codigo']
+                del request.session['reset_email']
+                
+                messages.success(request, '¡Contraseña actualizada exitosamente! Ya puedes iniciar sesión.')
+                return redirect('login')
+                
+            except User.DoesNotExist:
+                messages.error(request, 'Ocurrió un error al identificar al usuario.')
 
-    # Si se pide reiniciar el flujo
-    reset_flow = request.GET.get('reiniciar')
-    if reset_flow == '1':
-        if 'recovery_user_id' in request.session:
-            del request.session['recovery_user_id']
-        if 'recovery_step' in request.session:
-            del request.session['recovery_step']
-        return redirect('recuperar_contrasena')
-
-    return render(request, 'experto/recuperar_contrasena.html', {
-        'step': step,
-        'form': form_identify,
-        'instructor': instructor
-    })
-
-
-def verificar_codigo(request):
-    """
-    Paso 3: El sistema muestra el código generado y el usuario ingresa dicho código y su nueva contraseña.
-    """
-    user_id = request.session.get('reset_user_id')
-    if not user_id:
-        messages.error(request, 'Sesión expirada. Por favor, inicia el proceso de recuperación de nuevo.')
-        return redirect('recuperar_contrasena')
-
-    from django.contrib.auth.models import User
-    try:
-        user = User.objects.get(pk=user_id)
-        instructor = user.instructor
-    except Exception:
-        messages.error(request, 'Ocurrió un error. Intenta de nuevo.')
-        return redirect('recuperar_contrasena')
-
-    # Regenerar código automáticamente cuando se solicite
-    if request.GET.get('regenerar') == '1':
-        import random
-        codigo = str(random.randint(100000, 999999))
-        instructor.reset_code = codigo
-        instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
-        instructor.save()
-
-        # Reenviar código por correo electrónico
-        try:
-            _enviar_codigo_por_correo(instructor, codigo)
-            messages.info(request, 'Se ha enviado un nuevo código de recuperación a tu correo electrónico.')
-        except Exception:
-            messages.warning(request, 'Código renovado, pero no se pudo enviar el correo. Revisa tu configuración.')
-
-        return redirect('verificar_codigo')
-
-    form = VerificarCodigoForm(request.POST or None)
-    if request.method == 'POST' and form.is_valid():
-        codigo_ingresado = form.cleaned_data['codigo']
-        nueva = form.cleaned_data['nueva_contrasena']
-
-        # Validar código y expiración
-        if instructor.reset_code != codigo_ingresado:
-            form.add_error('codigo', 'El código ingresado no es correcto.')
-        elif instructor.reset_code_expires and instructor.reset_code_expires < timezone.now():
-            messages.error(request, 'El código ha expirado. Generando uno nuevo.')
-            return redirect('verificar_codigo')
-        else:
-            # Actualizar contraseña y limpiar código
-            user.set_password(nueva)
-            user.save()
-            instructor.reset_code = None
-            instructor.reset_code_expires = None
-            instructor.save()
-            del request.session['reset_user_id']
-            messages.success(
-                request,
-                '¡Contraseña actualizada correctamente! Ahora puedes iniciar sesión.'
-            )
-            return redirect('login')
-
-    # Calcular segundos restantes
-    remaining_seconds = 0
-    if instructor.reset_code_expires:
-        delta = instructor.reset_code_expires - timezone.now()
-        remaining_seconds = max(0, int(delta.total_seconds()))
-
-    email_hint = request.session.get('recovery_email_hint', '')
-
-    return render(request, 'experto/verificar_codigo.html', {
-        'form': form,
-        'remaining_seconds': remaining_seconds,
-        'email_hint': email_hint,
-    })
+    # Si es GET, mostramos el formulario inicial para solicitar el código
+    return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
 
 
 # ─────────────────────────────────────────────────────────────────────────────

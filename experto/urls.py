@@ -50,8 +50,7 @@ urlpatterns = [
     path('instructores/<int:pk>/borrar/', views.borrar_instructor, name='borrar_instructor'),
 
     # ── Recuperación de contraseña personalizada ───────────────────────────────
-    path('recuperar-contrasena/', views.recuperar_contrasena, name='recuperar_contrasena'),
-    path('verificar-codigo/',     views.verificar_codigo,     name='verificar_codigo'),
+    path('restablecer/', views.restablecer_contrasena, name='recuperar_contrasena'),
 
     # ── Chatbot NLP ────────────────────────────────────────────────────────────
     path('chatbot/', views.chatbot_api, name='chatbot_api'),

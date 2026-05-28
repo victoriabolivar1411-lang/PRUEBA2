@@ -1,0 +1,136 @@
+{% extends 'experto/base.html' %}
+{% block title %}Restablecer Contraseña - Sistema TEA{% endblock %}
+{% block content %}
+<style>
+    .auth-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 2rem 1rem; }
+    .auth-card { background: var(--c-card); border: 1px solid var(--c-border); border-radius: 20px; padding: 2.75rem 2.25rem; width: 100%; max-width: 450px; box-shadow: 0 8px 40px rgba(0,0,0,.5); }
+    .auth-logo { text-align: center; margin-bottom: 2rem; }
+    .auth-icon-wrap { display:inline-flex; align-items:center; justify-content:center; width:68px; height:68px; border-radius:18px; background:linear-gradient(135deg,#0891b2,var(--c-teal)); font-size:2rem; box-shadow:0 6px 20px rgba(8,145,178,.4); margin-bottom:.9rem; }
+    .auth-title { font-size: 1.45rem; font-weight: 700; color: var(--c-white); }
+    .auth-subtitle { font-size: .88rem; color: var(--c-muted); margin-top: .3rem; line-height: 1.5; }
+    .auth-label { display:block; font-size:.85rem; font-weight:500; color:var(--c-text); margin-bottom:.45rem; }
+    .input-icon-wrap { position: relative; }
+    .input-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1rem; pointer-events:none; color:var(--c-muted); transition:color .2s; }
+    .input-icon-wrap:focus-within .input-icon { color: var(--c-teal); }
+    .auth-input { width:100%; padding:13px 14px 13px 42px; background:var(--c-surface); border:1.5px solid var(--c-border); border-radius:12px; color:var(--c-text); font-size:.95rem; font-family:'Inter',sans-serif; transition:border-color .25s,box-shadow .25s; outline:none; box-sizing:border-box; }
+    .auth-input::placeholder { color: var(--c-muted); }
+    .auth-input:focus { border-color:var(--c-teal); box-shadow:0 0 0 3px rgba(34,211,238,.2); }
+    .codigo-input { text-align:center; letter-spacing:.4em; font-size:1.3rem; font-weight:700; padding:13px; }
+    .btn-send { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:13px 20px; background:linear-gradient(135deg,#0891b2,var(--c-teal)); color:white; font-size:.97rem; font-weight:600; border:none; border-radius:12px; cursor:pointer; font-family:'Inter',sans-serif; box-shadow:0 4px 18px rgba(34,211,238,.25); transition:transform .2s,box-shadow .2s,filter .2s; margin-top:1.25rem; }
+    .btn-send:hover { transform:translateY(-2px); box-shadow:0 8px 25px rgba(34,211,238,.4); filter:brightness(1.08); }
+    .auth-footer { text-align:center; font-size:.85rem; color:var(--c-muted); margin-top:1.1rem; }
+    .auth-footer a { color:var(--c-accent2); font-weight:500; }
+    .auth-divider { border:none; border-top:1px solid var(--c-border); margin:1.2rem 0; }
+    .mensajes { margin-bottom: 20px; }
+    .alert { padding: 10px; border-radius: 5px; margin-bottom: 10px; }
+    .alert-success { background-color: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; }
+    .alert-error { background-color: rgba(244, 67, 54, 0.1); border: 1px solid #f44336; color: #f44336; }
+    #temporizador { font-size: 14px; color: #ff9800; margin-top: 10px; text-align: center; }
+</style>
+
+<div class="auth-page">
+    <div class="auth-card">
+
+        <!-- Mostrar mensajes de éxito o error de Django -->
+        {% if messages %}
+            <div class="mensajes">
+                {% for message in messages %}
+                    <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- PASO 1: Formulario para solicitar código -->
+        {% if paso == 'solicitar' %}
+            <div class="auth-logo">
+                <div class="auth-icon-wrap">🛡️</div>
+                <div class="auth-title">Recuperar Contraseña</div>
+                <div class="auth-subtitle">Ingresa tu correo electrónico para recibir el código de recuperación.</div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                <div style="margin-bottom:1rem">
+                    <label class="auth-label" for="email">Correo Electrónico:</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">📧</span>
+                        <input type="email" id="email" name="email" required placeholder="tu@correo.com" class="auth-input">
+                    </div>
+                </div>
+                <button type="submit" name="solicitar_codigo" class="btn-send">Enviar Código</button>
+            </form>
+
+        <!-- PASO 2: Formulario para ingresar código y nueva contraseña -->
+        {% elif paso == 'verificar' %}
+            <div class="auth-logo">
+                <div class="auth-icon-wrap">🔑</div>
+                <div class="auth-title">Restablecer Contraseña</div>
+                <div class="auth-subtitle">Hemos enviado un código a tu correo. Ingrésalo junto con tu nueva contraseña.</div>
+            </div>
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div style="margin-bottom:1.1rem">
+                    <label class="auth-label" for="codigo">Código de Verificación (6 dígitos):</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">🔢</span>
+                        <input type="text" id="codigo" name="codigo" required maxlength="6" pattern="\d{6}" placeholder="Ej. 123456" class="auth-input codigo-input">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1rem">
+                    <label class="auth-label" for="nueva_contrasena">Nueva Contraseña:</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="nueva_contrasena" name="nueva_contrasena" required minlength="8" class="auth-input" placeholder="Mínimo 8 caracteres">
+                    </div>
+                </div>
+
+                <div style="margin-bottom:1rem">
+                    <label class="auth-label" for="confirmar_contrasena">Confirmar Contraseña:</label>
+                    <div class="input-icon-wrap">
+                        <span class="input-icon">✅</span>
+                        <input type="password" id="confirmar_contrasena" name="confirmar_contrasena" required minlength="8" class="auth-input" placeholder="Repite la contraseña">
+                    </div>
+                </div>
+
+                <button type="submit" name="cambiar_contrasena" class="btn-send">Guardar Nueva Contraseña</button>
+            </form>
+
+            <div id="temporizador">⏱️ El código expira en: <span id="tiempo">05:00</span></div>
+
+            <script>
+                // Lógica del Temporizador de 5 minutos (300 segundos)
+                let tiempoRestante = 300; 
+                const elementoTiempo = document.getElementById('tiempo');
+                const btnSubmit = document.querySelector('button[name="cambiar_contrasena"]');
+
+                const intervalo = setInterval(() => {
+                    const minutos = Math.floor(tiempoRestante / 60);
+                    let segundos = tiempoRestante % 60;
+
+                    segundos = segundos < 10 ? '0' + segundos : segundos;
+                    elementoTiempo.innerHTML = `0${minutos}:${segundos}`;
+                    tiempoRestante--;
+
+                    if (tiempoRestante < 0) {
+                        clearInterval(intervalo);
+                        elementoTiempo.innerHTML = "El código ha expirado.";
+                        elementoTiempo.style.color = "red";
+                        btnSubmit.disabled = true;
+                        btnSubmit.style.opacity = '0.5';
+                    }
+                }, 1000);
+            </script>
+        {% endif %}
+        
+        <hr class="auth-divider">
+        <div class="auth-footer">
+            ¿Recordaste tu contraseña? <a href="{% url 'login' %}">Iniciar sesión</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
