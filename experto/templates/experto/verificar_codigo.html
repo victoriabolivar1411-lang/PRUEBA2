@@ -92,19 +92,15 @@
     <div class="auth-logo">
       <div class="auth-icon-wrap">🔑</div>
       <div class="auth-title">Restablecer Contraseña</div>
-      <div class="auth-subtitle">Usa el código generado a continuación e ingresa tu nueva contraseña para recuperar el acceso.</div>
+      <div class="auth-subtitle">Hemos enviado un código de verificación a tu correo electrónico. Ingrésalo junto con tu nueva contraseña para recuperar el acceso.</div>
     </div>
 
-    <!-- On-screen Display of the Reset Code -->
-    {% if reset_code %}
+    <!-- Email sent confirmation banner -->
+    {% if email_hint %}
     <div class="reset-code-display">
-      <div class="reset-code-title">🔑 Tu Código de Recuperación</div>
-      <div class="reset-code-value" id="reset-code-text">{{ reset_code }}</div>
-      <div>
-        <button type="button" class="reset-code-copy-btn" id="btn-copy-code">
-          <span id="copy-icon">📋</span> <span id="copy-text">Copiar código</span>
-        </button>
-      </div>
+      <div class="reset-code-title">📧 Código enviado a tu correo</div>
+      <div style="font-size:1.1rem; font-weight:600; color:#4ade80; margin-top:.4rem; letter-spacing:.02em;">{{ email_hint }}</div>
+      <div style="font-size:.78rem; color:var(--c-muted); margin-top:.5rem;">Revisa tu bandeja de entrada (y la carpeta de spam).</div>
     </div>
     {% endif %}
 
@@ -171,33 +167,14 @@
 
     <hr class="auth-divider">
     <div class="auth-footer">
-      ¿Problemas con el código?
-      <a href="{% url 'recuperar_contrasena' %}?reiniciar=1">Iniciar proceso de nuevo</a>
+      ¿No recibiste el código?
+      <a href="{% url 'verificar_codigo' %}?regenerar=1">Reenviar código al correo</a>
     </div>
 
   </div>
 </div>
 
 <script>
-  // Copy to clipboard utility
-  document.getElementById('btn-copy-code')?.addEventListener('click', function() {
-    const codeText = document.getElementById('reset-code-text').textContent;
-    navigator.clipboard.writeText(codeText).then(() => {
-      const copyTextSpan = document.getElementById('copy-text');
-      const copyIconSpan = document.getElementById('copy-icon');
-      if (copyTextSpan && copyIconSpan) {
-        copyTextSpan.textContent = '¡Copiado!';
-        copyIconSpan.textContent = '✨';
-        setTimeout(() => {
-          copyTextSpan.textContent = 'Copiar código';
-          copyIconSpan.textContent = '📋';
-        }, 2000);
-      }
-    }).catch(err => {
-      console.error('Error al copiar el código: ', err);
-    });
-  });
-
   // Countdown timer utility
   (function() {
     const remainingSeconds = parseInt("{{ remaining_seconds|default:300 }}");
@@ -224,10 +201,10 @@
           hintDiv.style.background = 'rgba(239, 68, 68, 0.08)';
           hintDiv.style.border = '1px solid rgba(239, 68, 68, 0.2)';
           hintDiv.style.color = '#ef4444';
-          hintDiv.innerHTML = '⏱️ <strong>El código ha expirado.</strong> Generando un nuevo código automáticamente...';
+          hintDiv.innerHTML = '⏱️ <strong>El código ha expirado.</strong> Enviando un nuevo código a tu correo...';
         }
         
-        // Redirect to automatic regeneration
+        // Redirect to automatic regeneration (will resend email)
         setTimeout(() => {
           window.location.href = "?regenerar=1";
         }, 2500);

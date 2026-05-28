@@ -18,7 +18,7 @@
       <div class="auth-subtitle">Sistema Experto TEA — Proyecto de Grado</div>
     </div>
 
-    <form method="post" novalidate>
+    <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
 
       {% if form.errors %}
@@ -70,9 +70,15 @@
           {% if form.cedula.errors %}<ul class="errorlist">{% for e in form.cedula.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label">Teléfono (opcional)</label>
+          <label class="form-label">Teléfono *</label>
           {{ form.telefono }}
+          {% if form.telefono.errors %}<ul class="errorlist">{% for e in form.telefono.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
         </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Foto de perfil *</label>
+        {{ form.foto_perfil }}
+        {% if form.foto_perfil.errors %}<ul class="errorlist">{% for e in form.foto_perfil.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
       </div>
 
       <!-- Dirección -->

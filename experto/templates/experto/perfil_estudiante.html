@@ -198,7 +198,6 @@
     </table>
     <div class="d-flex gap-1 no-print">
       <a href="{% url 'editar_estudiante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2">✏️ Editar Estudiante</a>
-      <a href="{% url 'evolucion_estudiante' estudiante.pk %}" class="btn btn-ghost btn-sm mt-2">📈 Ver Evolución</a>
     </div>
   </div>
 
@@ -255,9 +254,12 @@
 <!-- ÚLTIMA EVALUACIÓN DSM-5 -->
 {% if eval_dsm5 %}
 <div class="card mt-2">
-  <div class="card-header">
-    <div class="card-title">🏥 Última Evaluación DSM-5</div>
-    <span class="text-muted" style="font-size:.85rem">{{ eval_dsm5.fecha }}</span>
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div class="card-title mb-0" style="border:none; padding:0; margin-bottom:2px !important;">🏥 Última Evaluación DSM-5</div>
+      <span class="text-muted" style="font-size:.85rem">{{ eval_dsm5.fecha }}</span>
+    </div>
+    <a href="{% url 'editar_evaluacion_dsm5' estudiante.pk eval_dsm5.pk %}" class="btn btn-ghost btn-sm no-print">✏️ Editar</a>
   </div>
   <div class="grid-2">
     <div>
@@ -283,9 +285,14 @@
 <!-- RECOMENDACIONES -->
 {% if recomendaciones %}
 <div class="card mt-2">
-  <div class="card-header">
-    <div class="card-title">💡 Últimas Recomendaciones del Sistema Experto</div>
-    <span class="badge badge-green">{{ recomendaciones.count }}</span>
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div class="card-title mb-0" style="border:none; padding:0; margin-bottom:2px !important;">💡 Últimas Recomendaciones del Sistema Experto</div>
+      <span class="badge badge-green">{{ recomendaciones.count }} activas</span>
+    </div>
+    {% if eval_ped %}
+    <a href="{% url 'editar_evaluacion_pedagogica' estudiante.pk eval_ped.pk %}" class="btn btn-ghost btn-sm no-print">✏️ Editar Pedagógica</a>
+    {% endif %}
   </div>
   {% for rec in recomendaciones %}
   <div style="border-left:3px solid var(--c-accent);padding:.75rem 1rem;margin-bottom:.75rem;background:var(--c-surface);border-radius:0 9px 9px 0">

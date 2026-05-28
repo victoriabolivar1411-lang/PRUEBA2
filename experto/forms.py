@@ -30,6 +30,10 @@ def _apply_css(form):
             widget.attrs.setdefault('class', CSS_FILE)
         else:
             widget.attrs.setdefault('class', CSS)
+        # Añadir atributo HTML required para todos los campos obligatorios
+        # (activa la validación nativa del navegador antes de enviar)
+        if field.required and not isinstance(widget, forms.CheckboxInput):
+            widget.attrs['required'] = True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -48,7 +52,8 @@ class RegistroInstructorForm(UserCreationForm):
     estado_civil = forms.ChoiceField(choices=ESTADO_CIVIL_CHOICES, label='Estado civil', required=True)
     cedula     = forms.CharField(max_length=15, label='Cédula', required=True, widget=forms.TextInput(attrs={'placeholder': 'Ej: 12345678'}))
     email      = forms.EmailField(label='Correo electrónico', required=True)
-    telefono   = forms.CharField(max_length=20, label='Teléfono (opcional)', required=False)
+    telefono   = forms.CharField(max_length=20, label='Teléfono', required=True)
+    foto_perfil = forms.ImageField(label='Foto de perfil', required=True, widget=forms.ClearableFileInput(attrs={'accept': 'image/*'}))
     estado     = forms.CharField(label='Estado', required=True, widget=forms.Select(attrs={'class': 'form-input estado-select'}))
     municipio  = forms.CharField(label='Municipio / Ciudad', required=True, widget=forms.Select(attrs={'class': 'form-input municipio-select'}))
     direccion  = forms.CharField(label='Dirección detallada', required=True, widget=forms.Textarea(attrs={'rows': 3}))
@@ -100,7 +105,8 @@ class RegistroInstructorForm(UserCreationForm):
                 estado=self.cleaned_data['estado'],
                 municipio=self.cleaned_data['municipio'],
                 direccion=self.cleaned_data['direccion'],
-                telefono=self.cleaned_data.get('telefono', ''),
+                telefono=self.cleaned_data['telefono'],
+                foto_perfil=self.cleaned_data.get('foto_perfil'),
                 respuesta_1=self.cleaned_data['respuesta_1'].strip(),
                 respuesta_2=self.cleaned_data['respuesta_2'].strip(),
                 respuesta_3=self.cleaned_data['respuesta_3'].strip(),
@@ -123,11 +129,12 @@ class EstudianteForm(forms.ModelForm):
             'nombre_completo': 'Nombre completo',
             'sexo':            'Sexo',
             'edad':            'Edad (años)',
-            'foto_carnet':     'Foto carnet (opcional)',
+            'foto_carnet':     'Foto carnet',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['foto_carnet'].required = True
         _apply_css(self)
 
 
@@ -164,16 +171,19 @@ class RepresentanteForm(forms.ModelForm):
             'estado_civil':    'Estado civil',
             'cedula':          'Cédula',
             'parentesco':      'Parentesco con el estudiante',
-            'correo':          'Correo electrónico (opcional)',
+            'correo':          'Correo electrónico',
             'telefono':        'Teléfono',
             'estado':          'Estado',
             'municipio':       'Municipio / Ciudad',
             'direccion':       'Dirección detallada',
-            'foto_carnet':     'Foto carnet (opcional)',
+            'foto_carnet':     'Foto carnet',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['correo'].required = True
+        self.fields['telefono'].required = True
+        self.fields['foto_carnet'].required = True
         _apply_css(self)
         # Sobrescribir clase del textarea dirección para mantener estilos personalizados
         self.fields['direccion'].widget.attrs['class'] = 'form-textarea direccion-field'

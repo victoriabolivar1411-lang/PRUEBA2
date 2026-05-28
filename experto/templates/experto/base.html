@@ -732,7 +732,7 @@
 
 <!-- ── MESSAGES ─────────────────────────────────────────────────────────── -->
 {% if messages %}
-<div class="messages-container">
+<div class="messages-container no-print">
   {% for msg in messages %}
   <div class="alert alert-{{ msg.tags|default:'info' }}">
     {% if msg.tags == 'success' %}✅{% elif msg.tags == 'error' %}❌{% elif msg.tags == 'warning' %}⚠️{% else %}ℹ️{% endif %}

@@ -180,7 +180,7 @@
 
 <div class="d-flex gap-1">
   <button type="submit" class="btn btn-primary btn-lg">
-    ▶️ Guardar DSM-5 y continuar con Evaluación Pedagógica
+    {% if editando %}💾 Guardar Cambios{% else %}▶️ Guardar DSM-5 y continuar con Evaluación Pedagógica{% endif %}
   </button>
   <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">Cancelar</a>
 </div>

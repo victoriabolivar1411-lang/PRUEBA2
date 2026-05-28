@@ -13,7 +13,7 @@
 
 <div style="max-width:560px">
   <div class="card">
-    <form method="post" enctype="multipart/form-data" novalidate>
+    <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
       {% if form.non_field_errors %}
       <div class="alert alert-error mb-2">❌ {{ form.non_field_errors.0 }}</div>

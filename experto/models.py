@@ -22,7 +22,6 @@ from django.utils import timezone
 SEXO_CHOICES = [
     ('M', 'Masculino'),
     ('F', 'Femenino'),
-    ('O', 'Otro'),
 ]
 
 ESTADO_CIVIL_CHOICES = [
@@ -30,7 +29,6 @@ ESTADO_CIVIL_CHOICES = [
     ('casado',        'Casado/a'),
     ('divorciado',    'Divorciado/a'),
     ('viudo',         'Viudo/a'),
-    ('union_libre',   'Unión libre'),
 ]
 
 PARENTESCO_CHOICES = [

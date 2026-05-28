@@ -357,6 +357,10 @@
   <div class="d-flex gap-1 no-print">
     <button onclick="window.print()" class="btn btn-ghost">🖨️ Imprimir reporte</button>
     <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">📄 Ver ficha</a>
+    {% if eval_dsm5 %}
+    <a href="{% url 'editar_evaluacion_dsm5' estudiante.pk eval_dsm5.pk %}" class="btn btn-ghost">✏️ Editar DSM-5</a>
+    {% endif %}
+    <a href="{% url 'editar_evaluacion_pedagogica' estudiante.pk eval_ped.pk %}" class="btn btn-ghost">✏️ Editar Pedagógica</a>
     <a href="{% url 'evaluacion_dsm5' estudiante.pk %}" class="btn btn-primary">🔄 Nueva evaluación</a>
   </div>
 </div>

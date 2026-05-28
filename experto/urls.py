@@ -35,7 +35,9 @@ urlpatterns = [
 
     # ── Evaluaciones ──────────────────────────────────────────────────────────
     path('estudiantes/<int:pk>/dsm5/',                            views.evaluacion_dsm5,       name='evaluacion_dsm5'),
+    path('estudiantes/<int:pk>/dsm5/<int:dsm5_pk>/editar/',       views.editar_evaluacion_dsm5, name='editar_evaluacion_dsm5'),
     path('estudiantes/<int:pk>/pedagogica/<int:dsm5_pk>/',        views.evaluacion_pedagogica, name='evaluacion_pedagogica'),
+    path('estudiantes/<int:pk>/pedagogica/<int:ped_pk>/editar/',  views.editar_evaluacion_pedagogica, name='editar_evaluacion_pedagogica'),
     path('evaluaciones/<int:ped_pk>/resultados/',                 views.resultados,            name='resultados'),
     path('evaluaciones/<int:ped_pk>/reporte-html/',                views.reporte_pedagogico_html, name='reporte_pedagogico_html'),
 

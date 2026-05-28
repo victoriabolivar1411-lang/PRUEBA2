@@ -62,7 +62,7 @@
 
     <div class="d-flex gap-1">
       <button type="submit" class="btn btn-success btn-lg">
-        🧠 Ejecutar motor de inferencia → Ver recomendaciones
+        {% if editando %}💾 Guardar y regenerar recomendaciones{% else %}🧠 Ejecutar motor de inferencia → Ver recomendaciones{% endif %}
       </button>
       <a href="{% url 'perfil_estudiante' estudiante.pk %}" class="btn btn-ghost">Cancelar</a>
     </div>

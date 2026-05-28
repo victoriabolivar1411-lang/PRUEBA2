@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Manual de Usuario - Sistema Experto TEA</title>
+  <title>Manual de Uso - Sistema Experto TEA</title>
   <style>
     @page {
       size: letter;
@@ -73,7 +73,7 @@
     .cover {
       text-align: center;
       padding-top: 150px;
-      page-break-after: always;
+      /* removed page-break-after: always; to prevent blank pages */
     }
     
     .cover-title {
@@ -126,7 +126,7 @@
     }
     
     .page-break {
-      page-break-before: always;
+      /* removed page-break-before: always; */
     }
     
     #footerContent {
@@ -158,7 +158,7 @@
   <!-- Encabezado -->
   <div id="headerContent">
     <span class="header-logo-container">
-      <img src="/static/images/logo_infocentro.jpeg" alt="Fundación Infocentro" height="60">
+      <img src="{% if logo_b64 %}{{ logo_b64 }}{% else %}/static/images/logo_infocentro.jpeg{% endif %}" alt="Fundación Infocentro" height="60">
     </span>
     <span class="empresa-nombre">FUNDACIÓN INFOCENTRO</span>
   </div>
@@ -170,7 +170,7 @@
 
   <!-- PORTADA -->
   <div class="cover">
-    <div class="cover-title">Manual de Usuario</div>
+    <div class="cover-title">Manual de Uso</div>
     <div class="cover-subtitle">Sistema Experto para Apoyo Pedagógico en TEA</div>
     
     <div class="cover-info">
@@ -200,7 +200,6 @@
   </ol>
 
   <!-- SECCIÓN 3: PERFIL DEL ESTUDIANTE -->
-  <div class="page-break"></div>
   <h2>SECCIÓN 3: PERFIL DEL ESTUDIANTE</h2>
   <p>El sistema permite gestionar de manera detallada la información de los estudiantes y sus representantes legales.</p>
   
@@ -231,7 +230,6 @@
   <p>Para registrar una evaluación, accede al perfil del estudiante y selecciona "Nueva Evaluación". El historial completo de evaluaciones anteriores siempre estará disponible en su perfil para su revisión y comparación.</p>
 
   <!-- SECCIÓN 5: EVOLUCIÓN DEL ESTUDIANTE -->
-  <div class="page-break"></div>
   <h2>SECCIÓN 5: EVOLUCIÓN DEL ESTUDIANTE</h2>
   <p>La sección de Evolución permite visualizar el progreso del estudiante a lo largo del tiempo de manera gráfica e intuitiva.</p>
   
@@ -264,7 +262,6 @@
   <p>El sistema calculará <strong>automáticamente</strong> el puntaje total en base a tus selecciones al guardar la evaluación. Además, puedes utilizar el campo de texto opcional debajo de cada selección para añadir observaciones específicas (ej: "Dificultad para iniciar conversaciones").</p>
 
   <!-- SECCIÓN 7: CHATBOT INTELIGENTE -->
-  <div class="page-break"></div>
   <h2>SECCIÓN 7: CHATBOT INTELIGENTE</h2>
   <p>El sistema cuenta con un Chatbot asistente (widget flotante en la esquina inferior derecha) diseñado para responder preguntas al instante.</p>
   
@@ -291,7 +288,6 @@
   <p>En la barra superior (navbar) encontrarás un botón con el ícono de un sol (🌞) o una luna (🌙). Al hacer clic, toda la interfaz cambiará entre el Modo Claro (fondos blancos, alta legibilidad) y el Modo Oscuro (fondos oscuros, reduce la fatiga visual). Esta preferencia se guarda automáticamente para tus futuras sesiones.</p>
 
   <!-- SECCIÓN 9: PREGUNTAS FRECUENTES (FAQ) -->
-  <div class="page-break"></div>
   <h2>SECCIÓN 9: PREGUNTAS FRECUENTES (FAQ)</h2>
   
   <p><strong>¿Cómo recupero mi contraseña?</strong><br>

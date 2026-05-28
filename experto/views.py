@@ -115,7 +115,7 @@ def descargar_manual_pdf(request):
     }
     
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="Manual_Usuario_Sistema_TEA.pdf"'
+    response['Content-Disposition'] = 'inline; filename="Manual_de_Uso_Sistema_TEA.pdf"'
     
     template = get_template(template_path)
     html = template.render(context)
@@ -417,6 +417,79 @@ def evaluacion_pedagogica(request, pk, dsm5_pk):
         'form': form, 'instructor': instructor, 'estudiante': est, 'eval_dsm5': ev_dsm5
     })
 
+@login_required(login_url='login')
+def editar_evaluacion_dsm5(request, pk, dsm5_pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    ev_dsm5 = get_object_or_404(EvaluacionDSM5, pk=dsm5_pk, estudiante=est)
+
+    if request.method == 'POST':
+        form = EvaluacionDSM5Form(request.POST, instance=ev_dsm5)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Evaluación DSM-5 actualizada correctamente.')
+            # Si hay una evaluación pedagógica asociada, ir a sus resultados
+            ped = ev_dsm5.evaluaciones_pedagogicas.first()
+            if ped:
+                return redirect('resultados', ped_pk=ped.pk)
+            return redirect('perfil_estudiante', pk=est.pk)
+    else:
+        form = EvaluacionDSM5Form(instance=ev_dsm5)
+    return render(request, 'experto/evaluacion_dsm5.html', {
+        'form': form, 'instructor': instructor, 'estudiante': est, 'editando': True
+    })
+
+@login_required(login_url='login')
+def editar_evaluacion_pedagogica(request, pk, ped_pk):
+    instructor = _get_instructor(request)
+    est = get_object_or_404(Estudiante, pk=pk, instructor=instructor)
+    ev_ped = get_object_or_404(EvaluacionPedagogica, pk=ped_pk, estudiante=est)
+
+    if request.method == 'POST':
+        form = EvaluacionPedagogicaForm(request.POST, instance=ev_ped)
+        if form.is_valid():
+            ev_ped = form.save()
+            
+            pct_com = _nivel_a_puntaje(ev_ped.nivel_comunicacion_social)
+            pct_con = _nivel_a_puntaje(ev_ped.nivel_conductas_repetitivas)
+            
+            ev_evolucion = Evaluacion.objects.filter(
+                estudiante=est,
+                observaciones__startswith=f"Generada automáticamente a partir de la Evaluación Pedagógica #{ev_ped.pk}."
+            ).first()
+
+            if ev_evolucion:
+                ev_evolucion.puntaje_obtenido = float(pct_com + pct_con)
+                ev_evolucion.observaciones = f"Generada automáticamente a partir de la Evaluación Pedagógica #{ev_ped.pk}.\n" \
+                                             f"Comunicación Social: {ev_ped.get_nivel_comunicacion_social_display()}.\n" \
+                                             f"Conductas Repetitivas: {ev_ped.get_nivel_conductas_repetitivas_display()}."
+                ev_evolucion.save()
+            else:
+                Evaluacion.objects.create(
+                    estudiante=est,
+                    fecha=ev_ped.fecha.date(),
+                    nombre="Evaluación Pedagógica",
+                    tipo='TEA',
+                    puntaje_obtenido=float(pct_com + pct_con),
+                    puntaje_maximo=150.0,
+                    observaciones=f"Generada automáticamente a partir de la Evaluación Pedagógica #{ev_ped.pk}.\n"
+                                  f"Comunicación Social: {ev_ped.get_nivel_comunicacion_social_display()}.\n"
+                                  f"Conductas Repetitivas: {ev_ped.get_nivel_conductas_repetitivas_display()}."
+                )
+
+            ev_ped.recomendaciones.all().delete()
+            reglas = generar_recomendaciones(ev_ped)
+            messages.success(
+                request,
+                f'Evaluación pedagógica actualizada. Se generaron {len(reglas)} recomendación(es) actualizadas.'
+            )
+            return redirect('resultados', ped_pk=ev_ped.pk)
+    else:
+        form = EvaluacionPedagogicaForm(instance=ev_ped)
+    return render(request, 'experto/evaluacion_pedagogica.html', {
+        'form': form, 'instructor': instructor, 'estudiante': est, 'eval_dsm5': ev_ped.evaluacion_dsm5, 'editando': True
+    })
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RESULTADOS DEL MOTOR DE INFERENCIA
@@ -624,6 +697,63 @@ from django.core.mail import send_mail
 from django.conf import settings as django_settings
 
 
+def _enviar_codigo_por_correo(instructor, codigo):
+    """
+    Envía el código de recuperación al correo electrónico asociado al usuario.
+    Si el usuario no tiene correo registrado, lanza una excepción.
+    """
+    email_destino = instructor.usuario.email
+    if not email_destino:
+        raise ValueError('El usuario no tiene un correo electrónico registrado.')
+
+    nombre = instructor.usuario.first_name or instructor.usuario.username
+
+    asunto = 'Código de recuperación de contraseña — Sistema TEA'
+    mensaje_texto = (
+        f'Hola {nombre},\n\n'
+        f'Tu código de recuperación de contraseña es: {codigo}\n\n'
+        f'Este código expira en 5 minutos.\n\n'
+        f'Si no solicitaste este código, puedes ignorar este mensaje.\n\n'
+        f'— Sistema Experto TEA'
+    )
+    mensaje_html = (
+        f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;'
+        f'background:#0f172a;border-radius:16px;padding:2rem;color:#e2e8f0;">'
+        f'<div style="text-align:center;margin-bottom:1.5rem;">'
+        f'<div style="font-size:2rem;">🔑</div>'
+        f'<h2 style="color:#fff;margin:.5rem 0;">Recuperación de Contraseña</h2>'
+        f'<p style="color:#94a3b8;font-size:.9rem;">Hola <strong>{nombre}</strong>, '
+        f'usa el siguiente código para restablecer tu contraseña.</p>'
+        f'</div>'
+        f'<div style="background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(20,184,166,.15));'
+        f'border:2px dashed rgba(34,197,94,.4);border-radius:12px;padding:1.5rem;text-align:center;'
+        f'margin-bottom:1.5rem;">'
+        f'<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;'
+        f'color:#94a3b8;margin-bottom:.5rem;">Tu código de recuperación</div>'
+        f'<div style="font-size:2.2rem;font-weight:800;letter-spacing:.3em;color:#4ade80;'
+        f'font-family:monospace;">{codigo}</div>'
+        f'</div>'
+        f'<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);'
+        f'border-radius:8px;padding:.75rem 1rem;text-align:center;font-size:.82rem;'
+        f'color:#fbbf24;margin-bottom:1rem;">'
+        f'⏱️ Este código expira en <strong>5 minutos</strong>.'
+        f'</div>'
+        f'<p style="font-size:.8rem;color:#64748b;text-align:center;">'
+        f'Si no solicitaste este código, puedes ignorar este mensaje.</p>'
+        f'</div>'
+    )
+
+    from django.core.mail import send_mail
+    send_mail(
+        asunto,
+        mensaje_texto,
+        django_settings.DEFAULT_FROM_EMAIL,
+        [email_destino],
+        html_message=mensaje_html,
+        fail_silently=False,
+    )
+
+
 def recuperar_contrasena(request):
     """
     Recuperación de contraseña en 2 pasos por Preguntas de Seguridad.
@@ -709,11 +839,23 @@ def recuperar_contrasena(request):
                 return redirect('recuperar_contrasena')
 
             if ans1_db == ans1_input and ans2_db == ans2_input and ans3_db == ans3_input:
+                # Verificar que el usuario tenga correo electrónico registrado
+                if not user.email:
+                    messages.error(request, 'Tu cuenta no tiene un correo electrónico registrado. Por favor, contacta al administrador del sistema.')
+                    return redirect('recuperar_contrasena')
+
                 # Generar código de 6 dígitos
                 codigo = str(random.randint(100000, 999999))
                 instructor.reset_code = codigo
                 instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
                 instructor.save()
+
+                # Enviar código por correo electrónico
+                try:
+                    _enviar_codigo_por_correo(instructor, codigo)
+                except Exception as e:
+                    messages.error(request, f'No se pudo enviar el correo electrónico. Error: {e}')
+                    return redirect('recuperar_contrasena')
 
                 # Limpiar datos de identificación de la sesión y guardar reset_user_id
                 request.session['reset_user_id'] = user.pk
@@ -722,7 +864,12 @@ def recuperar_contrasena(request):
                 if 'recovery_step' in request.session:
                     del request.session['recovery_step']
 
-                messages.success(request, '¡Preguntas respondidas correctamente! El código de recuperación se muestra a continuación.')
+                # Ofuscar el correo para mostrarlo parcialmente en la UI
+                email_parts = user.email.split('@')
+                email_ofuscado = email_parts[0][:2] + '***@' + email_parts[1] if len(email_parts) == 2 else '***'
+                request.session['recovery_email_hint'] = email_ofuscado
+
+                messages.success(request, f'¡Preguntas respondidas correctamente! El código de recuperación fue enviado a tu correo electrónico ({email_ofuscado}).')
                 return redirect('verificar_codigo')
             else:
                 messages.error(request, 'Una o más respuestas son incorrectas. Inténtalo de nuevo.')
@@ -767,7 +914,14 @@ def verificar_codigo(request):
         instructor.reset_code = codigo
         instructor.reset_code_expires = timezone.now() + timedelta(minutes=5)
         instructor.save()
-        messages.info(request, 'Código de recuperación renovado automáticamente.')
+
+        # Reenviar código por correo electrónico
+        try:
+            _enviar_codigo_por_correo(instructor, codigo)
+            messages.info(request, 'Se ha enviado un nuevo código de recuperación a tu correo electrónico.')
+        except Exception:
+            messages.warning(request, 'Código renovado, pero no se pudo enviar el correo. Revisa tu configuración.')
+
         return redirect('verificar_codigo')
 
     form = VerificarCodigoForm(request.POST or None)
@@ -801,10 +955,12 @@ def verificar_codigo(request):
         delta = instructor.reset_code_expires - timezone.now()
         remaining_seconds = max(0, int(delta.total_seconds()))
 
+    email_hint = request.session.get('recovery_email_hint', '')
+
     return render(request, 'experto/verificar_codigo.html', {
         'form': form,
-        'reset_code': instructor.reset_code,
         'remaining_seconds': remaining_seconds,
+        'email_hint': email_hint,
     })
 
 
