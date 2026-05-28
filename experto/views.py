@@ -705,9 +705,15 @@ def restablecer_contrasena(request):
         # --- PASO 1: El usuario solicita enviar el código a su correo ---
         if 'solicitar_codigo' in request.POST:
             email = request.POST.get('email')
-            try:
-                from django.contrib.auth.models import User
-                usuario = User.objects.get(email=email)
+            from django.contrib.auth.models import User
+            
+            usuarios = User.objects.filter(email__iexact=email)
+            if not usuarios.exists():
+                messages.error(request, 'No existe ningún usuario registrado con ese correo electrónico.')
+                return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
+            
+            usuario = usuarios.first()
+            if usuario:
                 
                 # Generar código de 6 dígitos
                 codigo_verificacion = str(random.randint(100000, 999999))
@@ -818,8 +824,7 @@ def restablecer_contrasena(request):
                                     
                                     <!-- SEPARADOR Y PIE -->
                                     <tr>
-                                        <td style="padding:0 30px;">
-                                            <div style="border-top:1px solid #1a2640;margin:0 0 18px;"></div>
+                                        <td style="padding:0 30px;">                                            <div style="border-top:1px solid #1a2640;margin:0 0 18px;"></div>
                                         </td>
                                     </tr>
                                     <tr>
@@ -860,10 +865,6 @@ def restablecer_contrasena(request):
                 messages.success(request, 'Código enviado a tu correo. Por favor, revisa tu bandeja de entrada o spam.')
                 return render(request, 'experto/restablecer.html', {'paso': 'verificar'})
 
-            except User.DoesNotExist:
-                messages.error(request, 'No existe ningún usuario registrado con ese correo electrónico.')
-                return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
-
         # --- PASO 2: El usuario ingresa el código y la nueva contraseña ---
         elif 'cambiar_contrasena' in request.POST:
             codigo_ingresado = request.POST.get('codigo')
@@ -886,22 +887,23 @@ def restablecer_contrasena(request):
                 return render(request, 'experto/restablecer.html', {'paso': 'verificar'})
                 
             # Todo correcto: Actualizar la contraseña
-            try:
-                from django.contrib.auth.models import User
-                from django.contrib.auth.hashers import make_password
-                usuario = User.objects.get(email=email_guardado)
-                usuario.password = make_password(nueva_contrasena)
-                usuario.save()
+            from django.contrib.auth.models import User
+            from django.contrib.auth.hashers import make_password
+            
+            usuarios = User.objects.filter(email__iexact=email_guardado)
+            nueva_pass_hash = make_password(nueva_contrasena)
+            for u in usuarios:
+                u.password = nueva_pass_hash
+                u.save()
                 
-                # Limpiar la sesión por seguridad
+            # Limpiar la sesión por seguridad
+            if 'reset_codigo' in request.session:
                 del request.session['reset_codigo']
+            if 'reset_email' in request.session:
                 del request.session['reset_email']
-                
-                messages.success(request, '¡Contraseña actualizada exitosamente! Ya puedes iniciar sesión.')
-                return redirect('login')
-                
-            except User.DoesNotExist:
-                messages.error(request, 'Ocurrió un error al identificar al usuario.')
+            
+            messages.success(request, '¡Contraseña actualizada exitosamente! Ya puedes iniciar sesión.')
+            return redirect('login')
 
     # Si es GET, mostramos el formulario inicial para solicitar el código
     return render(request, 'experto/restablecer.html', {'paso': 'solicitar'})
