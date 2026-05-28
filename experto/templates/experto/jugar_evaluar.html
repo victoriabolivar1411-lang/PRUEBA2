@@ -479,6 +479,7 @@
     color: var(--text-dark);
   }
   .student-entry-card input[type="text"],
+  .student-entry-card input[type="number"],
   .student-entry-card input[type="file"] {
     width: 100%;
     border: 1px solid var(--surface-border);
@@ -595,6 +596,11 @@
         <div id="student-name-error" class="error-text" aria-live="polite"></div>
       </div>
       <div class="form-group">
+        <label for="student-age-input">Edad del estudiante</label>
+        <input id="student-age-input" type="number" placeholder="Ej. 7" min="0" max="99" autocomplete="off" />
+        <div id="student-age-error" class="error-text" aria-live="polite"></div>
+      </div>
+      <div class="form-group">
         <label for="student-photo-input">Sube una imagen del estudiante</label>
         <input id="student-photo-input" type="file" accept="image/*" />
         <div id="student-photo-error" class="error-text" aria-live="polite"></div>
@@ -680,6 +686,8 @@
             <div class="print-student-name">
               <strong>Estudiante:</strong>
               <div id="print-student-name">Nombre completo del estudiante</div>
+              <strong style="margin-top: 0.5rem; display: block;">Edad:</strong>
+              <div id="print-student-age">Edad del estudiante</div>
             </div>
           </div>
           <div class="print-header-summary" style="margin-left:auto; text-align:right; min-width:120px;">
@@ -797,13 +805,17 @@
   const finalScore = document.getElementById('final-score');
   const pauseOverlay = document.getElementById('pause-overlay');
   const studentNameInput = document.getElementById('student-name-input');
+  const studentAgeInput = document.getElementById('student-age-input');
   const studentPhotoInput = document.getElementById('student-photo-input');
   const studentNameError = document.getElementById('student-name-error');
+  const studentAgeError = document.getElementById('student-age-error');
   const studentPhotoPreview = document.getElementById('student-photo-preview');
   const studentPhotoPreviewImage = document.getElementById('student-photo-preview-image');
   const printStudentPhoto = document.getElementById('print-student-photo');
   const printStudentName = document.getElementById('print-student-name');
+  const printStudentAge = document.getElementById('print-student-age');
   let studentName = '';
+  let studentAge = '';
   let studentImageSrc = '';
 
   function updateProgress() {
@@ -1011,6 +1023,7 @@
     showSection('results');
     finalScore.textContent = score;
     printStudentName.textContent = studentName || 'Nombre completo del estudiante';
+    if (printStudentAge) printStudentAge.textContent = studentAge ? `${studentAge} años` : 'Edad no especificada';
     if (studentImageSrc) {
       printStudentPhoto.src = studentImageSrc;
       printStudentPhoto.parentElement.style.display = 'block';
@@ -1076,6 +1089,7 @@
 
   function validateStudentInfo() {
     studentName = studentNameInput.value.trim();
+    studentAge = studentAgeInput.value.trim();
     const photoFile = studentPhotoInput.files[0];
 
     let valid = true;
@@ -1084,6 +1098,13 @@
       valid = false;
     } else {
       studentNameError.textContent = '';
+    }
+
+    if (!studentAge) {
+      studentAgeError.textContent = 'Por favor ingresa la edad del estudiante.';
+      valid = false;
+    } else {
+      studentAgeError.textContent = '';
     }
 
     if (!photoFile) {
