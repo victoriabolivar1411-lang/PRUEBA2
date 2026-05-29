@@ -1,0 +1,81 @@
+{% extends 'experto/base.html' %}
+{% block title %}Panel administrador — Sistema TEA{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Panel de administración</h1>
+    <p class="page-subtitle">Gestiona instructores, estudiantes y representantes</p>
+  </div>
+  <div class="d-flex align-center gap-1">
+    <a href="{% url 'dashboard' %}" class="btn btn-ghost">← Volver al dashboard</a>
+  </div>
+</div>
+
+<div class="grid-4 mb-2">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(108,99,255,.15)">👩‍🏫</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-accent2)">{{ total_instructores }}</div>
+      <div class="stat-label">Instructores</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(34,211,238,.15)">👨‍🎓</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-teal)">{{ total_estudiantes }}</div>
+      <div class="stat-label">Estudiantes</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(74,222,128,.15)">👤</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-green)">{{ total_representantes }}</div>
+      <div class="stat-label">Representantes</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:rgba(250,204,21,.15)">📋</div>
+    <div>
+      <div class="stat-value" style="color:var(--c-yellow)">{{ total_evaluaciones }}</div>
+      <div class="stat-label">Evaluaciones</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Instructores registrados</div>
+      <div class="card-subtitle">Lista de instructores con total de estudiantes</div>
+    </div>
+  </div>
+  {% if instructores %}
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Instructor</th>
+          <th>Usuario</th>
+          <th>Estudiantes</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inst in instructores %}
+        <tr>
+          <td>{{ inst.nombre_completo }}</td>
+          <td>{{ inst.usuario.username }}</td>
+          <td>{{ inst.total_estudiantes }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:2rem">
+    <div class="icon">👩‍🏫</div>
+    <h3>No hay instructores registrados</h3>
+    <p>Los instructores se crearán desde el sistema o con un superusuario.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

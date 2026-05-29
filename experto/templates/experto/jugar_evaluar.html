@@ -390,10 +390,11 @@
     /* Reduce paddings and font sizes globally in print area to avoid page break */
     .results-card, .study-report, .strategy-card { padding: 0.6rem !important; }
     .study-report { margin-top: 0.5rem !important; }
-    .strategy-grid { gap: 0.6rem !important; grid-template-columns: repeat(2, 1fr) !important; }
-    .strategy-grid > .strategy-card:last-child { grid-column: span 2 !important; }
-    .strategy-card p { line-height:1.25; font-size:0.86rem; max-height:3.2em; overflow:hidden; }
-    .strategy-card p + p { display:none !important; }
+    .strategy-grid { gap: 0.4rem !important; grid-template-columns: repeat(3, 1fr) !important; }
+    .strategy-card { min-height: auto !important; padding: 0.5rem !important; }
+    .strategy-card h3 { font-size: 0.85rem !important; margin-bottom: 0.2rem !important; }
+    .strategy-card p { line-height: 1.2 !important; font-size: 0.75rem !important; margin-bottom: 0.2rem !important; max-height: none !important; }
+    .strategy-tag { font-size: 0.65rem !important; padding: 0.2rem 0.4rem !important; margin-top: 0.2rem !important; }
     .print-only, .results-card, .strategy-card, .study-report { page-break-inside: avoid !important; }
     /* Hide UI controls that don't make sense on paper */
     .no-print, #print-button { display: none !important; }
@@ -737,11 +738,11 @@
       description: 'Selecciona la emoción correcta según la situación.',
       type: 'emotions',
       items: [
-        { emoji: '🎁', text: 'Le regalaron un juguete', answer: '😊 FELIZ' },
-        { emoji: '🍦', text: 'Se le cayó su helado', answer: '😢 TRISTE' },
-        { emoji: '🚫', text: 'No lo dejaron jugar', answer: '😠 ENOJADO' },
-        { emoji: '🎵', text: 'Está escuchando su canción favorita', answer: '😌 CALMADO' },
-        { emoji: '🌙', text: 'Está solo en la oscuridad', answer: '😨 ASUSTADO' }
+        { emoji: '🎁', text: 'Le regalaron su juguete favorito', answer: '😊 FELIZ' },
+        { emoji: '🍦', text: 'Se le cayó su helado al suelo', answer: '😢 TRISTE' },
+        { emoji: '🧩', text: 'Alguien le quitó su juguete', answer: '😠 ENOJADO' },
+        { emoji: '🛏️', text: 'Está descansando tranquilamente en su cama', answer: '😌 CALMADO' },
+        { emoji: '🌩️', text: 'Escucha un trueno muy fuerte', answer: '😨 ASUSTADO' }
       ]
     },
     {
@@ -751,9 +752,9 @@
       type: 'sequence',
       items: [
         { emoji: '🛌', text: 'Despertarse', order: 1 },
-        { emoji: '🚿', text: 'Bañarse', order: 2 },
-        { emoji: '🍳', text: 'Desayunar', order: 3 },
-        { emoji: '😴', text: 'Dormir', order: 4 }
+        { emoji: '👕', text: 'Vestirse', order: 2 },
+        { emoji: '🎒', text: 'Ir a la escuela', order: 3 },
+        { emoji: '😴', text: 'Dormir en la noche', order: 4 }
       ]
     },
     {
@@ -771,8 +772,9 @@
 
   let currentGameIndex = 0;
   let game1Index = 0;
+  let game3Index = 0;
   let score = 0;
-  let stageScore = 0;
+  let stageMistakes = 0;
   let selectedOrder = [];
 
   const studentCard = document.getElementById('student-card');
@@ -836,6 +838,7 @@
   }
 
   function renderGame() {
+    stageMistakes = 0;
     const game = games[currentGameIndex];
     stageLabel.textContent = currentGameIndex + 1;
     gameTitle.textContent = game.title;
@@ -890,16 +893,17 @@
         card.addEventListener('click', () => handleOrderClick(card));
       });
       nextButton.textContent = 'Enviar orden';
-      nextButton.disabled = false;
+      nextButton.disabled = true;
     }
 
     if (game.type === 'pattern') {
-      const item = game.items[0];
+      const item = game.items[game3Index];
       const options = item.options.map(option => `<button class="choice-card" data-value="${option}">${option}</button>`).join('');
       gameContent.innerHTML = `
         <div class="pattern-panel">
           <div class="game-emoji">${item.pattern}</div>
           <p class="pattern-title">¿Qué sigue?</p>
+          <p class="game-count" style="margin-top:1rem; font-weight:700;">Patrón ${game3Index + 1} de ${game.items.length}</p>
         </div>
         <div style="display:grid; gap:1rem; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); margin-top:1rem;">
           ${options}
@@ -908,14 +912,24 @@
       document.querySelectorAll('.choice-card').forEach(button => {
         button.addEventListener('click', () => handlePatternClick(item, button));
       });
-      nextButton.textContent = 'Finalizar';
+      nextButton.textContent = game3Index + 1 < game.items.length ? 'Siguiente patrón' : 'Finalizar';
       nextButton.disabled = true;
     }
   }
 
   function handleEmotionClick(item, button) {
+    if (button.classList.contains('selected')) {
+      button.classList.remove('correct', 'wrong', 'animate-correct', 'animate-wrong', 'selected');
+      button.removeAttribute('aria-pressed');
+      gameFeedback.classList.add('hidden');
+      nextButton.disabled = true;
+      return;
+    }
     const answer = button.dataset.value;
     const correct = answer === item.answer;
+    if (!correct) {
+      stageMistakes++;
+    }
     const allButtons = document.querySelectorAll('.emoji-choice');
     allButtons.forEach(btn => {
       btn.classList.remove('correct', 'wrong', 'animate-correct', 'animate-wrong');
@@ -926,32 +940,52 @@
     button.classList.add(correct ? 'animate-correct' : 'animate-wrong');
     button.classList.add('selected');
     button.setAttribute('aria-pressed', 'true');
-    stageScore = correct ? 1 : 0;
-    gameFeedback.className = 'feedback-box feedback-correct';
+    gameFeedback.className = correct ? 'feedback-box feedback-correct' : 'feedback-box feedback-wrong';
     gameFeedback.textContent = correct
       ? `✅ ¡Muy bien! Esta carita muestra cómo te sientes.`
-      : '✨ Gracias por elegir. Si quieres, puedes probar otra carita o pasar a la siguiente pregunta.';
+      : '❌ Intenta de nuevo. Si quieres, puedes deshacer tu elección tocándola de nuevo o elegir otra.';
     gameFeedback.classList.remove('hidden');
     nextButton.disabled = false;
   }
 
   function handleOrderClick(card) {
-    if (selectedOrder.length >= 4) return;
     const value = Number(card.dataset.order);
-    if (selectedOrder.includes(value)) return;
+    if (selectedOrder.includes(value)) {
+      selectedOrder = selectedOrder.filter(v => v !== value);
+      card.classList.remove('selected');
+      if (selectedOrder.length === 0) {
+        document.getElementById('sequence-selected').classList.add('hidden');
+      } else {
+        document.getElementById('sequence-list').textContent = selectedOrder.join(' → ');
+      }
+      nextButton.disabled = true;
+      return;
+    }
+    if (selectedOrder.length >= 4) return;
     selectedOrder.push(value);
     card.classList.add('selected');
     document.getElementById('sequence-selected').classList.remove('hidden');
     document.getElementById('sequence-list').textContent = selectedOrder.join(' → ');
+    if (selectedOrder.length === 4) {
+      nextButton.disabled = false;
+    }
   }
 
   function handlePatternClick(item, button) {
+    if (button.classList.contains('selected')) {
+      button.classList.remove('selected');
+      gameFeedback.classList.add('hidden');
+      nextButton.disabled = true;
+      return;
+    }
     document.querySelectorAll('.choice-card').forEach(btn => btn.classList.remove('selected'));
     button.classList.add('selected');
-    stageScore = button.dataset.value === item.correct ? 2 : 0;
     const correct = button.dataset.value === item.correct;
+    if (!correct) {
+      stageMistakes++;
+    }
     gameFeedback.className = correct ? 'feedback-box feedback-correct' : 'feedback-box feedback-wrong';
-    gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '❌ Intenta de nuevo.';
+    gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '❌ Intenta de nuevo. Puedes tocarla para deshacer tu elección.';
     gameFeedback.classList.remove('hidden');
     nextButton.disabled = false;
   }
@@ -959,13 +993,12 @@
   function evaluateStage() {
     const game = games[currentGameIndex];
     if (game.type === 'emotions') {
-      score += stageScore;
+      if (stageMistakes === 0) score += 1;
       game1Index += 1;
       if (game1Index < game.items.length) {
         renderGame();
         return;
       }
-      score = Math.max(score, 0);
       currentGameIndex += 1;
       game1Index = 0;
       showNextGame();
@@ -975,23 +1008,34 @@
       const correctSequence = game.items.map(item => item.order).join(',');
       const selectedSequence = selectedOrder.join(',');
       const correct = selectedSequence === correctSequence;
-      stageScore = correct ? 2 : 0;
-      score += stageScore;
+      
       gameFeedback.className = correct ? 'feedback-box feedback-correct' : 'feedback-box feedback-wrong';
-      gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '🔄 Intenta de nuevo';
+      gameFeedback.textContent = correct ? '✅ ¡Perfecto!' : '🔄 Intenta de nuevo. Hemos reiniciado el orden para que puedas corregirlo.';
       gameFeedback.classList.remove('hidden');
+      
       if (!correct) {
+        stageMistakes++;
         document.querySelectorAll('.order-card').forEach(card => card.classList.remove('selected'));
         selectedOrder = [];
         document.getElementById('sequence-list').textContent = '';
+        nextButton.disabled = true;
+        return;
       }
+      
+      if (stageMistakes === 0) score += 1;
       currentGameIndex += 1;
       setTimeout(showNextGame, 1000);
       return;
     }
     if (game.type === 'pattern') {
-      score += stageScore;
+      if (stageMistakes === 0) score += 1;
+      game3Index += 1;
+      if (game3Index < game.items.length) {
+        renderGame();
+        return;
+      }
       currentGameIndex += 1;
+      game3Index = 0;
       showResults();
       return;
     }
